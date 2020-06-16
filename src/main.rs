@@ -13,11 +13,11 @@ fn main() {
         .about("To be determined")
     ;
 
-    let commands = [
+    let commands = vec![
         serve_cmd(),
     ];
 
-    for subcmd in commands.iter() {
+    for subcmd in commands {
         app.subcommand(subcmd); // Doesn't work -_- need to investigate
     }
 
