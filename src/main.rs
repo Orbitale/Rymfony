@@ -3,24 +3,38 @@ mod commands {
 }
 
 use clap::App;
+use clap::Arg;
 
-use crate::commands::serve::cmd as serve_cmd;
+use crate::commands::serve::serve;
 
 fn main() {
     let app = App::new("rustphp")
         .version("0.1")
         .author("Alex Rock <alex@orbitale.io>")
         .about("To be determined")
+        .subcommands(vec![
+            App::new("serve")
+                .about("Runs an HTTP server")
+                .arg(
+                    Arg::with_name("port")
+                        .short("p")
+                        .long("port")
+                        .help("The HTTP port to listen to")
+                )
+        ])
     ;
 
-    let commands = vec![
-        serve_cmd(),
-    ];
-
-    for subcmd in commands {
-        app.subcommand(subcmd); // Doesn't work -_- need to investigate
-    }
-
     let matches = app.get_matches();
-    // TODO
+
+    match matches.subcommand_name() {
+        Some("serve")  => {
+            println!("Executed command: {}", matches.subcommand_name().unwrap());
+            serve(matches);
+        },
+        _ => {
+            println!("Executed no command. Execute \"serve\" by default");
+            serve(matches);
+        },
+    }
+    ;
 }
