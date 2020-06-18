@@ -24,6 +24,7 @@ There are **a lot** of things I would like to do, and I think it will drasticall
 - [x] Split commands in a `src/commands/` subdirectory for an easier code organization.
 - [x] Separate the "App" command definition (using the `clap` crate) and put it in each command's own dir (best example is how the `serve` command is defined).
 - [x] Make sure the web server's IP and port can be customized through a `--listen ip:port` option. 
+- [ ] Execute the server in the background.
 - [ ] Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier). 
 - [ ] Create a tool to discover the `php-fpm` binary if on Linux.
 - [ ] Create a tool to discover the `php` binary if none of the two above are detected.
