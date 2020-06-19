@@ -2,11 +2,16 @@ mod commands {
     pub(crate) mod serve;
 }
 
+mod utils {
+    pub(crate) mod current_process_name;
+}
+
 use clap::App;
 use clap::ArgMatches;
 use std::env;
 use std::process::Command;
 use std::process::Stdio;
+use utils::current_process_name;
 use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 
@@ -33,8 +38,7 @@ fn main() {
         _ => {
             // If no subcommand is specified,
             // re-run the program with "--help"
-            let process_args: Vec<String> = env::args().collect();
-            let mut subprocess = Command::new(&process_args[0])
+            let mut subprocess = Command::new(current_process_name::get().as_str())
                 .arg("--help")
                 .spawn()
                 .expect("Failed to start sub process")
