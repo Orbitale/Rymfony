@@ -2,9 +2,11 @@ mod commands {
     pub(crate) mod serve;
 }
 
-use clap::{App, ArgMatches};
+use clap::App;
+use clap::ArgMatches;
 use std::env;
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::process::Stdio;
 use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 
