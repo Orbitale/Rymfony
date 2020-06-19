@@ -2,8 +2,9 @@ mod commands {
     pub(crate) mod serve;
 }
 
-use clap::App;
-
+use clap::{App, ArgMatches};
+use std::env;
+use std::process::{Command, Stdio};
 use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 
@@ -23,12 +24,20 @@ fn main() {
 
     let subcommand_name = matches.subcommand_name();
 
-    println!("Executing command: {}", subcommand_name.unwrap());
-
     match subcommand_name {
-        Some("serve") | _ => {
+        Some("serve") => {
             serve(matches.subcommand_matches("serve").unwrap());
+        },
+        _ => {
+            // If no subcommand is specified,
+            // re-run the program with "--help"
+            let process_args: Vec<String> = env::args().collect();
+            let mut subprocess = Command::new(&process_args[0])
+                .arg("--help")
+                .spawn()
+                .expect("Failed to start sub process")
+            ;
+            subprocess.wait();
         }
-    }
-    ;
+    };
 }
