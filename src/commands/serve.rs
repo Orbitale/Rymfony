@@ -1,22 +1,24 @@
-use crate::utils::current_process_name;
+use std::convert::Infallible;
 use std::env;
 use std::fs::File;
+use std::io::Write;
+use std::net::SocketAddr;
+use std::net::ToSocketAddrs;
 use std::process::Command;
 use std::process::Stdio;
-use clap::SubCommand;
+
 use clap::App;
 use clap::Arg;
 use clap::ArgMatches;
-use std::convert::Infallible;
-use std::net::SocketAddr;
-use std::net::ToSocketAddrs;
-use hyper::Response;
-use hyper::Request;
-use hyper::Body;
-use hyper::Server;
+use clap::SubCommand;
 use hyper::service::make_service_fn;
 use hyper::service::service_fn;
-use std::io::Write;
+use hyper::Body;
+use hyper::Request;
+use hyper::Response;
+use hyper::Server;
+
+use crate::utils::current_process_name;
 
 const DEFAULT_LISTEN: &str = "127.0.0.1:5000";
 
@@ -28,13 +30,13 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
                 .short("l")
                 .long("listen")
                 .help("The TCP socket to listen to, usually an IP with a Port")
-                .takes_value(true)
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("daemon")
                 .short("d")
                 .long("daemon")
-                .help("Run the server in the background")
+                .help("Run the server in the background"),
         )
 }
 
@@ -47,7 +49,9 @@ pub(crate) fn serve(args: &ArgMatches) {
 }
 
 #[tokio::main]
-async fn serve_foreground(args: &ArgMatches) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn serve_foreground(
+    args: &ArgMatches,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     pretty_env_logger::init();
 
     let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
@@ -86,13 +90,11 @@ fn serve_background(args: &ArgMatches) {
         .stderr(Stdio::null())
         .stdout(Stdio::null())
         .spawn()
-        .expect("Failed to start server as a background process")
-    ;
+        .expect("Failed to start server as a background process");
 
     let pid = subprocess.id();
     let mut file = File::create(".pid").expect("Cannot write to PID file");
     file.write_all(pid.to_string().as_ref());
-
 }
 
 async fn request_handler(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
