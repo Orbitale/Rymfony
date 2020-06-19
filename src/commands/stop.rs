@@ -19,7 +19,7 @@ pub(crate) fn stop() {
     }
 }
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 fn stop_process(pid: &str) {
     let mut child = Command::new("taskkill")
         .arg("/T") // Stops process tree
@@ -29,13 +29,14 @@ fn stop_process(pid: &str) {
         .stderr(Stdio::null())
         .stdout(Stdio::null())
         .spawn()
-        .expect("Could not stop server.")
-    ;
+        .expect("Could not stop server.");
 
-    child.wait().expect("An error occured when trying to stop the server");
+    child
+        .wait()
+        .expect("An error occured when trying to stop the server");
 }
 
-#[cfg(target_os="not(windows)")]
+#[cfg(target_os = "not(windows)")]
 fn stop_process(pid: &str) {
     let mut child = Command::new("kill")
         .arg("-9") // SIGKILL
@@ -43,8 +44,9 @@ fn stop_process(pid: &str) {
         .stderr(Stdio::null())
         .stdout(Stdio::null())
         .spawn()
-        .expect("Could not stop server.")
-    ;
+        .expect("Could not stop server.");
 
-    child.wait().expect("An error occured when trying to stop the server");
+    child
+        .wait()
+        .expect("An error occured when trying to stop the server");
 }
