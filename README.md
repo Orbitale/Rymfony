@@ -17,7 +17,9 @@ Run `cargo run serve` to run the web server.
 
 ## Roadmap
 
-There are **a lot** of things I would like to do, and I think it will drastically help me understand how Rust works, therefore I will check these checkboxes every time something is achieved. And maybe I will add more in the future too. 
+There are **a lot** of things I would like to do, and I think it will drastically help me understand how Rust works, therefore I will check these checkboxes every time something is achieved. And maybe I will add more in the future too.
+
+**If you want to contribute to any of these points, feel free to do it!** 
 
 - [x] Make sure we can run a web server using Hyper and Tokio.
 - [x] Put the web-server execution in a separate `serve.rs` file.
