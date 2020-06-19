@@ -1,5 +1,4 @@
 use std::convert::Infallible;
-use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::net::SocketAddr;
@@ -51,7 +50,7 @@ pub(crate) fn serve(args: &ArgMatches) {
 #[tokio::main]
 async fn serve_foreground(
     args: &ArgMatches,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) {
     pretty_env_logger::init();
 
     let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
@@ -71,9 +70,7 @@ async fn serve_foreground(
 
     let server = Server::bind(&addr).serve(service_handler);
 
-    server.await?;
-
-    Ok(())
+    server.await.expect("An error occured when starting the server");
 }
 
 fn serve_background(args: &ArgMatches) {
@@ -93,8 +90,8 @@ fn serve_background(args: &ArgMatches) {
         .expect("Failed to start server as a background process");
 
     let pid = subprocess.id();
-    let mut file = File::create(".pid").expect("Cannot write to PID file");
-    file.write_all(pid.to_string().as_ref());
+    let mut file = File::create(".pid").expect("Cannot create PID file");
+    file.write_all(pid.to_string().as_ref()).expect("Cannot write to PID file");
 }
 
 async fn request_handler(_req: Request<Body>) -> Result<Response<Body>, Infallible> {

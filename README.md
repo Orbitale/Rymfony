@@ -25,7 +25,7 @@ There are **a lot** of things I would like to do, and I think it will drasticall
 - [x] Separate the "App" command definition (using the `clap` crate) and put it in each command's own dir (best example is how the `serve` command is defined).
 - [x] Make sure the web server's IP and port can be customized through a `--listen ip:port` option. 
 - [X] Execute the server in the background.
-- [ ] Add a `stop` command.
+- [X] Add a `stop` command.
 - [ ] Make sure the server process is **totally** detached from the terminal in Windows.
 - [ ] Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier). 
 - [ ] Create a tool to discover the `php-fpm` binary if on Linux.
