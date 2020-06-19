@@ -42,7 +42,9 @@ fn main() {
                 .arg("--help")
                 .spawn()
                 .expect("Failed to start sub process");
-            subprocess.wait();
+            subprocess
+                .wait()
+                .expect("An error occured when trying to execute default command");
         }
     };
 }
