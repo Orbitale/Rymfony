@@ -35,8 +35,9 @@ There are **a lot** of things I would like to do, and I think it will drasticall
 - [ ] Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
 - [ ] When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
 - [ ] Transform the standard web server into an HTTP proxy to PHP.
+- [ ] Publish releases of the binary as artifacts by using Github Actions.
 - [ ] Allow passing environment variables to PHP via an `-e|--env` option.
 - [ ] Allow passing a custom option to specify which method the user wants to use to start PHP (like `--use-fpm` or `--use-native`, something like that).
-- [ ] Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
+- [ ] (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
 - [ ] (utopia) Detect whether the project uses Docker Compose
 - [ ] (utopia) Be able to dynamically create environment variables for some common use-cases (database, redis, rabbitmq, mailcatcher).
