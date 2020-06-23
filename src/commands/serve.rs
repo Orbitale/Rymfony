@@ -4,7 +4,6 @@ use std::io::Write;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
 use std::process::Command;
-use std::process::Stdio;
 
 use clap::App;
 use clap::Arg;
@@ -53,8 +52,6 @@ async fn serve_foreground(args: &ArgMatches) {
 
     let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
 
-    println!("Serving {}", listen);
-
     let mut sockets = listen.to_socket_addrs().unwrap();
 
     let addr = SocketAddr::from(sockets.next().unwrap());
@@ -64,7 +61,7 @@ async fn serve_foreground(args: &ArgMatches) {
         Ok::<_, Infallible>(service_fn(request_handler))
     });
 
-    println!("Serving on http://{}", addr);
+    println!("Server listening to http://{}", addr);
 
     let server = Server::bind(&addr).serve(service_handler);
 
@@ -74,18 +71,12 @@ async fn serve_foreground(args: &ArgMatches) {
 }
 
 fn serve_background(args: &ArgMatches) {
-    println!("Serving in background");
-
     let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
-
-    println!("Serving {}", listen);
 
     let subprocess = Command::new(current_process_name::get().as_str())
         .arg("serve")
         .arg("--listen")
         .arg(listen)
-        .stderr(Stdio::null())
-        .stdout(Stdio::null())
         .spawn()
         .expect("Failed to start server as a background process");
 
@@ -93,6 +84,8 @@ fn serve_background(args: &ArgMatches) {
     let mut file = File::create(".pid").expect("Cannot create PID file");
     file.write_all(pid.to_string().as_ref())
         .expect("Cannot write to PID file");
+
+    println!("Background server running with PID {}", pid);
 }
 
 async fn request_handler(_req: Request<Body>) -> Result<Response<Body>, Infallible> {

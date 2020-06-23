@@ -13,6 +13,7 @@ pub(crate) fn stop() {
     if Path::new(".pid").exists() {
         let pid = fs::read_to_string(".pid").unwrap();
         stop_process(pid.as_ref());
+        println!("Stopped server running with PID {}", pid);
         fs::remove_file(".pid").expect("Could not remove the PID file")
     } else {
         println!("Seems like server is not running");
@@ -36,7 +37,7 @@ fn stop_process(pid: &str) {
         .expect("An error occured when trying to stop the server");
 }
 
-#[cfg(target_os = "not(windows)")]
+#[cfg(not(target_os = "windows"))]
 fn stop_process(pid: &str) {
     let mut child = Command::new("kill")
         .arg("-9") // SIGKILL
