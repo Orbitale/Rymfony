@@ -4,6 +4,7 @@ use std::io::Write;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
 use std::process::Command;
+use console::style;
 
 use clap::App;
 use clap::Arg;
@@ -61,7 +62,7 @@ async fn serve_foreground(args: &ArgMatches) {
         Ok::<_, Infallible>(service_fn(request_handler))
     });
 
-    println!("Server listening to http://{}", addr);
+    println!("Server listening to {}", style(format!("http://{}", addr)).cyan());
 
     let server = Server::bind(&addr).serve(service_handler);
 
@@ -71,12 +72,10 @@ async fn serve_foreground(args: &ArgMatches) {
 }
 
 fn serve_background(args: &ArgMatches) {
-    let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
-
     let subprocess = Command::new(current_process_name::get().as_str())
         .arg("serve")
         .arg("--listen")
-        .arg(listen)
+        .arg(args.value_of("listen").unwrap_or(DEFAULT_LISTEN))
         .spawn()
         .expect("Failed to start server as a background process");
 
