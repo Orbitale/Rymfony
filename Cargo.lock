@@ -510,6 +510,7 @@ dependencies = [
  "glob",
  "hyper",
  "pretty_env_logger",
+ "regex",
  "tokio",
 ]
 

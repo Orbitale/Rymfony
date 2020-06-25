@@ -3,9 +3,11 @@ use clap::SubCommand;
 use std::env;
 use std::path::Path;
 use std::path::PathBuf;
+use std::str;
 use glob::glob;
 use std::process::Command;
 use std::process::Stdio;
+use regex::Regex;
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("php:list").about("List all available PHP executables")
@@ -24,19 +26,33 @@ pub(crate) fn php_list() {
 
     for dir in &path_dirs {
         let path = Path::new(dir);
-        binaries.append(binaries_from_path(path.to_owned()).as_ref());
+        binaries.append(&mut binaries_from_path(path.to_owned()));
     }
 
-    for binary in binaries {
+    let php_version_output_regex = Regex::new(r"").unwrap();
 
-        let mut process = Command::new(binary)
+    let mut final_binaries: Vec<&str> = vec![];
+
+    for binary in binaries {
+        let process = Command::new(binary.to_string())
             .arg("--version")
-            .stderr(Stdio::null())
-            .stdout(Stdio::null())
+            .stdout(Stdio::piped())
             .spawn()
             .unwrap()
-            ;
+        ;
 
+        let output = process.wait_with_output().unwrap();
+        let chars = output.stdout.as_slice();
+        let output_string = str::from_utf8(chars).unwrap();
+
+        if php_version_output_regex.is_match(output_string).to_owned() {
+            let bin_string = binary.to_owned();
+            final_binaries.push(bin_string.as_ref());
+        }
+    };
+
+    for binary in final_binaries {
+        println!(" > {}", binary);
     }
 }
 
@@ -51,17 +67,20 @@ fn get_path_separator() -> String {
 fn binaries_from_path(path: PathBuf) -> Vec<String> {
     let mut binaries: Vec<String>  = vec![];
 
+    let binaries_regex = match cfg!(target_family = "windows") {
+        true => Regex::new(r"php(?:\d\.)*(?:-cgi)\.exe$").unwrap(),
+        false => Regex::new(r"php(?:\d\.)+(?:-fpm)$").unwrap()
+    };
+
     let path_glob = glob_from_path(path.display().to_string().as_str());
 
     for entry in glob(&path_glob).expect("Failed to read glob pattern") {
-        // TODO: regex matching
-        match entry {
-            Ok(path) => {
-                binaries.push(path.display().to_string());
-                println!("{}", path.display().to_string());
-            },
-            Err(e) => println!("{:?}", e),
+        let binary: PathBuf = entry.unwrap();
+        if !binaries_regex.is_match(binary.to_str().unwrap()) {
+            continue
         }
+
+        binaries.push(path.display().to_string());
     }
 
     binaries
