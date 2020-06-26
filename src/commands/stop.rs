@@ -20,7 +20,7 @@ pub(crate) fn stop() {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(target_family = "windows")]
 fn stop_process(pid: &str) {
     let mut child = Command::new("taskkill")
         .arg("/T") // Stops process tree
@@ -37,7 +37,7 @@ fn stop_process(pid: &str) {
         .expect("An error occured when trying to stop the server");
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(target_family = "windows"))]
 fn stop_process(pid: &str) {
     let mut child = Command::new("kill")
         .arg("-9") // SIGKILL

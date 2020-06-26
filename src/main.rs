@@ -1,22 +1,26 @@
 mod commands {
     pub(crate) mod serve;
     pub(crate) mod stop;
+    pub(crate) mod php_list;
 }
 
 mod utils {
     pub(crate) mod current_process_name;
+    pub(crate) mod list_php_binaries;
 }
 
 use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 use crate::commands::stop::command_config as stop_cmd;
 use crate::commands::stop::stop;
+use crate::commands::php_list::command_config as php_list_cmd;
+use crate::commands::php_list::php_list;
 use clap::App;
 use std::process::Command;
 use utils::current_process_name;
 
 fn main() {
-    let commands = vec![serve_cmd(), stop_cmd()];
+    let commands = vec![serve_cmd(), stop_cmd(), php_list_cmd()];
 
     let app = App::new("rymfony")
         .version("0.1")
@@ -34,6 +38,9 @@ fn main() {
         }
         Some("stop") => {
             stop();
+        }
+        Some("php:list") => {
+            php_list();
         }
         _ => {
             // If no subcommand is specified,
