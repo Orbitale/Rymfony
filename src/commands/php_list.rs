@@ -18,58 +18,72 @@ pub(crate) fn php_list() {
     let path_dirs = path_string
         .to_str()
         .unwrap()
-        .split(get_path_separator().as_str())
+        .split(get_path_separator())
         .collect::<Vec<&str>>()
     ;
 
-    let mut binaries: Vec<String> = vec![];
-
-    for dir in &path_dirs {
-        let path = Path::new(dir);
-        binaries.append(&mut binaries_from_path(path.to_owned()));
-    }
+    let binaries: Vec<String> = path_dirs
+         // consumes `path_dirs` and produce an iterator
+        .into_iter()
+        .map(|dir| {
+            // use `PathBuf` directly instead of `Path::new(…).into_owned()`
+            binaries_from_path(PathBuf::from(dir))
+        })
+        // at that point, `binaries_from_path` returns a `Vec<String>` so the iterator is of kind “`Vec<Vec<String>>`”, we only want `Vec<String>`
+        .flatten()
+        // enjoy!
+        .collect();
 
     let php_version_output_regex = Regex::new(r"").unwrap();
 
-    let mut final_binaries: Vec<&str> = vec![];
+    // you can use the same variable name, it's OK,
+    // the previous one will be dropped
+    let binaries: Vec<String> = binaries
+        // consume `binaries` and generate an iterator
+        .into_iter()
+        // with `php_version_output_regex`, basically, we want to filter the
+        // results, so let's use `Iterator::filter`!
+        .filter(|binary| {
+            // `Command::new` can take a reference to a string. `binary` is
+            // of kind `String`, so just share it by giving a reference
+            let process = Command::new(binary.as_str())
+                .arg("--version")
+                .stdout(Stdio::piped())
+                .spawn()
+                .unwrap();
+            let output = process.wait_with_output().unwrap();
+            // instead of getting a slice of the `Vec<u8>` from `output.stdout` to
+            // then use `str::from_utf8`, let's just move the ownership from `Vec`
+            // (which is its value) to `String` (which also owns its value), it's much
+            // simpler!
+            let output_string = String::from_utf8(output.stdout).unwrap();
+
+            // finally, no need to call `.to_owned()` after `.is_match(…)`.
+            // `is_match` returns a boolean, it's going to be our `filter`'s result
+            php_version_output_regex.is_match(output_string.as_str())
+        })
+        .collect();
 
     for binary in binaries {
-        let process = Command::new(binary.to_string())
-            .arg("--version")
-            .stdout(Stdio::piped())
-            .spawn()
-            .unwrap()
-        ;
-
-        let output = process.wait_with_output().unwrap();
-        let chars = output.stdout.as_slice();
-        let output_string = str::from_utf8(chars).unwrap();
-
-        if php_version_output_regex.is_match(output_string).to_owned() {
-            let bin_string = binary.to_owned();
-            final_binaries.push(bin_string.as_ref());
-        }
-    };
-
-    for binary in final_binaries {
         println!(" > {}", binary);
     }
 }
 
-fn get_path_separator() -> String {
+fn get_path_separator() -> &'static str {
     if cfg!(target_family = "windows") {
-        String::from(";")
+        ";"
     } else {
-        String::from(":")
+        ":"
     }
 }
 
 fn binaries_from_path(path: PathBuf) -> Vec<String> {
     let mut binaries: Vec<String>  = vec![];
 
-    let binaries_regex = match cfg!(target_family = "windows") {
-        true => Regex::new(r"php(?:\d\.)*(?:-cgi)\.exe$").unwrap(),
-        false => Regex::new(r"php(?:\d\.)+(?:-fpm)$").unwrap()
+    let binaries_regex = if cfg!(target_family = "windows") {
+        Regex::new(r"php(?:\d\.)*(?:-cgi)\.exe$").unwrap()
+    } else {
+        Regex::new(r"php(?:\d\.)+(?:-fpm)$").unwrap()
     };
 
     let path_glob = glob_from_path(path.display().to_string().as_str());
