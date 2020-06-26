@@ -1,9 +1,10 @@
-#[macro_use] extern crate prettytable;
+#[macro_use]
+extern crate prettytable;
 
 mod commands {
+    pub(crate) mod php_list;
     pub(crate) mod serve;
     pub(crate) mod stop;
-    pub(crate) mod php_list;
 }
 
 mod utils {
@@ -11,12 +12,12 @@ mod utils {
     pub(crate) mod list_php_binaries;
 }
 
+use crate::commands::php_list::command_config as php_list_cmd;
+use crate::commands::php_list::php_list;
 use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 use crate::commands::stop::command_config as stop_cmd;
 use crate::commands::stop::stop;
-use crate::commands::php_list::command_config as php_list_cmd;
-use crate::commands::php_list::php_list;
 use clap::App;
 use std::process::Command;
 use utils::current_process_name;

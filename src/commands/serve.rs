@@ -1,10 +1,10 @@
+use console::style;
 use std::convert::Infallible;
 use std::fs::File;
 use std::io::Write;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
 use std::process::Command;
-use console::style;
 
 use clap::App;
 use clap::Arg;
@@ -62,7 +62,10 @@ async fn serve_foreground(args: &ArgMatches) {
         Ok::<_, Infallible>(service_fn(request_handler))
     });
 
-    println!("Server listening to {}", style(format!("http://{}", addr)).cyan());
+    println!(
+        "Server listening to {}",
+        style(format!("http://{}", addr)).cyan()
+    );
 
     let server = Server::bind(&addr).serve(service_handler);
 

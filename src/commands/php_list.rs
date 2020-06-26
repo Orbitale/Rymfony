@@ -1,7 +1,7 @@
 use clap::App;
 use clap::SubCommand;
-use prettytable::Table;
 use prettytable::format;
+use prettytable::Table;
 
 use crate::utils::list_php_binaries;
 
@@ -14,15 +14,20 @@ pub(crate) fn php_list() {
     let format = format::FormatBuilder::new()
         .column_separator('|')
         .borders('|')
-        .separators(&[format::LinePosition::Top],
-                    format::LineSeparator::new('─', '┬', '┌', '┐'))
-        .separators(&[format::LinePosition::Bottom],
-                    format::LineSeparator::new('─', '┴', '└', '┘'))
-        .separators(&[format::LinePosition::Title],
-                    format::LineSeparator::new('─', '┼', '├', '┤'))
+        .separators(
+            &[format::LinePosition::Top],
+            format::LineSeparator::new('─', '┬', '┌', '┐'),
+        )
+        .separators(
+            &[format::LinePosition::Bottom],
+            format::LineSeparator::new('─', '┴', '└', '┘'),
+        )
+        .separators(
+            &[format::LinePosition::Title],
+            format::LineSeparator::new('─', '┼', '├', '┤'),
+        )
         .padding(1, 1)
-        .build()
-    ;
+        .build();
 
     table.set_format(format);
     table.set_titles(row!["Binary path"]);

@@ -1,11 +1,11 @@
+use glob::glob;
+use rayon::prelude::*;
+use regex::Regex;
 use std::env;
 use std::path::PathBuf;
-use std::str;
-use glob::glob;
 use std::process::Command;
 use std::process::Stdio;
-use regex::Regex;
-use rayon::prelude::*;
+use std::str;
 
 pub(crate) fn all() -> Vec<String> {
     let path_string = env::var_os("PATH").unwrap();
@@ -13,8 +13,7 @@ pub(crate) fn all() -> Vec<String> {
         .to_str()
         .unwrap()
         .split(get_path_separator())
-        .collect::<Vec<&str>>()
-        ;
+        .collect::<Vec<&str>>();
 
     let binaries: Vec<String> = path_dirs
         // consumes `path_dirs` and produce an iterator
@@ -59,8 +58,6 @@ pub(crate) fn all() -> Vec<String> {
             php_version_output_regex.is_match(output_string.as_str())
         })
         .collect()
-
-
 }
 
 fn get_path_separator() -> &'static str {
@@ -72,7 +69,7 @@ fn get_path_separator() -> &'static str {
 }
 
 fn binaries_from_path(path: PathBuf) -> Vec<String> {
-    let mut binaries: Vec<String>  = vec![];
+    let mut binaries: Vec<String> = vec![];
 
     let binaries_regex = if cfg!(target_family = "windows") {
         // On Windows, we mostly have "php" and "php-cgi"
@@ -88,7 +85,7 @@ fn binaries_from_path(path: PathBuf) -> Vec<String> {
     for entry in glob(&path_glob).expect("Failed to read glob pattern") {
         let binary: PathBuf = entry.unwrap();
         if !binaries_regex.is_match(binary.to_str().unwrap()) {
-            continue
+            continue;
         }
 
         binaries.push(binary.to_str().unwrap().parse().unwrap());
