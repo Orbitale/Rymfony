@@ -28,10 +28,10 @@ There are **a lot** of things I would like to do, and I think it will drasticall
 - [x] Make sure the web server's IP and port can be customized through a `--listen ip:port` option. 
 - [X] Execute the server in the background.
 - [X] Add a `stop` command.
-- [ ] Make sure the server process is **totally** detached from the terminal in Windows.
-- [ ] Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier). 
-- [ ] Create a tool to discover the `php-fpm` binary if on Linux.
-- [ ] Create a tool to discover the `php` binary if none of the two above are detected.
+- [x] Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier). 
+- [x] Create a tool to discover the `php-fpm` binary if on Linux.
+- [x] Create a tool to discover the `php` binary if none of the two above are detected.
+- [ ] Make sure the server process is **totally** detached from the terminal in Windows.K
 - [ ] Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
 - [ ] When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
 - [ ] Transform the standard web server into an HTTP proxy to PHP.
