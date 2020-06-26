@@ -1,0 +1,81 @@
+
+name: Build
+
+on: [push]
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [ubuntu-latest, macOS-latest]
+                rust: [stable]
+
+        steps:
+            - uses: actions/checkout@master
+
+            - name: Install SSH key
+              uses: shimataro/ssh-key-action@v2
+              with:
+                  key: ${{ secrets.SSH_KEY }}
+                  known_hosts: ${{ secrets.KNOWN_HOSTS }}
+                  name: piers
+                  config: |
+                      Host piers ${{ secrets.SSH_HOST }}
+                          HostName ${{ secrets.SSH_HOST }}
+                          User pierstoval
+                          Port 22
+                          IdentityFile ~/.ssh/piers
+
+            - uses: hecrj/setup-rust-action@v1
+              with:
+                  rust-version: ${{ matrix.rust }}
+
+            - name: Build
+              run: cargo build --release --all-targets
+
+            - name: List releases
+              run: |
+                  ls -lah ./target/release/ || echo ""
+
+            - name: Send releases
+              run: |
+                  scp ./target/release/rymfony piers:${{ secrets.TARGET_PATH }}/rymfony.${{ matrix.os }}
+
+    build-windows:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                os: [windows-latest]
+                rust: [stable]
+
+        steps:
+            - uses: actions/checkout@master
+
+            - name: Install SSH key
+              uses: shimataro/ssh-key-action@v2
+              with:
+                  key: ${{ secrets.SSH_KEY }}
+                  known_hosts: ${{ secrets.KNOWN_HOSTS }}
+                  name: piers
+                  config: |
+                      Host piers ${{ secrets.SSH_HOST }}
+                          HostName ${{ secrets.SSH_HOST }}
+                          User pierstoval
+                          Port 22
+                          IdentityFile ~/.ssh/piers
+
+            - uses: hecrj/setup-rust-action@v1
+              with:
+                  rust-version: ${{ matrix.rust }}
+
+            - name: Build
+              run: cargo build --release --all-targets
+
+            - name: List releases
+              run: |
+                  dir .\target\release\
+
+            - name: Send releases
+              run: |
+                  scp -o MACs=hmac-sha2-512 .\target\release\rymfony.exe piers:${{ secrets.TARGET_PATH }}/rymfony.${{ matrix.os }}.exe
