@@ -6,6 +6,7 @@ mod commands {
 
 mod utils {
     pub(crate) mod current_process_name;
+    pub(crate) mod list_php_binaries;
 }
 
 use crate::commands::serve::command_config as serve_cmd;
