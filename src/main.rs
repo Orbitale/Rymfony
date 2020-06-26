@@ -1,3 +1,5 @@
+#[macro_use] extern crate prettytable;
+
 mod commands {
     pub(crate) mod serve;
     pub(crate) mod stop;
