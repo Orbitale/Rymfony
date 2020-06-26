@@ -1,13 +1,13 @@
 use clap::App;
 use clap::SubCommand;
 use std::env;
-use std::path::Path;
 use std::path::PathBuf;
 use std::str;
 use glob::glob;
 use std::process::Command;
 use std::process::Stdio;
 use regex::Regex;
+use rayon::prelude::*;
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("php:list").about("List all available PHP executables")
@@ -24,7 +24,7 @@ pub(crate) fn php_list() {
 
     let binaries: Vec<String> = path_dirs
          // consumes `path_dirs` and produce an iterator
-        .into_iter()
+        .into_par_iter()
         .map(|dir| {
             // use `PathBuf` directly instead of `Path::new(…).into_owned()`
             binaries_from_path(PathBuf::from(dir))
@@ -40,7 +40,7 @@ pub(crate) fn php_list() {
     // the previous one will be dropped
     let binaries: Vec<String> = binaries
         // consume `binaries` and generate an iterator
-        .into_iter()
+        .into_par_iter()
         // with `php_version_output_regex`, basically, we want to filter the
         // results, so let's use `Iterator::filter`!
         .filter(|binary| {
@@ -51,7 +51,9 @@ pub(crate) fn php_list() {
                 .stdout(Stdio::piped())
                 .spawn()
                 .unwrap();
+
             let output = process.wait_with_output().unwrap();
+
             // instead of getting a slice of the `Vec<u8>` from `output.stdout` to
             // then use `str::from_utf8`, let's just move the ownership from `Vec`
             // (which is its value) to `String` (which also owns its value), it's much
@@ -62,7 +64,8 @@ pub(crate) fn php_list() {
             // `is_match` returns a boolean, it's going to be our `filter`'s result
             php_version_output_regex.is_match(output_string.as_str())
         })
-        .collect();
+        .collect()
+    ;
 
     for binary in binaries {
         println!(" > {}", binary);
@@ -81,9 +84,9 @@ fn binaries_from_path(path: PathBuf) -> Vec<String> {
     let mut binaries: Vec<String>  = vec![];
 
     let binaries_regex = if cfg!(target_family = "windows") {
-        Regex::new(r"php(?:\d\.)*(?:-cgi)\.exe$").unwrap()
+        Regex::new(r"php(\d+(\.\d+))?(-cgi)?\.exe$").unwrap()
     } else {
-        Regex::new(r"php(?:\d\.)+(?:-fpm)$").unwrap()
+        Regex::new(r"php(\d+(\.\d+))?(-fpm)?$").unwrap()
     };
 
     let path_glob = glob_from_path(path.display().to_string().as_str());
@@ -94,7 +97,7 @@ fn binaries_from_path(path: PathBuf) -> Vec<String> {
             continue
         }
 
-        binaries.push(path.display().to_string());
+        binaries.push(binary.to_str().unwrap().parse().unwrap());
     }
 
     binaries
