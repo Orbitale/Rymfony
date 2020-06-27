@@ -10,6 +10,7 @@ mod commands {
 mod utils {
     pub(crate) mod current_process_name;
     pub(crate) mod php_binaries;
+    pub(crate) mod php_server;
 }
 
 use crate::commands::php_list::command_config as php_list_cmd;
@@ -18,11 +19,15 @@ use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 use crate::commands::stop::command_config as stop_cmd;
 use crate::commands::stop::stop;
+
 use clap::App;
+use std::fs;
 use std::process::Command;
 use utils::current_process_name;
 
 fn main() {
+    fs::create_dir_all("~/.rymfony/").unwrap();
+
     let commands = vec![serve_cmd(), stop_cmd(), php_list_cmd()];
 
     let app = App::new("rymfony")
