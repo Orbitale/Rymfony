@@ -27,7 +27,7 @@ pub(crate) fn all() -> Vec<String> {
         // enjoy!
         .collect();
 
-    let php_version_output_regex = Regex::new(r"").unwrap();
+    let php_version_output_regex = Regex::new(r"^PHP \d\.\d+\.\d+ \(([^\)])+\)").unwrap();
 
     // you can use the same variable name, it's OK,
     // the previous one will be dropped
@@ -55,7 +55,7 @@ pub(crate) fn all() -> Vec<String> {
 
             // finally, no need to call `.to_owned()` after `.is_match(…)`.
             // `is_match` returns a boolean, it's going to be our `filter`'s result
-            php_version_output_regex.is_match(output_string.as_str())
+            php_version_output_regex.is_match(output_string.trim())
         })
         .collect()
 }
