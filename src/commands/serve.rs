@@ -19,7 +19,7 @@ use hyper::Server;
 
 use crate::utils::current_process_name;
 
-const DEFAULT_LISTEN: &str = "127.0.0.1:5000";
+const DEFAULT_LISTEN: &str = "127.0.0.1:8000";
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("serve")
@@ -29,6 +29,7 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
                 .short("l")
                 .long("listen")
                 .help("The TCP socket to listen to, usually an IP with a Port")
+                .default_value(DEFAULT_LISTEN)
                 .takes_value(true),
         )
         .arg(
