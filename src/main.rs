@@ -9,7 +9,7 @@ mod commands {
 
 mod utils {
     pub(crate) mod current_process_name;
-    pub(crate) mod list_php_binaries;
+    pub(crate) mod php_binaries;
 }
 
 use crate::commands::php_list::command_config as php_list_cmd;
