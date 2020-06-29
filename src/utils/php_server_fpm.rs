@@ -1,6 +1,8 @@
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
 
+use std::process::Child;
+
 // Possible values: alert, error, warning, notice, debug
 const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
 
@@ -45,7 +47,7 @@ clear_env = no
 ";
 
 #[cfg(target_family = "windows")]
-pub(crate) fn start_fpm(php_bin: String) {
+pub(crate) fn start(_php_bin: String) -> Child {
     panic!(
         "PHP-FPM does not exist on Windows.\
     It seems the PHP version you selected is wrong.\
@@ -54,7 +56,7 @@ pub(crate) fn start_fpm(php_bin: String) {
 }
 
 #[cfg(not(target_family = "windows"))]
-pub(crate) fn start_fpm(php_bin: String) {
+pub(crate) fn start(php_bin: String) -> Child {
     println!("Using php-fpm");
 
     let uid = get_current_uid();
@@ -87,10 +89,10 @@ pub(crate) fn start_fpm(php_bin: String) {
         .arg(fpm_config_filename);
 
     if let Ok(child) = command.spawn() {
-        println!("Child's ID is {}", child.id());
-    } else {
-        println!("ls command didn't start");
+        println!("Running php-fpm with PID {}", child.id());
+
+        return child;
     }
 
-    //println!("PHP running in background with PID {}", php_command.id());
+    panic!("Could not start php-fpm.");
 }
