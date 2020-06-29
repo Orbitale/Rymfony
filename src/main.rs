@@ -13,6 +13,7 @@ mod utils {
     pub(crate) mod php_server;
     pub(crate) mod php_server_cgi;
     pub(crate) mod php_server_fpm;
+    pub(crate) mod php_server_native;
 }
 
 use crate::commands::php_list::command_config as php_list_cmd;
