@@ -66,7 +66,9 @@ pub(crate) fn start() {
 
 #[cfg(target_family = "windows")]
 fn start_fpm(php_bin: String) {
-    start_cgi(php_bin);
+    panic!("PHP-FPM does not exist on Windows.\
+    It seems the PHP version you selected is wrong.\
+    Please retry using a different version of PHP");
 }
 
 #[cfg(not(target_family = "windows"))]
@@ -116,5 +118,5 @@ fn start_cgi(php_bin: String) {
 }
 
 fn start_native(php_bin: String) {
-    println!("Todo: serve php-cgi");
+    println!("Todo: serve php native");
 }
