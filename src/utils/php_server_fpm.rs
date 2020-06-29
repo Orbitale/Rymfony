@@ -1,9 +1,3 @@
-use crate::utils::php_binaries;
-use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-use std::process::Command;
-
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
 

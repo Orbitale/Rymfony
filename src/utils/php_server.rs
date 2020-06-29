@@ -1,10 +1,5 @@
 use crate::utils::php_binaries;
 use crate::utils::php_server_fpm::start_fpm;
-use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-
-use std::process::Command;
 
 // Check: https://www.php.net/manual/en/install.fpm.configuration.php
 
