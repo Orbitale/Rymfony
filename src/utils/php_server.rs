@@ -3,8 +3,9 @@ use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use std::process::Command;
-use users::get_current_gid;
-use users::get_current_uid;
+
+#[cfg(not(target_family = "windows"))]
+use users::{get_current_gid, get_current_uid};
 
 // Check: https://www.php.net/manual/en/install.fpm.configuration.php
 
@@ -54,7 +55,7 @@ clear_env = no
 pub(crate) fn start() {
     let php_bin = php_binaries::current();
 
-    if php_bin.contains("-fpm") {
+    if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
         start_fpm(php_bin);
     } else if php_bin.contains("-cgi") {
         start_cgi(php_bin);
@@ -63,6 +64,12 @@ pub(crate) fn start() {
     }
 }
 
+#[cfg(target_family = "windows")]
+fn start_fpm(php_bin: String) {
+    start_cgi(php_bin);
+}
+
+#[cfg(not(target_family = "windows"))]
 fn start_fpm(php_bin: String) {
     println!("Using php-fpm");
 
