@@ -59,10 +59,11 @@ fn main() {
             let mut subprocess = Command::new(current_process_name::get().as_str())
                 .arg("--help")
                 .spawn()
-                .expect("Failed to start sub process");
+                .expect("Failed to start HTTP server");
+
             subprocess
                 .wait()
-                .expect("An error occured when trying to execute default command");
+                .expect("An error occured when trying to execute the HTTP server");
         }
     };
 }
