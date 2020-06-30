@@ -14,6 +14,7 @@ mod utils {
     pub(crate) mod php_server_cgi;
     pub(crate) mod php_server_fpm;
     pub(crate) mod php_server_native;
+    pub(crate) mod stop_process;
 }
 
 use crate::commands::php_list::command_config as php_list_cmd;
