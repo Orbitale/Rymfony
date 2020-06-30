@@ -21,7 +21,9 @@ pub(crate) fn start() {
     let sleep_time = time::Duration::from_millis(1000);
     thread::sleep(sleep_time);
 
-    match process.try_wait() {
+    let process_status = process.try_wait();
+
+    match process_status {
         Ok(Some(status)) => panic!(format!("PHP server exited with {}", status)),
         Ok(None) => {
             println!("PHP server seems ready");

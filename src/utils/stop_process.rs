@@ -1,4 +1,6 @@
 use std::process::Command;
+
+#[cfg(target_family = "windows")]
 use std::process::Stdio;
 
 #[cfg(target_family = "windows")]
