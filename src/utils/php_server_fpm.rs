@@ -1,7 +1,11 @@
+use std::env;
+use std::fs::File;
+use std::io::prelude::*;
+use std::process::Child;
+use std::process::Command;
+
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
-
-use std::process::Child;
 
 // Possible values: alert, error, warning, notice, debug
 const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
@@ -76,13 +80,14 @@ pub(crate) fn start(php_bin: String) -> Child {
     let fpm_config_filename = "~/.rymfony/fpm-conf.ini";
 
     let mut file = File::create(fpm_config_filename).unwrap();
-    file.write_all(config.as_bytes());
+    file.write_all(config.as_bytes()).expect("Could not write to php-fpm config file.");
 
     let cwd = env::current_dir().unwrap();
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
 
     let mut command = Command::new(php_bin);
     command
+        .arg("--nodaemonize")
         .arg("--pid")
         .arg(pid_filename)
         .arg("--fpm-config")
