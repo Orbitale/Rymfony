@@ -2,6 +2,7 @@ use crate::utils::php_binaries;
 use crate::utils::php_server_cgi::start as start_cgi;
 use crate::utils::php_server_fpm::start as start_fpm;
 use crate::utils::php_server_native::start as start_native;
+use crate::utils::stop_process;
 
 use std::thread;
 use std::time;
@@ -30,4 +31,13 @@ pub(crate) fn start() {
             e
         )),
     }
+
+    let pid = process.id();
+
+    ctrlc::set_handler(move || {
+        println!("Stopping PHP process...");
+        // TODO: I'd like this to work but there are "borrows" issue again -_-
+        //process.kill();
+        stop_process::stop(pid.to_string().as_ref());
+    }).expect("Error setting Ctrl-C handler");
 }

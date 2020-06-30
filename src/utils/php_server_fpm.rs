@@ -24,10 +24,13 @@ error_log = /dev/fd/2
 ; This gives the advantage of keeping control over the process,
 ; and possibly retrieve logs too (since logs can be piped with fpm's stderr with current config)
 daemonize = no
+systemd_interval = 0
 
 [www]
-user = {{ uid }}
-group = {{ gid }}
+; Only works if launched as a root user
+; TODO: check if this can be usable anyway
+;user = {{ uid }}
+;group = {{ gid }}
 
 listen = 127.0.0.1:{{ port }}
 listen.allowed_clients = 127.0.0.1
