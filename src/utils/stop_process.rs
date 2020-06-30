@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::process::Stdio;
 
 #[cfg(target_family = "windows")]
 pub(crate) fn stop(pid: &str) {
