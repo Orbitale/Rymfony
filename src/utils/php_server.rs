@@ -2,6 +2,7 @@ use crate::utils::php_binaries;
 use crate::utils::php_server_cgi::start as start_cgi;
 use crate::utils::php_server_fpm::start as start_fpm;
 use crate::utils::php_server_native::start as start_native;
+#[cfg(not(target_os = "windows"))]
 use crate::utils::stop_process;
 
 use std::process;
@@ -36,10 +37,19 @@ pub(crate) fn start() {
     }
 
     ctrlc::set_handler_mut(move || {
-        print!("Stopping PHP process... ");
-        let pid = process.id();
-        stop_process::stop(pid.to_string().as_ref()); // Stop fpm children
-        process.kill().expect("An error occured when stopping the PHP server."); // Stop main process
+        println!("Stopping PHP process... ");
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            let pid = process.id();
+            stop_process::stop(pid.to_string().as_ref()); // Stop fpm children
+        }
+
+        match process.kill() {
+            Ok(_) => println!("PHP process stopped."),
+            Err(e) => println!("An error occured when stopping PHP: {:?}", e),
+        }
         process::exit(0);
-    }).expect("Error setting Ctrl-C handler");
+    })
+    .expect("Error setting Ctrl-C handler");
 }
