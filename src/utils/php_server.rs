@@ -4,6 +4,7 @@ use crate::utils::php_server_fpm::start as start_fpm;
 use crate::utils::php_server_native::start as start_native;
 use crate::utils::stop_process;
 
+use std::process;
 use std::thread;
 use std::time;
 
@@ -26,7 +27,7 @@ pub(crate) fn start() {
     match process_status {
         Ok(Some(status)) => panic!(format!("PHP server exited with {}", status)),
         Ok(None) => {
-            println!("PHP server seems ready");
+            println!("PHP server is ready");
         }
         Err(e) => panic!(format!(
             "An error occured when checking PHP server health: {:?}",
@@ -34,12 +35,11 @@ pub(crate) fn start() {
         )),
     }
 
-    let pid = process.id();
-
-    ctrlc::set_handler(move || {
-        println!("Stopping PHP process...");
-        // TODO: I'd like this to work but there are "borrows" issue again -_-
-        //process.kill();
-        stop_process::stop(pid.to_string().as_ref());
+    ctrlc::set_handler_mut(move || {
+        print!("Stopping PHP process... ");
+        let pid = process.id();
+        stop_process::stop(pid.to_string().as_ref()); // Stop fpm children
+        process.kill().expect("An error occured when stopping the PHP server."); // Stop main process
+        process::exit(0);
     }).expect("Error setting Ctrl-C handler");
 }
