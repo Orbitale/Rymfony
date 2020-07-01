@@ -1,18 +1,25 @@
-use std::env;
-use std::fs::File;
-use std::io::prelude::*;
+
+#[cfg(not(target_family = "windows"))]
+use std::{
+    env,
+    fs::File,
+    io::prelude::*,
+    process::Command
+};
 use std::process::Child;
-use std::process::Command;
 
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
 
 // Possible values: alert, error, warning, notice, debug
+#[cfg(not(target_family = "windows"))]
 const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
 
+#[cfg(not(target_family = "windows"))]
 const FPM_DEFAULT_PORT: u16 = 65535;
 
 // The placeholders between brackets {{ }} will be replaced with proper values.
+#[cfg(not(target_family = "windows"))]
 const FPM_DEFAULT_CONFIG: &str = "
 [global]
 log_level = {{ log_level }}
