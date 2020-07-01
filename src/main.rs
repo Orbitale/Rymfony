@@ -1,5 +1,5 @@
-#[macro_use]
-extern crate prettytable;
+#[macro_use] extern crate prettytable;
+#[macro_use] extern crate log;
 
 mod commands {
     pub(crate) mod php_list;
