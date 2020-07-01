@@ -9,12 +9,15 @@ mod commands {
 
 mod utils {
     pub(crate) mod current_process_name;
-    pub(crate) mod php_binaries;
-    pub(crate) mod php_server;
-    pub(crate) mod php_server_cgi;
-    pub(crate) mod php_server_fpm;
-    pub(crate) mod php_server_native;
     pub(crate) mod stop_process;
+}
+
+mod php {
+    pub(crate) mod binaries;
+    pub(crate) mod php_server;
+    pub(crate) mod server_cgi;
+    pub(crate) mod server_fpm;
+    pub(crate) mod server_native;
 }
 
 mod http {

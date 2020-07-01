@@ -11,7 +11,7 @@ use clap::SubCommand;
 
 use crate::http::proxy_server;
 use crate::utils::current_process_name;
-use crate::utils::php_server;
+use crate::php::php_server;
 
 const DEFAULT_LISTEN: &str = "127.0.0.1:8000";
 

@@ -3,7 +3,7 @@ use clap::SubCommand;
 use prettytable::format;
 use prettytable::Table;
 
-use crate::utils::php_binaries;
+use crate::php;
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("php:list").about("List all available PHP executables")
@@ -32,9 +32,7 @@ pub(crate) fn php_list() {
     table.set_format(format);
     table.set_titles(row!["Binary path"]);
 
-    let binaries = php_binaries::all();
-
-    for binary in binaries {
+    for binary in php::binaries::all() {
         table.add_row(row![binary]);
     }
 

@@ -1,7 +1,7 @@
-use crate::utils::php_binaries;
-use crate::utils::php_server_cgi::start as start_cgi;
-use crate::utils::php_server_fpm::start as start_fpm;
-use crate::utils::php_server_native::start as start_native;
+use crate::php::binaries;
+use crate::php::server_cgi::start as start_cgi;
+use crate::php::server_fpm::start as start_fpm;
+use crate::php::server_native::start as start_native;
 #[cfg(not(target_os = "windows"))]
 use crate::utils::stop_process;
 
@@ -10,7 +10,7 @@ use std::thread;
 use std::time;
 
 pub(crate) fn start() {
-    let php_bin = php_binaries::current();
+    let php_bin = binaries::current();
 
     let mut process = if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
         start_fpm(php_bin)
