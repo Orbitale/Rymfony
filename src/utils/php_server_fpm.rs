@@ -1,12 +1,6 @@
-
-#[cfg(not(target_family = "windows"))]
-use std::{
-    env,
-    fs::File,
-    io::prelude::*,
-    process::Command
-};
 use std::process::Child;
+#[cfg(not(target_family = "windows"))]
+use std::{env, fs::File, io::prelude::*, process::Command};
 
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
@@ -90,7 +84,8 @@ pub(crate) fn start(php_bin: String) -> Child {
     let fpm_config_filename = "~/.rymfony/fpm-conf.ini";
 
     let mut file = File::create(fpm_config_filename).unwrap();
-    file.write_all(config.as_bytes()).expect("Could not write to php-fpm config file.");
+    file.write_all(config.as_bytes())
+        .expect("Could not write to php-fpm config file.");
 
     let cwd = env::current_dir().unwrap();
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
