@@ -17,6 +17,10 @@ mod utils {
     pub(crate) mod stop_process;
 }
 
+mod http {
+    pub(crate) mod proxy_server;
+}
+
 use crate::commands::php_list::command_config as php_list_cmd;
 use crate::commands::php_list::php_list;
 use crate::commands::serve::command_config as serve_cmd;

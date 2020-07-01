@@ -1,5 +1,3 @@
-use console::style;
-use std::convert::Infallible;
 use std::fs::File;
 use std::io::Write;
 use std::net::SocketAddr;
@@ -10,13 +8,8 @@ use clap::App;
 use clap::Arg;
 use clap::ArgMatches;
 use clap::SubCommand;
-use hyper::service::make_service_fn;
-use hyper::service::service_fn;
-use hyper::Body;
-use hyper::Request;
-use hyper::Response;
-use hyper::Server;
 
+use crate::http::proxy_server;
 use crate::utils::current_process_name;
 use crate::utils::php_server;
 
@@ -49,33 +42,20 @@ pub(crate) fn serve(args: &ArgMatches) {
     }
 }
 
-#[tokio::main]
-async fn serve_foreground(args: &ArgMatches) {
+fn serve_foreground(args: &ArgMatches) {
     pretty_env_logger::init();
 
-    let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
-
-    let mut sockets = listen.to_socket_addrs().unwrap();
-
-    let addr = SocketAddr::from(sockets.next().unwrap());
-
-    let service_handler = make_service_fn(|_conn| async {
-        // service_fn converts our function into a `Service`
-        Ok::<_, Infallible>(service_fn(request_handler))
-    });
-
-    println!(
-        "Server listening to {}",
-        style(format!("http://{}", addr)).cyan()
-    );
+    println!("Starting PHP...");
 
     php_server::start();
 
-    let http_server = Server::bind(&addr).serve(service_handler);
+    let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
+    let mut sockets = listen.to_socket_addrs().unwrap();
+    let addr = SocketAddr::from(sockets.next().unwrap());
 
-    http_server
-        .await
-        .expect("An error occured when starting the server");
+    println!("Starting HTTP server...");
+
+    proxy_server::start(addr);
 }
 
 fn serve_background(args: &ArgMatches) {
@@ -92,10 +72,4 @@ fn serve_background(args: &ArgMatches) {
         .expect("Cannot write to PID file");
 
     println!("Background server running with PID {}", pid);
-}
-
-async fn request_handler(_req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    println!("{} {}", _req.method(), _req.uri());
-
-    Ok(Response::new("Hello, World".into()))
 }
