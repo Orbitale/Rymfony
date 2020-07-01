@@ -121,10 +121,9 @@ $ rymfony php:list
 
 **If you want to contribute to any of these points, feel free to do it!**
 
-- To do:
-    - [ ] Publish releases of the binary as artifacts by using Github Actions.
+- To do (order of priority):
+    - [ ] Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
     - [ ] Make sure the server process is **totally** detached from the terminal in Windows. There are some issues about this, and it needs more investigation. Check [this blog post section](https://www.orbitale.io/2020/06/25/being-a-php-developer-on-windows-10-cool-snippets.html#3-symfony-binary-the-http-server) for more information.
-    - [ ] Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
     - [ ] Transform the standard web server into an HTTP proxy to PHP.
     - [ ] When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
     - [ ] Allow listing running servers globally, without necessarily using a `.pid` file.
@@ -136,15 +135,16 @@ $ rymfony php:list
     - [ ] (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
     - [ ] (utopia) Detect whether the project uses Docker Compose
     - [ ] (utopia) Be able to dynamically create environment variables for some common use-cases (database, redis, rabbitmq, mailcatcher).
-- Done:
-    - [x] Make sure we can run a web server using Hyper and Tokio.
-    - [x] Put the web-server execution in a separate `serve.rs` file.
-    - [x] Split commands in a `src/commands/` subdirectory for an easier code organization.
-    - [x] Separate the "App" command definition (using the `clap` crate) and put it in each command's own dir (best example is how the `serve` command is defined).
-    - [x] Make sure the web server's IP and port can be customized through a `--listen ip:port` option. 
-    - [X] Execute the server in the background.
-    - [X] Add a `stop` command.
-    - [x] Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier). 
-    - [x] Create a tool to discover the `php-fpm` binary if on Linux.
-    - [x] Create a tool to discover the `php` binary if none of the two above are detected.
+- Done (latest first):
+    - [x] Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
     - [x] Publish nightly builds of the binary as artifacts by using Github Actions.
+    - [x] Create a tool to discover the `php` binary if none of the two above are detected.
+    - [x] Create a tool to discover the `php-fpm` binary if on Linux.
+    - [x] Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier). 
+    - [X] Add a `stop` command.
+    - [X] Execute the server in the background.
+    - [x] Make sure the web server's IP and port can be customized through a `--listen ip:port` option. 
+    - [x] Separate the "App" command definition (using the `clap` crate) and put it in each command's own dir (best example is how the `serve` command is defined).
+    - [x] Split commands in a `src/commands/` subdirectory for an easier code organization.
+    - [x] Put the web-server execution in a separate `serve.rs` file.
+    - [x] Make sure we can run a web server using Hyper and Tokio.

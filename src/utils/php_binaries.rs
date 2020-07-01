@@ -7,6 +7,30 @@ use std::process::Command;
 use std::process::Stdio;
 use std::str;
 
+pub(crate) fn current() -> String {
+    let binaries = all();
+
+    let binaries_regex = if cfg!(target_family = "windows") {
+        // On Windows, we mostly have "php" and "php-cgi"
+        Regex::new(r"php(\d+(\.\d+))?(-cgi)\.exe$").unwrap()
+    } else {
+        // This will probably need to be updated for other platforms.
+        // This matches "php", "php7.4", "php-fpm", "php7.4-fpm" and "php-fpm7.4"
+        Regex::new(r"php(\d+(\.\d+))?(-fpm)(\d+(\.\d+))?$").unwrap()
+    };
+
+    for binary in binaries {
+        if !binaries_regex.is_match(binary.as_str()) {
+            continue;
+        }
+
+        // TODO: check for a better solution to choose current PHP version
+        return binary.to_string();
+    }
+
+    "php".to_string()
+}
+
 pub(crate) fn all() -> Vec<String> {
     let path_string = env::var_os("PATH").unwrap();
     let path_dirs = path_string

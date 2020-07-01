@@ -18,6 +18,7 @@ use hyper::Response;
 use hyper::Server;
 
 use crate::utils::current_process_name;
+use crate::utils::php_server;
 
 const DEFAULT_LISTEN: &str = "127.0.0.1:8000";
 
@@ -68,9 +69,11 @@ async fn serve_foreground(args: &ArgMatches) {
         style(format!("http://{}", addr)).cyan()
     );
 
-    let server = Server::bind(&addr).serve(service_handler);
+    php_server::start();
 
-    server
+    let http_server = Server::bind(&addr).serve(service_handler);
+
+    http_server
         .await
         .expect("An error occured when starting the server");
 }

@@ -9,7 +9,12 @@ mod commands {
 
 mod utils {
     pub(crate) mod current_process_name;
-    pub(crate) mod list_php_binaries;
+    pub(crate) mod php_binaries;
+    pub(crate) mod php_server;
+    pub(crate) mod php_server_cgi;
+    pub(crate) mod php_server_fpm;
+    pub(crate) mod php_server_native;
+    pub(crate) mod stop_process;
 }
 
 use crate::commands::php_list::command_config as php_list_cmd;
@@ -18,11 +23,15 @@ use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 use crate::commands::stop::command_config as stop_cmd;
 use crate::commands::stop::stop;
+
 use clap::App;
+use std::fs;
 use std::process::Command;
 use utils::current_process_name;
 
 fn main() {
+    fs::create_dir_all("~/.rymfony/").unwrap();
+
     let commands = vec![serve_cmd(), stop_cmd(), php_list_cmd()];
 
     let app = App::new("rymfony")
@@ -51,10 +60,11 @@ fn main() {
             let mut subprocess = Command::new(current_process_name::get().as_str())
                 .arg("--help")
                 .spawn()
-                .expect("Failed to start sub process");
+                .expect("Failed to start HTTP server");
+
             subprocess
                 .wait()
-                .expect("An error occured when trying to execute default command");
+                .expect("An error occured when trying to execute the HTTP server");
         }
     };
 }
