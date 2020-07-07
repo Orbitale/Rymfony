@@ -17,10 +17,13 @@ pub(crate) async fn start(port: u16) {
 
     let fpm_url = format!("http://127.0.0.1:{}", port);
 
-    let make_service_fn = make_service_fn(|socket: &AddrStream| async move {
-        Ok::<_, Infallible>(service_fn(|req: Request<Body>| async {
-            handle_request(&fpm_url, req).await
-        }))
+    let make_service_fn = make_service_fn(move |_socket: &AddrStream| async {
+        let fpm_url = fpm_url.clone();
+        let request_handler = move |req: Request<Body>| async {
+            handle_request(fpm_url.clone(), req)
+        };
+        let service = service_fn(request_handler);
+        Result::<_, Infallible>::Ok(service)
     });
 
     let http_server = Server::bind(&addr).serve(make_service_fn);
@@ -35,7 +38,7 @@ pub(crate) async fn start(port: u16) {
         .expect("An error occured when starting the server");
 }
 
-async fn handle_request(fpm_url: &str, req: Request<Body>) -> Response<Body> {
+async fn handle_request(fpm_url: String, req: Request<Body>) -> Result<Response<Body>, Infallible> {
     let method = req.method();
 
     println!("{} {}", method, req.uri());
@@ -64,8 +67,11 @@ async fn handle_request(fpm_url: &str, req: Request<Body>) -> Response<Body> {
     let status = surf_response.body_bytes();
     let status = status.await.unwrap();
 
-    Response::builder()
-        .status(StatusCode::from_bytes(status.as_slice()).unwrap())
-        .body(Body::from(surf_response.body_bytes().await.unwrap()))
-        .unwrap()
+
+    Result::<_, Infallible>::Ok(
+        Response::builder()
+            .status(StatusCode::from_bytes(status.as_slice()).unwrap())
+            .body(Body::from(surf_response.body_bytes().await.unwrap()))
+            .unwrap()
+    )
 }
