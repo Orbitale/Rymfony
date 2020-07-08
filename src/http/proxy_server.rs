@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
-
+use anyhow::Result;
 use console::style;
 use hyper::server::conn::AddrStream;
 use hyper::service::make_service_fn;
@@ -38,7 +38,7 @@ pub(crate) async fn start(port: u16) {
         .expect("An error occured when starting the server");
 }
 
-async fn handle_request(fpm_url: String, req: Request<Body>) -> Result<Response<Body>, Infallible> {
+async fn handle_request(fpm_url: String, req: Request<Body>) -> anyhow::Result<Response<Body>> {
     let method = req.method();
 
     println!("{} {}", method, req.uri());
@@ -68,7 +68,7 @@ async fn handle_request(fpm_url: String, req: Request<Body>) -> Result<Response<
     let status = status.await.unwrap();
 
 
-    Result::<_, Infallible>::Ok(
+    anyhow::Result::Ok(
         Response::builder()
             .status(StatusCode::from_bytes(status.as_slice()).unwrap())
             .body(Body::from(surf_response.body_bytes().await.unwrap()))
