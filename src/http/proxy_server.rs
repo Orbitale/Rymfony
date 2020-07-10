@@ -11,12 +11,6 @@ use hyper::Response;
 use hyper::Server;
 use hyper::StatusCode;
 
-async fn handle(req: Request<Body>, port: u16) -> Result<Response<Body>, anyhow::Error> {
-    let fpm_url = format!("http://127.0.0.1:{}", port);
-
-    handle_request(fpm_url.clone(), req).await
-}
-
 #[tokio::main]
 pub(crate) async fn start(port: u16) {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -73,4 +67,10 @@ async fn handle_request(fpm_url: String, req: Request<Body>) -> anyhow::Result<R
             .body(Body::from(surf_response.body_bytes().await.unwrap()))
             .unwrap()
     )
+}
+
+async fn handle(req: Request<Body>, port: u16) -> Result<Response<Body>, anyhow::Error> {
+    let fpm_url = format!("http://127.0.0.1:{}", port);
+
+    handle_request(fpm_url.clone(), req).await
 }
