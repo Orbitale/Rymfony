@@ -11,22 +11,21 @@ use hyper::Response;
 use hyper::Server;
 use hyper::StatusCode;
 
+async fn handle(req: Request<Body>, port: u16) -> Result<Response<Body>, anyhow::Error> {
+    let fpm_url = format!("http://127.0.0.1:{}", port);
+
+    handle_request(fpm_url.clone(), req).await
+}
+
 #[tokio::main]
 pub(crate) async fn start(port: u16) {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
-    let fpm_url = format!("http://127.0.0.1:{}", port);
-
-    let make_service_fn = make_service_fn(move |_socket: &AddrStream| async {
-        let fpm_url = fpm_url.clone();
-        let request_handler = move |req: Request<Body>| async {
-            handle_request(fpm_url.clone(), req)
-        };
-        let service = service_fn(request_handler);
-        Result::<_, Infallible>::Ok(service)
+    let make_svc = make_service_fn(|_conn| async move {
+        let request_handler = move |req: Request<Body>| handle(req, port);
+        Ok::<_, Infallible>(service_fn(request_handler))
     });
-
-    let http_server = Server::bind(&addr).serve(make_service_fn);
+    let http_server = Server::bind(&addr).serve(make_svc);
 
     println!(
         "Server listening to {}",
