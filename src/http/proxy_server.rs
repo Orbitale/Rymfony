@@ -21,7 +21,7 @@ async fn handle(req: Request<Body>, port: u16) -> Result<Response<Body>, anyhow:
 pub(crate) async fn start(port: u16) {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
-    let make_svc = make_service_fn(|_conn| async {
+    let make_svc = make_service_fn(|_conn| async move {
         let request_handler = move |req: Request<Body>| handle(req, port);
         Ok::<_, Infallible>(service_fn(request_handler))
     });
