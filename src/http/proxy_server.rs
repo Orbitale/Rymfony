@@ -2,7 +2,6 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use anyhow::Result;
 use console::style;
-use hyper::server::conn::AddrStream;
 use hyper::service::make_service_fn;
 use hyper::service::service_fn;
 use hyper::Body;
