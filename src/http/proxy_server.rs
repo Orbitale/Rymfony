@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-use std::net::SocketAddr;
 use anyhow::Result;
 use console::style;
 use hyper::service::make_service_fn;
@@ -9,6 +7,8 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use hyper::StatusCode;
+use std::convert::Infallible;
+use std::net::SocketAddr;
 
 #[tokio::main]
 pub(crate) async fn start(port: u16) {
@@ -37,7 +37,7 @@ async fn handle_request(fpm_url: String, req: Request<Body>) -> anyhow::Result<R
 
     let fpm_url = format!("{}{}", fpm_url, req.uri());
 
-    let mut surf_response = match method.as_str() {
+    let surf_response = match method.as_str() {
         "GET" => surf::get(fpm_url).await,
         "POST" => surf::post(fpm_url).await,
         "PUT" => surf::put(fpm_url).await,
@@ -48,23 +48,25 @@ async fn handle_request(fpm_url: String, req: Request<Body>) -> anyhow::Result<R
         "CONNECT" => surf::connect(fpm_url).await,
         "DELETE" => surf::delete(fpm_url).await,
         _ => panic!(format!("Unsupported method {}", method)),
-    }
-    .unwrap();
+    };
+
+    let mut response_from_proxy = surf_response.unwrap();
+
+    let resp = Response::builder();
 
     // TODO: find a way to make this work too, it's **mandatory**!
-    // for header in surf_response.headers().iter() {
-    //     hyper_response.header(header.0, header.1);
-    // }
-
-    let status = surf_response.body_bytes();
-    let status = status.await.unwrap();
-
+    // response_from_proxy.headers().iter().map(move |header| {
+    //     let (header_name, value) = header;
+    //     resp.header(header_name, value);
+    // });
 
     anyhow::Result::Ok(
-        Response::builder()
-            .status(StatusCode::from_bytes(status.as_slice()).unwrap())
-            .body(Body::from(surf_response.body_bytes().await.unwrap()))
-            .unwrap()
+        resp.status(
+            StatusCode::from_bytes(response_from_proxy.body_bytes().await.unwrap().as_slice())
+                .unwrap(),
+        )
+        .body(Body::from(response_from_proxy.body_bytes().await.unwrap()))
+        .unwrap(),
     )
 }
 
