@@ -1,23 +1,31 @@
+use std::convert::Infallible;
+use std::env;
+use std::io;
+use std::net::SocketAddr;
+use std::net::TcpStream;
+
 use anyhow::Result;
 use console::style;
+use fastcgi_client::Client;
+use fastcgi_client::Params;
+use hyper::server::conn::AddrStream;
 use hyper::service::make_service_fn;
 use hyper::service::service_fn;
 use hyper::Body;
 use hyper::Request;
 use hyper::Response;
 use hyper::Server;
-use hyper::StatusCode;
-use std::convert::Infallible;
-use std::net::SocketAddr;
 
 #[tokio::main]
 pub(crate) async fn start(port: u16) {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
-    let make_svc = make_service_fn(|_conn| async move {
-        let request_handler = move |req: Request<Body>| handle(req, port);
+    let make_svc = make_service_fn(|socket: &AddrStream| async move {
+        let remote_addr = socket.remote_addr();
+        let request_handler = move |req: Request<Body>| handle(remote_addr, req, port);
         Ok::<_, Infallible>(service_fn(request_handler))
     });
+
     let http_server = Server::bind(&addr).serve(make_svc);
 
     println!(
@@ -30,48 +38,50 @@ pub(crate) async fn start(port: u16) {
         .expect("An error occured when starting the server");
 }
 
-async fn handle_request(fpm_url: String, req: Request<Body>) -> anyhow::Result<Response<Body>> {
-    let method = req.method();
+async fn handle(
+    remote_addr: SocketAddr,
+    req: Request<Body>,
+    port: u16,
+) -> Result<Response<Body>, anyhow::Error> {
+    let remote_addr = remote_addr.ip().to_string();
+    let remote_addr = remote_addr.as_str();
 
-    println!("{} {}", method, req.uri());
+    let script_filename = env::current_dir()
+        .unwrap()
+        .join("index.php")
+    ;
 
-    let fpm_url = format!("{}{}", fpm_url, req.uri());
+    let script_filename = script_filename.to_str().unwrap();
+    let script_name = req.uri().to_string();
 
-    let surf_response = match method.as_str() {
-        "GET" => surf::get(fpm_url).await,
-        "POST" => surf::post(fpm_url).await,
-        "PUT" => surf::put(fpm_url).await,
-        "PATCH" => surf::patch(fpm_url).await,
-        "HEAD" => surf::head(fpm_url).await,
-        "OPTIONS" => surf::options(fpm_url).await,
-        "TRACE" => surf::trace(fpm_url).await,
-        "CONNECT" => surf::connect(fpm_url).await,
-        "DELETE" => surf::delete(fpm_url).await,
-        _ => panic!(format!("Unsupported method {}", method)),
-    };
+    let stream = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    let mut client = Client::new(stream, false);
 
-    let mut response_from_proxy = surf_response.unwrap();
+    // Fastcgi params, please reference to nginx-php-fpm config.
+    let params = Params::with_predefine()
+        .set_request_method("GET")
+        .set_script_name(&script_name)
+        .set_script_filename(script_filename)
+        .set_request_uri(&script_name)
+        .set_document_uri(&script_name)
+        .set_remote_addr(remote_addr)
+        .set_remote_port("12345")
+        .set_server_addr("127.0.0.1")
+        .set_server_port("80")
+        .set_server_name("pierstoval")
+        .set_content_type("")
+        .set_content_length("0")
+        ;
+
+    let output = client.do_request(&params, &mut io::empty()).unwrap();
+
+    let stdout = output.get_stdout();
+    let stdout = stdout.unwrap();
+    let stdout = String::from_utf8(stdout);
 
     let resp = Response::builder();
 
-    // TODO: find a way to make this work too, it's **mandatory**!
-    // response_from_proxy.headers().iter().map(move |header| {
-    //     let (header_name, value) = header;
-    //     resp.header(header_name, value);
-    // });
-
     anyhow::Result::Ok(
-        resp.status(
-            StatusCode::from_bytes(response_from_proxy.body_bytes().await.unwrap().as_slice())
-                .unwrap(),
-        )
-        .body(Body::from(response_from_proxy.body_bytes().await.unwrap()))
-        .unwrap(),
+        resp.body(Body::from(stdout.unwrap())).unwrap()
     )
-}
-
-async fn handle(req: Request<Body>, port: u16) -> Result<Response<Body>, anyhow::Error> {
-    let fpm_url = format!("http://127.0.0.1:{}", port);
-
-    handle_request(fpm_url.clone(), req).await
 }

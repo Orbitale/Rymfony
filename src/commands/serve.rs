@@ -1,4 +1,3 @@
-
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
@@ -9,8 +8,8 @@ use clap::ArgMatches;
 use clap::SubCommand;
 
 use crate::http::proxy_server;
-use crate::utils::current_process_name;
 use crate::php::php_server;
+use crate::utils::current_process_name;
 
 const DEFAULT_PORT: &str = "8000";
 
