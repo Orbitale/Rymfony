@@ -1,10 +1,9 @@
-use std::convert::Infallible;
 use std::env;
 use std::io;
 use std::net::SocketAddr;
 use std::net::TcpStream;
-
 use anyhow::Result;
+
 use console::style;
 use fastcgi_client::Client;
 use fastcgi_client::Params;
@@ -21,9 +20,12 @@ pub(crate) async fn start(port: u16) {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
     let make_svc = make_service_fn(|socket: &AddrStream| async move {
-        let remote_addr = socket.remote_addr();
-        let request_handler = move |req: Request<Body>| handle(remote_addr, req, port);
-        Ok::<_, Infallible>(service_fn(request_handler))
+        let remote_addr: SocketAddr = socket.remote_addr();
+        let request_handler = move |req: Request<Body>| {
+            handle(remote_addr, req, port)
+        };
+
+        anyhow::Result::Ok(service_fn(request_handler))
     });
 
     let http_server = Server::bind(&addr).serve(make_svc);
@@ -33,16 +35,14 @@ pub(crate) async fn start(port: u16) {
         style(format!("http://{}", addr)).cyan()
     );
 
-    http_server
-        .await
-        .expect("An error occured when starting the server");
+    http_server.await;
 }
 
 async fn handle(
     remote_addr: SocketAddr,
     req: Request<Body>,
     port: u16,
-) -> Result<Response<Body>, anyhow::Error> {
+) -> Result<Response<Body>> {
     let remote_addr = remote_addr.ip().to_string();
     let remote_addr = remote_addr.as_str();
 
@@ -71,7 +71,7 @@ async fn handle(
         .set_server_name("pierstoval")
         .set_content_type("")
         .set_content_length("0")
-        ;
+    ;
 
     let output = client.do_request(&params, &mut io::empty()).unwrap();
 
@@ -81,7 +81,7 @@ async fn handle(
 
     let resp = Response::builder();
 
-    anyhow::Result::Ok(
-        resp.body(Body::from(stdout.unwrap())).unwrap()
-    )
+    let resp = resp.body(Body::from(stdout.unwrap())).unwrap();
+
+    anyhow::Result::Ok(resp)
 }
