@@ -25,7 +25,7 @@ pub(crate) async fn start(port: u16) {
             handle(remote_addr, req, port)
         };
 
-        anyhow::Result::Ok(service_fn(request_handler))
+        Ok::<_, anyhow::Error>(service_fn(request_handler))
     });
 
     let http_server = Server::bind(&addr).serve(make_svc);
@@ -83,5 +83,5 @@ async fn handle(
 
     let resp = resp.body(Body::from(stdout.unwrap())).unwrap();
 
-    anyhow::Result::Ok(resp)
+    Ok::<_, anyhow::Error>(resp)
 }
