@@ -10,6 +10,7 @@ use clap::SubCommand;
 use crate::http::proxy_server;
 use crate::php::php_server;
 use crate::utils::current_process_name;
+use crate::php::php_server::PhpServerSapi;
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -44,12 +45,20 @@ fn serve_foreground(args: &ArgMatches) {
 
     info!("Starting PHP...");
 
-    php_server::start();
+    let php_server = php_server::start();
+
+    let sapi = match php_server.sapi() {
+        #[cfg(not(target_os = "windows"))]
+        PhpServerSapi::FPM => "FPM",
+        PhpServerSapi::CLI => "CLI",
+        PhpServerSapi::CGI => "CGI",
+    };
+    info!("PHP started with module {}", sapi);
 
     info!("Starting HTTP server...");
 
     let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
-    proxy_server::start(port.parse::<u16>().unwrap());
+    proxy_server::start(port.parse::<u16>().unwrap(), php_server.port());
 }
 
 fn serve_background(args: &ArgMatches) {
