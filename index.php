@@ -22,12 +22,18 @@ foreach ($fields as $field) {
     $display[$field] = $_SERVER[$field] ?? '__undefined';
 }
 
+$headers = [];
+
 foreach ($_SERVER as $key => $value) {
     if (0 === strpos($key, 'HTTP_')) {
-        $display[$key] = $value;
+        $headers[$key] = $value;
     }
 }
 
+ksort($headers);
 ksort($display);
 
-echo json_encode($display, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+echo json_encode([
+    'Server' => $display,
+    'Headers' => $headers,
+], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
