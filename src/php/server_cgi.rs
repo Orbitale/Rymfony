@@ -1,5 +1,5 @@
-use std::process::{Command, Child};
 use crate::php::php_server::{PhpServer, PhpServerSapi};
+use std::process::{Child, Command};
 
 const CGI_DEFAULT_PORT: u16 = 65535;
 

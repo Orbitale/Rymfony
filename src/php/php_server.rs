@@ -13,20 +13,17 @@ pub(crate) enum PhpServerSapi {
     #[cfg(not(target_os = "windows"))]
     FPM,
     CGI,
-    CLI
+    CLI,
 }
 
 pub(crate) struct PhpServer {
     port: u16,
-    sapi: PhpServerSapi
+    sapi: PhpServerSapi,
 }
 
 impl PhpServer {
-    pub(crate) fn new (port: u16, sapi: PhpServerSapi) -> PhpServer {
-        PhpServer {
-            port,
-            sapi
-        }
+    pub(crate) fn new(port: u16, sapi: PhpServerSapi) -> PhpServer {
+        PhpServer { port, sapi }
     }
 
     pub fn port(&self) -> u16 {
@@ -41,13 +38,14 @@ impl PhpServer {
 pub(crate) fn start() -> PhpServer {
     let php_bin = binaries::current();
 
-    let (php_server, mut process) = if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
-        start_fpm(php_bin)
-    } else if php_bin.contains("-cgi") {
-        start_cgi(php_bin)
-    } else {
-        start_native(php_bin)
-    };
+    let (php_server, mut process) =
+        if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
+            start_fpm(php_bin)
+        } else if php_bin.contains("-cgi") {
+            start_cgi(php_bin)
+        } else {
+            start_native(php_bin)
+        };
 
     let sleep_time = time::Duration::from_millis(1000);
     thread::sleep(sleep_time);

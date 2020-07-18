@@ -1,5 +1,5 @@
-use std::process::{Command, Child};
 use crate::php::php_server::{PhpServer, PhpServerSapi};
+use std::process::{Child, Command};
 
 const NATIVE_DEFAULT_PORT: u16 = 65535;
 
@@ -13,7 +13,10 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     if let Ok(child) = command.spawn() {
         println!("Running native PHP server with PID {}", child.id());
 
-        return (PhpServer::new(NATIVE_DEFAULT_PORT, PhpServerSapi::CLI), child);
+        return (
+            PhpServer::new(NATIVE_DEFAULT_PORT, PhpServerSapi::CLI),
+            child,
+        );
     }
 
     panic!("Could not start native PHP server.");

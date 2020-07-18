@@ -9,8 +9,8 @@ use clap::SubCommand;
 
 use crate::http::proxy_server;
 use crate::php::php_server;
-use crate::utils::current_process_name;
 use crate::php::php_server::PhpServerSapi;
+use crate::utils::current_process_name;
 
 const DEFAULT_PORT: &str = "8000";
 

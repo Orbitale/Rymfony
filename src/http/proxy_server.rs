@@ -7,6 +7,7 @@ use std::net::TcpStream;
 use console::style;
 use fastcgi_client::Client;
 use fastcgi_client::Params;
+use hyper::header::HeaderValue;
 use hyper::server::conn::AddrStream;
 use hyper::service::make_service_fn;
 use hyper::service::service_fn;
@@ -15,7 +16,6 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use std::convert::Infallible;
-use hyper::header::HeaderValue;
 
 #[tokio::main]
 pub(crate) async fn start(http_port: u16, php_port: u16) {
@@ -79,8 +79,20 @@ async fn handle(
         .set_server_addr("127.0.0.1")
         .set_server_port(php_port_str.as_ref())
         .set_server_name("Rymfony")
-        .set_content_type(headers.get("Content-Type").unwrap_or(empty_header).to_str().unwrap_or(""))
-        .set_content_length(headers.get("Content-Length").unwrap_or(empty_header).to_str().unwrap_or(""));
+        .set_content_type(
+            headers
+                .get("Content-Type")
+                .unwrap_or(empty_header)
+                .to_str()
+                .unwrap_or(""),
+        )
+        .set_content_length(
+            headers
+                .get("Content-Length")
+                .unwrap_or(empty_header)
+                .to_str()
+                .unwrap_or(""),
+        );
 
     let output = client.do_request(&params, &mut io::empty()).unwrap();
 
