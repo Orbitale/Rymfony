@@ -977,6 +977,7 @@ dependencies = [
  "ctrlc",
  "fastcgi-client",
  "glob",
+ "http",
  "hyper",
  "log",
  "pretty_env_logger",

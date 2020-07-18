@@ -11,6 +11,7 @@ $fields = [
     "REMOTE_ADDR",
     "REMOTE_HOST",
     "REQUEST_URI",
+    "REQUEST_METHOD",
     "SCRIPT_FILENAME",
     "SCRIPT_NAME",
     "SERVER_ADMIN",
@@ -19,7 +20,7 @@ $fields = [
 ];
 
 foreach ($fields as $field) {
-    $display[$field] = $_SERVER[$field] ?? '__undefined';
+    $display[$field] = $_SERVER[$field] ?? "__";
 }
 
 $headers = [];
@@ -33,7 +34,10 @@ foreach ($_SERVER as $key => $value) {
 ksort($headers);
 ksort($display);
 
+$requestBody = file_get_contents("php://input");
+
 echo json_encode([
-    'Server' => $display,
-    'Headers' => $headers,
+    'Server parameters' => $display,
+    'Request headers' => $headers,
+    'Request body' => $requestBody,
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
