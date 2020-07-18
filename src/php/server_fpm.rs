@@ -5,6 +5,7 @@ use std::{env, fs::File, io::prelude::*, process::Command};
 use users::{get_current_gid, get_current_uid};
 
 use crate::php::php_server::PhpServer;
+use crate::php::php_server::PhpServerSapi;
 use std::process::Child;
 
 // Possible values: alert, error, warning, notice, debug
