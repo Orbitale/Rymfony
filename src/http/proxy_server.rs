@@ -15,6 +15,7 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use std::convert::Infallible;
+use hyper::header::HeaderValue;
 
 #[tokio::main]
 pub(crate) async fn start(http_port: u16, php_port: u16) {
@@ -62,6 +63,10 @@ async fn handle(
     let http_port_str = http_port.to_string();
     let php_port_str = php_port.to_string();
 
+    let headers = req.headers();
+
+    let empty_header = &HeaderValue::from_str("").unwrap();
+
     // Fastcgi params, please reference to nginx-php-fpm config.
     let params = Params::with_predefine()
         .set_request_method("GET")
@@ -74,8 +79,8 @@ async fn handle(
         .set_server_addr("127.0.0.1")
         .set_server_port(php_port_str.as_ref())
         .set_server_name("Rymfony")
-        .set_content_type("")
-        .set_content_length("0");
+        .set_content_type(headers.get("Content-Type").unwrap_or(empty_header).to_str().unwrap_or(""))
+        .set_content_length(headers.get("Content-Length").unwrap_or(empty_header).to_str().unwrap_or(""));
 
     let output = client.do_request(&params, &mut io::empty()).unwrap();
 
@@ -85,7 +90,11 @@ async fn handle(
 
     let resp = Response::builder();
 
-    let resp = resp.body(Body::from(stdout.unwrap())).unwrap();
+    let stdout = stdout.unwrap();
+
+    println!("Response body: {}", stdout.clone());
+
+    let resp = resp.body(Body::from(stdout.clone())).unwrap();
 
     Ok(resp)
 }
