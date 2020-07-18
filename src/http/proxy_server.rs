@@ -46,6 +46,8 @@ async fn handle(
     http_port: u16,
     php_port: u16,
 ) -> Result<Response<Body>, Infallible> {
+    println!("{} {}", req.method(), req.uri());
+
     let remote_addr = remote_addr.ip().to_string();
     let remote_addr = remote_addr.as_str();
 
