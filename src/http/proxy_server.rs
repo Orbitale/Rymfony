@@ -15,6 +15,7 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use std::convert::Infallible;
+use std::io;
 
 #[tokio::main]
 pub(crate) async fn start(http_port: u16, php_port: u16) {
@@ -55,9 +56,9 @@ async fn handle(
     let headers = req.headers().clone();
     let method = req.method().to_string();
     let method = method.as_str();
-    let (parts, mut request_body) = req.into_parts();
+    let (parts, _) = req.into_parts();
 
-    let mut body = hyper::body::to_bytes(request_body).await.unwrap();
+    //let mut body = hyper::body::to_bytes(request_body).await.unwrap();
 
     let http_version = match parts.version {
         Version::HTTP_09 => "HTTP/0.9",
@@ -109,7 +110,7 @@ async fn handle(
         .set_server_software("rymfony/rust/fastcgi-client")
         .set_server_protocol(http_version);
 
-    let output = client.do_request(&params, &mut body).unwrap();
+    let output = client.do_request(&params, &mut io::empty()).unwrap();
 
     let stdout = output.get_stdout();
     let stdout = stdout.unwrap();
