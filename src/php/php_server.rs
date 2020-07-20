@@ -9,16 +9,43 @@ use std::process;
 use std::thread;
 use std::time;
 
-pub(crate) fn start() {
+pub(crate) enum PhpServerSapi {
+    #[cfg(not(target_os = "windows"))]
+    FPM,
+    CGI,
+    CLI,
+}
+
+pub(crate) struct PhpServer {
+    port: u16,
+    sapi: PhpServerSapi,
+}
+
+impl PhpServer {
+    pub(crate) fn new(port: u16, sapi: PhpServerSapi) -> PhpServer {
+        PhpServer { port, sapi }
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
+    }
+
+    pub fn sapi(&self) -> &PhpServerSapi {
+        &self.sapi
+    }
+}
+
+pub(crate) fn start() -> PhpServer {
     let php_bin = binaries::current();
 
-    let mut process = if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
-        start_fpm(php_bin)
-    } else if php_bin.contains("-cgi") {
-        start_cgi(php_bin)
-    } else {
-        start_native(php_bin)
-    };
+    let (php_server, mut process) =
+        if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
+            start_fpm(php_bin)
+        } else if php_bin.contains("-cgi") {
+            start_cgi(php_bin)
+        } else {
+            start_native(php_bin)
+        };
 
     let sleep_time = time::Duration::from_millis(1000);
     thread::sleep(sleep_time);
@@ -52,4 +79,6 @@ pub(crate) fn start() {
         process::exit(0);
     })
     .expect("Error setting Ctrl-C handler");
+
+    php_server
 }

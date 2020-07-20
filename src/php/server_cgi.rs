@@ -1,9 +1,9 @@
-use std::process::Child;
-use std::process::Command;
+use crate::php::php_server::{PhpServer, PhpServerSapi};
+use std::process::{Child, Command};
 
 const CGI_DEFAULT_PORT: u16 = 65535;
 
-pub(crate) fn start(php_bin: String) -> Child {
+pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let mut command = Command::new(php_bin);
 
     command
@@ -13,7 +13,7 @@ pub(crate) fn start(php_bin: String) -> Child {
     if let Ok(child) = command.spawn() {
         println!("Running php-cgi with PID {}", child.id());
 
-        return child;
+        return (PhpServer::new(CGI_DEFAULT_PORT, PhpServerSapi::CGI), child);
     }
 
     panic!("Could not start php-cgi.");

@@ -55,9 +55,10 @@ SUBCOMMANDS:
 
 ### `rymfony serve`
 
-⚠️ For now, this command launches the server, but the PHP server has to be implemented (check the roadmap for more information).
+⚠️  For now, the server "works" but it **lacks tons of features** (doesn't pass request headers or body, etc.).<br>
+If you are keen to see Rymfony work, we definitely need your help into doing it! Feel free to create an issue if you need advices!
 
-This command allows you to run a web server, in foreground or background, and you can customize the socket to listen to.
+This command allows you to run a web server, in foreground or background, and you can customize the port to listen to.
 
 ```
 $ rymfony serve --help
@@ -73,7 +74,7 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -l, --listen <listen>    The TCP socket to listen to, usually an IP with a Port [default: 127.0.0.1:8000]
+        --port <port>    The TCP port to listen to [default: 8000]
 ```
 
 ### `rymfony stop`

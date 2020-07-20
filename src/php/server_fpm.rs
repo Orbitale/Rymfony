@@ -1,9 +1,13 @@
-use std::process::Child;
 #[cfg(not(target_family = "windows"))]
 use std::{env, fs::File, io::prelude::*, process::Command};
 
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
+
+use crate::php::php_server::PhpServer;
+#[cfg(not(target_family = "windows"))]
+use crate::php::php_server::PhpServerSapi;
+use std::process::Child;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
@@ -55,7 +59,7 @@ clear_env = no
 ";
 
 #[cfg(target_family = "windows")]
-pub(crate) fn start(_php_bin: String) -> Child {
+pub(crate) fn start(_php_bin: String) -> (PhpServer, Child) {
     panic!(
         "PHP-FPM does not exist on Windows.\
     It seems the PHP version you selected is wrong.\
@@ -64,7 +68,7 @@ pub(crate) fn start(_php_bin: String) -> Child {
 }
 
 #[cfg(not(target_family = "windows"))]
-pub(crate) fn start(php_bin: String) -> Child {
+pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     println!("Using php-fpm");
 
     let uid = get_current_uid();
@@ -101,7 +105,7 @@ pub(crate) fn start(php_bin: String) -> Child {
     if let Ok(child) = command.spawn() {
         println!("Running php-fpm with PID {}", child.id());
 
-        return child;
+        return (PhpServer::new(FPM_DEFAULT_PORT, PhpServerSapi::FPM), child);
     }
 
     panic!("Could not start php-fpm.");

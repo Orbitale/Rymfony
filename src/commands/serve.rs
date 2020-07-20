@@ -1,7 +1,5 @@
 use std::fs::File;
 use std::io::Write;
-use std::net::SocketAddr;
-use std::net::ToSocketAddrs;
 use std::process::Command;
 
 use clap::App;
@@ -10,20 +8,20 @@ use clap::ArgMatches;
 use clap::SubCommand;
 
 use crate::http::proxy_server;
-use crate::utils::current_process_name;
 use crate::php::php_server;
+use crate::php::php_server::PhpServerSapi;
+use crate::utils::current_process_name;
 
-const DEFAULT_LISTEN: &str = "127.0.0.1:8000";
+const DEFAULT_PORT: &str = "8000";
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("serve")
         .about("Runs an HTTP server")
         .arg(
-            Arg::with_name("listen")
-                .short("l")
-                .long("listen")
-                .help("The TCP socket to listen to, usually an IP with a Port")
-                .default_value(DEFAULT_LISTEN)
+            Arg::with_name("port")
+                .long("port")
+                .help("The TCP port to listen to")
+                .default_value(DEFAULT_PORT.as_ref())
                 .takes_value(true),
         )
         .arg(
@@ -45,24 +43,29 @@ pub(crate) fn serve(args: &ArgMatches) {
 fn serve_foreground(args: &ArgMatches) {
     pretty_env_logger::init();
 
-    println!("Starting PHP...");
+    info!("Starting PHP...");
 
-    php_server::start();
+    let php_server = php_server::start();
 
-    let listen = args.value_of("listen").unwrap_or(DEFAULT_LISTEN);
-    let mut sockets = listen.to_socket_addrs().unwrap();
-    let addr = SocketAddr::from(sockets.next().unwrap());
+    let sapi = match php_server.sapi() {
+        #[cfg(not(target_os = "windows"))]
+        PhpServerSapi::FPM => "FPM",
+        PhpServerSapi::CLI => "CLI",
+        PhpServerSapi::CGI => "CGI",
+    };
+    info!("PHP started with module {}", sapi);
 
-    println!("Starting HTTP server...");
+    info!("Starting HTTP server...");
 
-    proxy_server::start(addr);
+    let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
+    proxy_server::start(port.parse::<u16>().unwrap(), php_server.port());
 }
 
 fn serve_background(args: &ArgMatches) {
     let subprocess = Command::new(current_process_name::get().as_str())
         .arg("serve")
-        .arg("--listen")
-        .arg(args.value_of("listen").unwrap_or(DEFAULT_LISTEN))
+        .arg("--port")
+        .arg(args.value_of("port").unwrap_or(DEFAULT_PORT))
         .spawn()
         .expect("Failed to start server as a background process");
 
@@ -71,5 +74,5 @@ fn serve_background(args: &ArgMatches) {
     file.write_all(pid.to_string().as_ref())
         .expect("Cannot write to PID file");
 
-    println!("Background server running with PID {}", pid);
+    info!("Background server running with PID {}", pid);
 }
