@@ -68,7 +68,7 @@ async fn handle(
         _ => unreachable!(),
     };
 
-    println!("HTTP/{} {} {}", http_version, method, request_uri);
+    println!("{} {} {}", http_version, method, request_uri);
 
     let stream = TcpStream::connect(("127.0.0.1", php_port)).unwrap();
     let mut client = Client::new(stream, false);
@@ -79,7 +79,7 @@ async fn handle(
     let empty_header = &HeaderValue::from_str("").unwrap();
 
     // Fastcgi params, please reference to nginx-php-fpm config.
-    let params = Params::with_predefine()
+    let mut params = Params::with_predefine()
         .set_content_length(
             headers
                 .get("Content-Length")
