@@ -3,20 +3,28 @@
 echo "Hey! It works!\n";
 
 $fields = [
+    "CONTENT_LENGTH",
+    "CONTENT_TYPE",
     "DOCUMENT_ROOT",
+    "DOCUMENT_URI",
+    "GATEWAY_INTERFACE",
     "HTTPS",
     "ORIG_PATH_INFO",
     "PATH_INFO",
     "QUERY_STRING",
     "REMOTE_ADDR",
     "REMOTE_HOST",
-    "REQUEST_URI",
+    "REMOTE_PORT",
     "REQUEST_METHOD",
+    "REQUEST_URI",
     "SCRIPT_FILENAME",
     "SCRIPT_NAME",
+    "SERVER_ADDR",
     "SERVER_ADMIN",
+    "SERVER_NAME",
     "SERVER_PORT",
-    "SERVER_PORT",
+    "SERVER_PROTOCOL",
+    "SERVER_SOFTWARE",
 ];
 
 foreach ($fields as $field) {
