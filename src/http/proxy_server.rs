@@ -15,6 +15,7 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use std::convert::Infallible;
+use regex::Regex;
 
 #[tokio::main]
 pub(crate) async fn start(http_port: u16, php_port: u16) {
@@ -123,13 +124,42 @@ async fn handle(
     let stdout = stdout.unwrap();
     let stdout = String::from_utf8(stdout);
 
-    let resp = Response::builder();
+    let response_builder = Response::builder();
 
     let stdout = stdout.unwrap();
 
     println!("Response body: {}", stdout.clone());
 
-    let resp = resp.body(Body::from(stdout.clone())).unwrap();
+    let raw_http_response = stdout.clone();
 
-    Ok(resp)
+    let response_headers_regex = Regex::new(r"(?s)^(.*)\r\n\r\n(.*)$").unwrap();
+
+    let capts = response_headers_regex.captures(raw_http_response.as_str()).unwrap();
+
+    let headers = &capts[1];
+    let body = capts[2].to_string();
+
+    let single_header_regex = Regex::new(r"^([^:]+):(.*)$").unwrap();
+
+    let mut headers_normalized = Vec::new();
+
+    headers.split("\r\n").map(|header: &str| {
+        let headers_capts = single_header_regex.captures(header).unwrap();
+
+        let header_name = headers_capts[1].to_string();
+        let header_value = headers_capts[2].to_string();
+
+        headers_normalized.push((header_name, header_value));
+    });
+
+    for (name, value) in headers_normalized {
+        response_builder.header(name.as_str(), value.as_str());
+    }
+
+    let response = response_builder.body(
+        Body::from(body.as_str())
+        //Body::from(body)
+    ).unwrap();
+
+    Ok(response)
 }
