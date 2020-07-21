@@ -109,6 +109,14 @@ async fn handle(
         .set_server_software("rymfony/rust/fastcgi-client")
         .set_server_protocol(http_version);
 
+    let mut headers_normalized = Vec::new();
+    for (name, value) in headers.iter() {
+        let header_name = format!("HTTP_{}", name.as_str().replace("-", "_").to_uppercase());
+
+        headers_normalized.push((header_name, value.to_str().unwrap()));
+    };
+    params.extend(headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
+
     let output = client.do_request(&params, &mut std::io::Cursor::new(body)).unwrap();
 
     let stdout = output.get_stdout();
