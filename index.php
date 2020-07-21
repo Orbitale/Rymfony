@@ -1,7 +1,5 @@
 <?php
 
-echo "Hey! It works!\n";
-
 $fields = [
     "CONTENT_LENGTH",
     "CONTENT_TYPE",
@@ -44,6 +42,9 @@ ksort($display);
 
 $requestBody = file_get_contents("php://input");
 
+
+header('X-Some-Random-Header: some-random-value');
+echo "Hey! It works!\n";
 echo json_encode([
     'Server parameters' => $display,
     'Request headers' => $headers,
