@@ -55,7 +55,7 @@ SUBCOMMANDS:
 
 ### `rymfony serve`
 
-⚠️  For now, the server "works" but it **lacks tons of features** (doesn't pass request headers or body, etc.).<br>
+⚠️  For now, the server "works" but it **lacks some features**.<br>
 If you are keen to see Rymfony work, we definitely need your help into doing it! Feel free to create an issue if you need advices!
 
 This command allows you to run a web server, in foreground or background, and you can customize the port to listen to.
@@ -125,7 +125,6 @@ $ rymfony php:list
 - To do (order of priority):
     - [ ] Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
     - [ ] Make sure the server process is **totally** detached from the terminal in Windows. There are some issues about this, and it needs more investigation. Check [this blog post section](https://www.orbitale.io/2020/06/25/being-a-php-developer-on-windows-10-cool-snippets.html#3-symfony-binary-the-http-server) for more information.
-    - [ ] Transform the standard web server into an HTTP proxy to PHP.
     - [ ] When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
     - [ ] Allow listing running servers globally, without necessarily using a `.pid` file.
     - [ ] Allow stopping a server globally, without necessarily using a `.pid` file.
@@ -137,6 +136,7 @@ $ rymfony php:list
     - [ ] (utopia) Detect whether the project uses Docker Compose
     - [ ] (utopia) Be able to dynamically create environment variables for some common use-cases (database, redis, rabbitmq, mailcatcher).
 - Done (latest first):
+    - [x] Transform the standard web server into an HTTP proxy to PHP.
     - [x] Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
     - [x] Publish nightly builds of the binary as artifacts by using Github Actions.
     - [x] Create a tool to discover the `php` binary if none of the two above are detected.
