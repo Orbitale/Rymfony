@@ -124,7 +124,9 @@ async fn handle(
 
     let stdout = output.get_stdout();
     let stdout = stdout.unwrap();
-    let stdout = std::str::from_utf8(stdout.as_slice()).unwrap();
+    let stdout = stdout.as_slice();
+    let stdout = std::str::from_utf8(stdout);
+    let stdout = stdout.unwrap();
 
     let response_headers_regex = Regex::new(r"(?s)^(.*)\r\n\r\n(.*)$").unwrap();
 
@@ -149,7 +151,7 @@ async fn handle(
     response_headers.extend(headers_normalized);
 
     let response = response_builder.body(
-        Body::from(body.as_bytes())
+        Body::from(body)
         //Body::from(body)
     ).unwrap();
 
