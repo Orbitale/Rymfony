@@ -7,6 +7,7 @@ use fastcgi_client::Client;
 use fastcgi_client::Params;
 use http::Version;
 use hyper::header::HeaderValue;
+use hyper::header::HeaderName;
 use hyper::server::conn::AddrStream;
 use hyper::service::make_service_fn;
 use hyper::service::service_fn;
@@ -16,6 +17,7 @@ use hyper::Response;
 use hyper::Server;
 use std::convert::Infallible;
 use regex::Regex;
+use std::collections::HashMap;
 
 #[tokio::main]
 pub(crate) async fn start(http_port: u16, php_port: u16) {
@@ -122,42 +124,32 @@ async fn handle(
 
     let stdout = output.get_stdout();
     let stdout = stdout.unwrap();
-    let stdout = String::from_utf8(stdout);
-
-    let response_builder = Response::builder();
-
-    let stdout = stdout.unwrap();
-
-    println!("Response body: {}", stdout.clone());
-
-    let raw_http_response = stdout.clone();
+    let stdout = std::str::from_utf8(stdout.as_slice()).unwrap();
 
     let response_headers_regex = Regex::new(r"(?s)^(.*)\r\n\r\n(.*)$").unwrap();
 
-    let capts = response_headers_regex.captures(raw_http_response.as_str()).unwrap();
+    let capts = response_headers_regex.captures(stdout).unwrap();
 
     let headers = &capts[1];
-    let body = capts[2].to_string();
+    let body = &capts[2];
 
     let single_header_regex = Regex::new(r"^([^:]+):(.*)$").unwrap();
 
-    let mut headers_normalized = Vec::new();
-
-    headers.split("\r\n").map(|header: &str| {
+    let headers_normalized: HashMap<HeaderName, HeaderValue> = headers.split("\r\n").map(|header: &str| {
         let headers_capts = single_header_regex.captures(header).unwrap();
 
-        let header_name = headers_capts[1].to_string();
-        let header_value = headers_capts[2].to_string();
+        let header_name = &headers_capts[1].as_bytes();
+        let header_value = &headers_capts[2];
 
-        headers_normalized.push((header_name, header_value));
-    });
+        (HeaderName::from_bytes(header_name).unwrap(), HeaderValue::from_str(header_value).unwrap())
+    }).collect();
 
-    for (name, value) in headers_normalized {
-        response_builder.header(name.as_str(), value.as_str());
-    }
+    let mut response_builder = Response::builder();
+    let mut response_headers = response_builder.headers_mut().unwrap();
+    response_headers.extend(headers_normalized);
 
     let response = response_builder.body(
-        Body::from(body.as_str())
+        Body::from(body.as_bytes())
         //Body::from(body)
     ).unwrap();
 
