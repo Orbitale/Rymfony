@@ -69,7 +69,7 @@ pub(crate) fn start(_php_bin: String) -> (PhpServer, Child) {
 
 #[cfg(not(target_family = "windows"))]
 pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
-    println!("Using php-fpm");
+    info!("Using php-fpm");
 
     let uid = get_current_uid();
     let uid_str = uid.to_string();
@@ -103,7 +103,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .arg(fpm_config_filename);
 
     if let Ok(child) = command.spawn() {
-        println!("Running php-fpm with PID {}", child.id());
+        info!("Running php-fpm with PID {}", child.id());
 
         return (PhpServer::new(FPM_DEFAULT_PORT, PhpServerSapi::FPM), child);
     }

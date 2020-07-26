@@ -25,6 +25,7 @@ mod php {
 
 mod http {
     pub(crate) mod proxy_server;
+    pub(crate) mod fastcgi_handler;
 }
 
 use crate::commands::php_list::command_config as php_list_cmd;

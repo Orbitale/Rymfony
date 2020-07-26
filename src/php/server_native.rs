@@ -11,7 +11,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .arg(format!("127.0.0.1:{}", NATIVE_DEFAULT_PORT));
 
     if let Ok(child) = command.spawn() {
-        println!("Running native PHP server with PID {}", child.id());
+        info!("Running native PHP server with PID {}", child.id());
 
         return (
             PhpServer::new(NATIVE_DEFAULT_PORT, PhpServerSapi::CLI),

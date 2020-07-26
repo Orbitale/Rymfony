@@ -55,7 +55,7 @@ pub(crate) fn start() -> PhpServer {
     match process_status {
         Ok(Some(status)) => panic!(format!("PHP server exited with {}", status)),
         Ok(None) => {
-            println!("PHP server is ready");
+            info!("PHP server is ready");
         }
         Err(e) => panic!(format!(
             "An error occured when checking PHP server health: {:?}",
@@ -64,7 +64,7 @@ pub(crate) fn start() -> PhpServer {
     }
 
     ctrlc::set_handler_mut(move || {
-        println!("Stopping PHP process... ");
+        info!("Stopping PHP process... ");
 
         #[cfg(not(target_os = "windows"))]
         {
@@ -73,8 +73,8 @@ pub(crate) fn start() -> PhpServer {
         }
 
         match process.kill() {
-            Ok(_) => println!("PHP process stopped."),
-            Err(e) => println!("An error occured when stopping PHP: {:?}", e),
+            Ok(_) => info!("PHP process stopped."),
+            Err(e) => info!("An error occured when stopping PHP: {:?}", e),
         }
         process::exit(0);
     })

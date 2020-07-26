@@ -11,7 +11,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .arg(format!("127.0.0.1:{}", CGI_DEFAULT_PORT));
 
     if let Ok(child) = command.spawn() {
-        println!("Running php-cgi with PID {}", child.id());
+        info!("Running php-cgi with PID {}", child.id());
 
         return (PhpServer::new(CGI_DEFAULT_PORT, PhpServerSapi::CGI), child);
     }

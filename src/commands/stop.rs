@@ -13,9 +13,9 @@ pub(crate) fn stop() {
     if Path::new(".pid").exists() {
         let pid = fs::read_to_string(".pid").unwrap();
         stop_process::stop(pid.as_ref());
-        println!("Stopped server running with PID {}", pid);
+        info!("Stopped server running with PID {}", pid);
         fs::remove_file(".pid").expect("Could not remove the PID file")
     } else {
-        println!("Seems like server is not running");
+        info!("Seems like server is not running");
     }
 }

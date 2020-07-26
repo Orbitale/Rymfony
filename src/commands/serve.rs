@@ -12,6 +12,7 @@ use crate::php::php_server;
 use crate::php::php_server::PhpServerSapi;
 use crate::utils::current_process_name;
 use std::env;
+use log::info;
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -74,6 +75,9 @@ fn serve_foreground(args: &ArgMatches) {
     let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
     let document_root = args.value_of("document-root").unwrap_or(default_document_root).to_string();
     let script_filename = args.value_of("passthru").unwrap_or("index.php").to_string();
+
+    info!("Configured document root: {}", &document_root);
+    info!("PHP entrypoint file: {}", &script_filename);
 
     proxy_server::start(
         port.parse::<u16>().unwrap(),
