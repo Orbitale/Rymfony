@@ -122,11 +122,10 @@ async fn handle(
 
     let output = client.do_request(&params, &mut std::io::Cursor::new(body)).unwrap();
 
-    let stdout = output.get_stdout();
-    let stdout = stdout.unwrap();
-    let stdout = stdout.as_slice();
-    let stdout = std::str::from_utf8(stdout);
-    let stdout = stdout.unwrap();
+    let stdout: Option<Vec<u8>> = output.get_stdout();
+    let stdout: Vec<u8> = stdout.unwrap();
+    let stdout: &[u8] = stdout.as_slice();
+    let stdout: &str = std::str::from_utf8(stdout).unwrap();
 
     let response_headers_regex = Regex::new(r"(?s)^(.*)\r\n\r\n(.*)$").unwrap();
 
