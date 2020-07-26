@@ -1,4 +1,3 @@
-use std::env;
 use std::net::SocketAddr;
 use std::net::TcpStream;
 
@@ -16,19 +15,39 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use std::convert::Infallible;
-use regex::{Regex, Captures};
+use regex::Regex;
+use regex::Captures;
 use std::collections::HashMap;
 
 #[tokio::main]
-pub(crate) async fn start(http_port: u16, php_port: u16) {
+pub(crate) async fn start<'a>(
+    http_port: u16,
+    php_port: u16,
+    document_root: &'a String,
+    script_filename: &String
+) {
     let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], http_port));
+
+    // let document_root = document_root.clone();
+    // let script_filename = script_filename.clone();
 
     let make_service = make_service_fn(move |socket: &AddrStream| {
         let remote_addr = socket.remote_addr();
+        let document_root = document_root.clone();
+        // let script_filename = script_filename.as_str();
         async move {
             let remote_addr = remote_addr.clone();
+            // let document_root = document_root.as_str();
+            // let script_filename = script_filename.as_str();
             Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                handle(remote_addr.clone(), req, http_port, php_port)
+                handle(
+                    document_root,
+                    "",
+                    remote_addr.clone(),
+                    req,
+                    http_port,
+                    php_port
+                )
             }))
         }
     });
@@ -44,6 +63,8 @@ pub(crate) async fn start(http_port: u16, php_port: u16) {
 }
 
 async fn handle(
+    document_root: &str,
+    script_filename: &str,
     remote_addr: SocketAddr,
     req: Request<Body>,
     http_port: u16,
@@ -51,9 +72,6 @@ async fn handle(
 ) -> Result<Response<Body>, Infallible> {
     let remote_addr = remote_addr.ip().to_string();
     let remote_addr = remote_addr.as_str();
-    let document_root = env::current_dir().unwrap();
-    let script_filename = document_root.join("index.php");
-    let script_filename = script_filename.to_str().unwrap();
     let request_uri = req.uri().to_string();
     let headers = req.headers().clone();
     let method = req.method().to_string();
@@ -97,7 +115,7 @@ async fn handle(
                 .to_str()
                 .unwrap_or(""),
         )
-        .set_document_root(document_root.to_str().unwrap())
+        .set_document_root(document_root)
         .set_document_uri(&request_uri)
         .set_query_string("")
         .set_remote_addr(remote_addr)

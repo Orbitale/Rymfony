@@ -11,6 +11,7 @@ use crate::http::proxy_server;
 use crate::php::php_server;
 use crate::php::php_server::PhpServerSapi;
 use crate::utils::current_process_name;
+use std::env;
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -29,6 +30,16 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
                 .short("d")
                 .long("daemon")
                 .help("Run the server in the background"),
+        )
+        .arg(
+            Arg::with_name("document-root")
+                .long("document-root")
+                .help("Project's document root"),
+        )
+        .arg(
+            Arg::with_name("passthru")
+                .long("passthru")
+                .help("The PHP script all requests will be passed to"),
         )
 }
 
@@ -57,8 +68,19 @@ fn serve_foreground(args: &ArgMatches) {
 
     info!("Starting HTTP server...");
 
+    let default_document_root = env::current_dir().unwrap();
+    let default_document_root = default_document_root.to_str().unwrap();
+
     let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
-    proxy_server::start(port.parse::<u16>().unwrap(), php_server.port());
+    let document_root = args.value_of("document-root").unwrap_or(default_document_root).to_string();
+    let script_filename = args.value_of("passthru").unwrap_or("index.php").to_string();
+
+    proxy_server::start(
+        port.parse::<u16>().unwrap(),
+        php_server.port(),
+        &document_root,
+        &script_filename
+    );
 }
 
 fn serve_background(args: &ArgMatches) {
