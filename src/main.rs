@@ -13,6 +13,7 @@ mod commands {
 mod utils {
     pub(crate) mod current_process_name;
     pub(crate) mod stop_process;
+    pub(crate) mod logger;
 }
 
 mod php {
@@ -34,13 +35,21 @@ use crate::commands::serve::command_config as serve_cmd;
 use crate::commands::serve::serve;
 use crate::commands::stop::command_config as stop_cmd;
 use crate::commands::stop::stop;
+use crate::utils::logger::SimpleLogger;
 
 use clap::App;
 use std::fs;
 use std::process::Command;
 use utils::current_process_name;
+use log::LevelFilter;
+
+static LOGGER: SimpleLogger = SimpleLogger;
 
 fn main() {
+    log::set_logger(&LOGGER)
+        .map(|()| log::set_max_level(LevelFilter::Info))
+        .unwrap();
+
     fs::create_dir_all("~/.rymfony/").unwrap();
 
     let commands = vec![serve_cmd(), stop_cmd(), php_list_cmd()];

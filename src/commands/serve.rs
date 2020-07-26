@@ -35,12 +35,14 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
         .arg(
             Arg::with_name("document-root")
                 .long("document-root")
-                .help("Project's document root"),
+                .help("Project's document root")
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("passthru")
                 .long("passthru")
-                .help("The PHP script all requests will be passed to"),
+                .help("The PHP script all requests will be passed to")
+                .takes_value(true),
         )
 }
 
@@ -53,8 +55,6 @@ pub(crate) fn serve(args: &ArgMatches) {
 }
 
 fn serve_foreground(args: &ArgMatches) {
-    pretty_env_logger::init();
-
     info!("Starting PHP...");
 
     let php_server = php_server::start();
