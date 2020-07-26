@@ -2,6 +2,7 @@
 extern crate prettytable;
 #[macro_use]
 extern crate log;
+extern crate regex;
 
 mod commands {
     pub(crate) mod php_list;

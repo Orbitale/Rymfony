@@ -7,6 +7,7 @@ use fastcgi_client::Client;
 use fastcgi_client::Params;
 use http::Version;
 use hyper::header::HeaderValue;
+use hyper::header::HeaderName;
 use hyper::server::conn::AddrStream;
 use hyper::service::make_service_fn;
 use hyper::service::service_fn;
@@ -15,6 +16,8 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use std::convert::Infallible;
+use regex::{Regex, Captures};
+use std::collections::HashMap;
 
 #[tokio::main]
 pub(crate) async fn start(http_port: u16, php_port: u16) {
@@ -119,17 +122,37 @@ async fn handle(
 
     let output = client.do_request(&params, &mut std::io::Cursor::new(body)).unwrap();
 
-    let stdout = output.get_stdout();
-    let stdout = stdout.unwrap();
-    let stdout = String::from_utf8(stdout);
+    let stdout: Vec<u8> = output.get_stdout().unwrap();
+    let stdout: &[u8] = stdout.as_slice();
+    let stdout: &str = std::str::from_utf8(stdout).unwrap();
+    let stdout: String = String::from(stdout);
 
-    let resp = Response::builder();
+    let response_headers_regex = Regex::new(r"(?s)^(.*)\r\n\r\n(.*)$").unwrap();
 
-    let stdout = stdout.unwrap();
+    let capts: Captures = response_headers_regex.captures(&stdout).unwrap();
 
-    println!("Response body: {}", stdout.clone());
+    let headers: &str = &capts[1];
+    let body: String = String::from(&capts[2]);
 
-    let resp = resp.body(Body::from(stdout.clone())).unwrap();
+    let single_header_regex = Regex::new(r"^([^:]+):(.*)$").unwrap();
 
-    Ok(resp)
+    let headers_normalized: HashMap<HeaderName, HeaderValue> = headers.split("\r\n").map(|header: &str| {
+        let headers_capts = single_header_regex.captures(header).unwrap();
+
+        let header_name = &headers_capts[1].as_bytes();
+        let header_value = &headers_capts[2];
+
+        (HeaderName::from_bytes(header_name).unwrap(), HeaderValue::from_str(header_value).unwrap())
+    }).collect();
+
+    let mut response_builder = Response::builder();
+    let response_headers = response_builder.headers_mut().unwrap();
+    response_headers.extend(headers_normalized);
+
+    let response = response_builder.body(
+        Body::from(body)
+        //Body::from(body)
+    ).unwrap();
+
+    Ok(response)
 }
