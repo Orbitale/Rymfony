@@ -147,7 +147,7 @@ async fn handle(
     }).collect();
 
     let mut response_builder = Response::builder();
-    let mut response_headers = response_builder.headers_mut().unwrap();
+    let response_headers = response_builder.headers_mut().unwrap();
     response_headers.extend(headers_normalized);
 
     let response = response_builder.body(
