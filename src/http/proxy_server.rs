@@ -123,15 +123,16 @@ async fn handle(
     let output = client.do_request(&params, &mut std::io::Cursor::new(body)).unwrap();
 
     let stdout: Vec<u8> = output.get_stdout().unwrap();
-    let stdout_slice: &[u8] = stdout.as_slice();
-    let stdout_str: &str = std::str::from_utf8(stdout_slice).unwrap();
+    let stdout: &[u8] = stdout.as_slice();
+    let stdout: &str = std::str::from_utf8(stdout).unwrap();
+    let stdout: String = String::from(stdout);
 
     let response_headers_regex = Regex::new(r"(?s)^(.*)\r\n\r\n(.*)$").unwrap();
 
-    let capts: Captures = response_headers_regex.captures(stdout_str).unwrap();
+    let capts: Captures = response_headers_regex.captures(&stdout).unwrap();
 
     let headers: &str = &capts[1];
-    let body: &str = &capts[2];
+    let body: String = String::from(&capts[2]);
 
     let single_header_regex = Regex::new(r"^([^:]+):(.*)$").unwrap();
 
