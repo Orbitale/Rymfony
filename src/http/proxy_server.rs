@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 use std::convert::Infallible;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use console::style;
 use hyper::server::conn::AddrStream;
@@ -43,16 +43,20 @@ pub(crate) async fn start<'a>(
 
                 let static_doc_root = Path::new(&document_root);
 
+                let temporary_path: PathBuf;
                 let mut render_static = "";
                 if static_doc_root.join(request_path).exists() {
                     // Docroot/path
-                    render_static = static_doc_root.join(request_path).to_str().unwrap();
+                    temporary_path = static_doc_root.join(request_path);
+                    render_static = temporary_path.to_str().unwrap();
                 } else if static_doc_root.join("public").join(request_path).exists() {
                     // Docroot/public/path
-                    render_static = static_doc_root.join("public").join(request_path).to_str().unwrap();
+                    temporary_path = static_doc_root.join("public").join(request_path);
+                    render_static = temporary_path.to_str().unwrap();
                 } else if static_doc_root.join("web").join(request_path).exists() {
                     // Docroot/web/path
-                    render_static = static_doc_root.join("web").join(request_path).to_str().unwrap();
+                    temporary_path = static_doc_root.join("web").join(request_path);
+                    render_static = temporary_path.to_str().unwrap();
                 }
                 if render_static != "" {
                     info!("Render static file");
