@@ -1,17 +1,19 @@
-use std::net::{TcpStream, SocketAddr};
+use std::net::TcpStream;
+use std::net::SocketAddr;
 
 use fastcgi_client::Client;
 use fastcgi_client::Params;
-use http::{Version, Request};
+use http::Request;
 use hyper::header::HeaderValue;
 use hyper::header::HeaderName;
-use hyper::{Response, Body};
+use hyper::Response;
+use hyper::Body;
 use regex::Regex;
 use regex::Captures;
 use std::collections::HashMap;
 use std::convert::Infallible;
 
-pub(crate) async fn handle(
+pub(crate) async fn handle_fastcgi(
     document_root: String,
     script_filename: String,
     remote_addr: SocketAddr,
@@ -29,16 +31,7 @@ pub(crate) async fn handle(
 
     let body = hyper::body::to_bytes(request_body).await.unwrap();
 
-    let http_version = match parts.version {
-        Version::HTTP_09 => "HTTP/0.9",
-        Version::HTTP_10 => "HTTP/1.0",
-        Version::HTTP_11 => "HTTP/1.1",
-        Version::HTTP_2 => "HTTP/2.0",
-        Version::HTTP_3 => "HTTP/3.0",
-        _ => unreachable!(),
-    };
-
-    info!("{} {} {}", http_version, method, request_uri);
+    let http_version = crate::http::version::as_str(parts.version);
 
     let stream = TcpStream::connect(("127.0.0.1", php_port)).unwrap();
     let mut client = Client::new(stream, false);

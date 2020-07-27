@@ -1,4 +1,6 @@
 use std::net::SocketAddr;
+use std::convert::Infallible;
+use std::path::Path;
 
 use console::style;
 use hyper::server::conn::AddrStream;
@@ -6,9 +8,12 @@ use hyper::service::make_service_fn;
 use hyper::service::service_fn;
 use hyper::Body;
 use hyper::Request;
+use hyper::Response;
 use hyper::Server;
-use std::convert::Infallible;
-use crate::http::fastcgi_handler::handle;
+use hyper_staticfile::Static;
+use tokio::io::Error as IoError;
+
+use crate::http::fastcgi_handler::handle_fastcgi;
 
 #[tokio::main]
 pub(crate) async fn start<'a>(
@@ -18,6 +23,7 @@ pub(crate) async fn start<'a>(
     script_filename: &'a String
 ) {
     let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], http_port));
+    let static_files_server = Static::new(Path::new(document_root));
 
     // let document_root = document_root.clone();
     // let script_filename = script_filename.clone();
@@ -26,16 +32,42 @@ pub(crate) async fn start<'a>(
         let remote_addr = socket.remote_addr();
         let document_root = document_root.clone();
         let script_filename = script_filename.clone();
+        let static_files_server = static_files_server.clone();
         async move {
             Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                handle(
+                let request_uri = req.uri();
+                let request_path = req.uri().path();
+
+                let http_version = crate::http::version::as_str(req.version());
+
+                info!("{} {} {}", http_version, req.method(), request_uri);
+
+                let static_doc_root = Path::new(&document_root);
+
+                let mut render_static = "";
+                if static_doc_root.join(request_path).exists() {
+                    // Docroot/path
+                    render_static = static_doc_root.join(request_path).to_str().unwrap();
+                } else if static_doc_root.join("public").join(request_path).exists() {
+                    // Docroot/public/path
+                    render_static = static_doc_root.join("public").join(request_path).to_str().unwrap();
+                } else if static_doc_root.join("web").join(request_path).exists() {
+                    // Docroot/web/path
+                    render_static = static_doc_root.join("web").join(request_path).to_str().unwrap();
+                }
+                if render_static != "" {
+                    info!("Render static file");
+                    return serve_static(req, static_files_server.clone());
+                }
+
+                return handle_fastcgi(
                     document_root.clone(),
                     script_filename.clone(),
                     remote_addr.clone(),
                     req,
                     http_port,
                     php_port
-                )
+                );
             }))
         }
     });
@@ -48,4 +80,16 @@ pub(crate) async fn start<'a>(
     );
 
     http_server.await.unwrap();
+}
+
+async fn serve_static(
+    req: Request<Body>,
+    static_files_server: Static
+) -> Result<Response<Body>, IoError> {
+    let static_files_server = static_files_server.clone();
+    let response_future = static_files_server.serve(req);
+
+    let response = response_future.await;
+
+    response
 }
