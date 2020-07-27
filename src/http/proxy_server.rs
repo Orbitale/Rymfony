@@ -24,8 +24,8 @@ pub(crate) async fn start<'a>(
     let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], http_port));
     let static_files_server = Static::new(Path::new(document_root));
 
-    // let document_root = document_root.clone();
-    // let script_filename = script_filename.clone();
+    let document_root = document_root.clone();
+    let script_filename = script_filename.clone();
 
     let make_service = make_service_fn(move |socket: &AddrStream| {
         let remote_addr = socket.remote_addr();
@@ -34,43 +34,41 @@ pub(crate) async fn start<'a>(
         let static_files_server = static_files_server.clone();
         async move {
             Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                let request_uri = req.uri();
-                let request_path = req.uri().path();
+                let document_root = document_root.clone();
+                let script_filename = script_filename.clone();
+                let static_files_server = static_files_server.clone();
+                async move {
+                    let request_uri = req.uri();
+                    let request_path = request_uri.path();
 
-                let http_version = crate::http::version::as_str(req.version());
+                    let http_version = crate::http::version::as_str(req.version());
 
-                info!("{} {} {}", http_version, req.method(), request_uri);
+                    info!("{} {} {}", http_version, req.method(), request_uri);
 
-                let static_doc_root = Path::new(&document_root);
+                    let static_doc_root = PathBuf::from(&document_root);
 
-                let temporary_path: PathBuf;
-                let mut render_static = "";
-                if static_doc_root.join(request_path).exists() {
-                    // Docroot/path
-                    temporary_path = static_doc_root.join(request_path);
-                    render_static = temporary_path.to_str().unwrap();
-                } else if static_doc_root.join("public").join(request_path).exists() {
-                    // Docroot/public/path
-                    temporary_path = static_doc_root.join("public").join(request_path);
-                    render_static = temporary_path.to_str().unwrap();
-                } else if static_doc_root.join("web").join(request_path).exists() {
-                    // Docroot/web/path
-                    temporary_path = static_doc_root.join("web").join(request_path);
-                    render_static = temporary_path.to_str().unwrap();
+                    let temporary_path: PathBuf;
+                    let mut render_static = "";
+                    if static_doc_root.join(request_path).exists() {
+                        // Docroot/path
+                        temporary_path = static_doc_root.join(request_path);
+                        render_static = temporary_path.to_str().unwrap();
+                    } else if static_doc_root.join("public").join(request_path).exists() {
+                        // Docroot/public/path
+                        temporary_path = static_doc_root.join("public").join(request_path);
+                        render_static = temporary_path.to_str().unwrap();
+                    } else if static_doc_root.join("web").join(request_path).exists() {
+                        // Docroot/web/path
+                        temporary_path = static_doc_root.join("web").join(request_path);
+                        render_static = temporary_path.to_str().unwrap();
+                    }
+                    if render_static != "" {
+                        info!("Render static file");
+                        return serve_static(req, static_files_server.clone()).await;
+                    }
+
+                    return handle_fastcgi(document_root.clone(), script_filename.clone(), remote_addr.clone(), req, http_port, php_port).await;
                 }
-                if render_static != "" {
-                    info!("Render static file");
-                    return serve_static(req, static_files_server.clone());
-                }
-
-                return handle_fastcgi(
-                    document_root.clone(),
-                    script_filename.clone(),
-                    remote_addr.clone(),
-                    req,
-                    http_port,
-                    php_port
-                );
             }))
         }
     });
