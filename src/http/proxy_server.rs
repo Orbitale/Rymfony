@@ -11,7 +11,6 @@ use hyper::Request;
 use hyper::Response;
 use hyper::Server;
 use hyper_staticfile::Static;
-use tokio::io::Error as IoError;
 
 use crate::http::fastcgi_handler::handle_fastcgi;
 
@@ -85,11 +84,11 @@ pub(crate) async fn start<'a>(
 async fn serve_static(
     req: Request<Body>,
     static_files_server: Static
-) -> Result<Response<Body>, IoError> {
+) -> anyhow::Result<Response<Body>> {
     let static_files_server = static_files_server.clone();
     let response_future = static_files_server.serve(req);
 
     let response = response_future.await;
 
-    response
+    anyhow::Result::Ok(response.unwrap())
 }

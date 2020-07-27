@@ -11,7 +11,6 @@ use hyper::Body;
 use regex::Regex;
 use regex::Captures;
 use std::collections::HashMap;
-use std::convert::Infallible;
 
 pub(crate) async fn handle_fastcgi(
     document_root: String,
@@ -20,7 +19,7 @@ pub(crate) async fn handle_fastcgi(
     req: Request<Body>,
     http_port: u16,
     php_port: u16,
-) -> Result<Response<Body>, Infallible> {
+) -> anyhow::Result<Response<Body>> {
     let remote_addr = remote_addr.ip().to_string();
     let remote_addr = remote_addr.as_str();
     let request_uri = req.uri().to_string();
@@ -114,5 +113,5 @@ pub(crate) async fn handle_fastcgi(
         //Body::from(body)
     ).unwrap();
 
-    Ok(response)
+    anyhow::Result::Ok(response)
 }
