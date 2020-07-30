@@ -18,7 +18,9 @@ use std::path::PathBuf;
 const DEFAULT_PORT: &str = "8000";
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("serve")
+    SubCommand::with_name("server:start")
+        .name("server:start")
+        .alias("serve")
         .about("Runs an HTTP server")
         .arg(
             Arg::with_name("port")

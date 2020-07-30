@@ -69,6 +69,9 @@ fn main() {
         Some("serve") => {
             serve(matches.subcommand_matches("serve").unwrap());
         }
+        Some("server:start") => {
+            serve(matches.subcommand_matches("server:start").unwrap());
+        }
         Some("stop") => {
             stop();
         }
