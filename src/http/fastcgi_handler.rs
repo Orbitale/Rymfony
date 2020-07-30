@@ -1,24 +1,25 @@
-use std::net::{TcpStream, SocketAddr};
+use std::net::TcpStream;
+use std::net::SocketAddr;
 
 use fastcgi_client::Client;
 use fastcgi_client::Params;
-use http::{Version, Request};
+use http::Request;
 use hyper::header::HeaderValue;
 use hyper::header::HeaderName;
-use hyper::{Response, Body};
+use hyper::Response;
+use hyper::Body;
 use regex::Regex;
 use regex::Captures;
 use std::collections::HashMap;
-use std::convert::Infallible;
 
-pub(crate) async fn handle(
+pub(crate) async fn handle_fastcgi(
     document_root: String,
     script_filename: String,
     remote_addr: SocketAddr,
     req: Request<Body>,
     http_port: u16,
     php_port: u16,
-) -> Result<Response<Body>, Infallible> {
+) -> anyhow::Result<Response<Body>> {
     let remote_addr = remote_addr.ip().to_string();
     let remote_addr = remote_addr.as_str();
     let request_uri = req.uri().to_string();
@@ -29,16 +30,7 @@ pub(crate) async fn handle(
 
     let body = hyper::body::to_bytes(request_body).await.unwrap();
 
-    let http_version = match parts.version {
-        Version::HTTP_09 => "HTTP/0.9",
-        Version::HTTP_10 => "HTTP/1.0",
-        Version::HTTP_11 => "HTTP/1.1",
-        Version::HTTP_2 => "HTTP/2.0",
-        Version::HTTP_3 => "HTTP/3.0",
-        _ => unreachable!(),
-    };
-
-    info!("{} {} {}", http_version, method, request_uri);
+    let http_version = crate::http::version::as_str(parts.version);
 
     let stream = TcpStream::connect(("127.0.0.1", php_port)).unwrap();
     let mut client = Client::new(stream, false);
@@ -48,36 +40,40 @@ pub(crate) async fn handle(
 
     let empty_header = &HeaderValue::from_str("").unwrap();
 
+    let pathinfo = get_pathinfo_from_uri(&request_uri);
+    let script_name = if pathinfo.0.len() > 0 { pathinfo.0.clone() } else { script_filename.clone() };
+
     // Fastcgi params, please reference to nginx-php-fpm config.
-    let mut params = Params::with_predefine()
-        .set_content_length(
+    let mut params = Params::with_predefine();
+    params.insert("CONTENT_LENGTH",
             headers
                 .get("Content-Length")
                 .unwrap_or(empty_header)
                 .to_str()
                 .unwrap_or(""),
-        )
-        .set_content_type(
+        );
+    params.insert("CONTENT_TYPE",
             headers
                 .get("Content-Type")
                 .unwrap_or(empty_header)
                 .to_str()
                 .unwrap_or(""),
-        )
-        .set_document_root(&document_root)
-        .set_document_uri(&request_uri)
-        .set_query_string("")
-        .set_remote_addr(remote_addr)
-        .set_remote_port(http_port_str.as_ref())
-        .set_request_method(method)
-        .set_request_uri(&request_uri)
-        .set_script_filename(&script_filename)
-        .set_script_name(&request_uri)
-        .set_server_addr("127.0.0.1")
-        .set_server_name("127.0.0.1")
-        .set_server_port(php_port_str.as_ref())
-        .set_server_software("rymfony/rust/fastcgi-client")
-        .set_server_protocol(http_version);
+        );
+    params.insert("DOCUMENT_ROOT", &document_root);
+    params.insert("DOCUMENT_URI", &request_uri);
+    params.insert("QUERY_STRING", "");
+    params.insert("REMOTE_ADDR", remote_addr);
+    params.insert("REMOTE_PORT", http_port_str.as_ref());
+    params.insert("REQUEST_METHOD", method);
+    params.insert("REQUEST_URI", &request_uri);
+    params.insert("SCRIPT_FILENAME", &script_filename);
+    params.insert("SCRIPT_NAME", &script_name);
+    params.insert("SERVER_ADDR", "127.0.0.1");
+    params.insert("SERVER_NAME", "127.0.0.1");
+    params.insert("SERVER_PORT", php_port_str.as_ref());
+    params.insert("SERVER_SOFTWARE", "rymfony/rust/fastcgi-client");
+    params.insert("SERVER_PROTOCOL", http_version);
+    params.insert("PATH_INFO", pathinfo.1.as_str());
 
     let mut headers_normalized = Vec::new();
     for (name, value) in headers.iter() {
@@ -121,5 +117,20 @@ pub(crate) async fn handle(
         //Body::from(body)
     ).unwrap();
 
-    Ok(response)
+    anyhow::Result::Ok(response)
+}
+
+fn get_pathinfo_from_uri(request_uri: &str) -> (String, String) {
+    let php_file_regex = Regex::new(r"(^.*\.php)((?:/|$).*)$").unwrap();
+
+    if !php_file_regex.is_match(request_uri) {
+        return (String::from(""), request_uri.to_string());
+    }
+
+    let capts: Captures = php_file_regex.captures(request_uri).unwrap();
+
+    let php_file = capts[1].to_string();
+    let path_info = capts[2].to_string();
+
+    (php_file, path_info)
 }
