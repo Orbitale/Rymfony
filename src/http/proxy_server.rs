@@ -43,27 +43,12 @@ pub(crate) async fn start<'a>(
 
                     let http_version = crate::http::version::as_str(req.version());
 
-                    info!("{} {} {}", http_version, req.method(), request_uri);
+                    let render_static = get_render_static_path(&document_root, &request_path);
+                    let render_static = !request_path.contains(".php") && render_static != "" && request_path != "" && request_path != "/";
 
-                    let static_doc_root = PathBuf::from(&document_root);
+                    info!("{} {} {}{}", http_version, req.method(), request_uri, if render_static {" (static)"} else {""});
 
-                    let temporary_path: PathBuf;
-                    let mut render_static = "";
-                    if static_doc_root.join(request_path).exists() {
-                        // Docroot/path
-                        temporary_path = static_doc_root.join(request_path);
-                        render_static = temporary_path.to_str().unwrap();
-                    } else if static_doc_root.join("public").join(request_path).exists() {
-                        // Docroot/public/path
-                        temporary_path = static_doc_root.join("public").join(request_path);
-                        render_static = temporary_path.to_str().unwrap();
-                    } else if static_doc_root.join("web").join(request_path).exists() {
-                        // Docroot/web/path
-                        temporary_path = static_doc_root.join("web").join(request_path);
-                        render_static = temporary_path.to_str().unwrap();
-                    }
-                    if render_static != "" {
-                        info!("Render static file");
+                    if render_static {
                         return serve_static(req, static_files_server.clone()).await;
                     }
 
@@ -93,4 +78,35 @@ async fn serve_static(
     let response = response_future.await;
 
     anyhow::Result::Ok(response.unwrap())
+}
+
+fn get_render_static_path(document_root: &str, request_path: &str) -> String {
+    let directory_separators: &[_] = &['/', '\\'];
+    let request_path = request_path.trim_start_matches(directory_separators);
+    let document_root = document_root.trim_end_matches(directory_separators);
+
+    let static_doc_root = PathBuf::from(&document_root);
+
+    let docroot_path = PathBuf::from(&static_doc_root)
+        .join(request_path);
+
+    let docroot_public_path = PathBuf::from(&static_doc_root)
+        .join("public")
+        .join(request_path);
+
+    let docroot_web_path = PathBuf::from(&static_doc_root)
+        .join("web")
+        .join(request_path);
+
+    let mut render_static: &str = "";
+
+    if docroot_path.exists() {
+        render_static = docroot_path.to_str().unwrap();
+    } else if docroot_public_path.exists() {
+        render_static = docroot_public_path.to_str().unwrap();
+    } else if docroot_web_path.exists() {
+        render_static = docroot_web_path.to_str().unwrap();
+    }
+
+    String::from(render_static)
 }

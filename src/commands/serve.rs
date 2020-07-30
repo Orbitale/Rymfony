@@ -13,6 +13,7 @@ use crate::php::php_server::PhpServerSapi;
 use crate::utils::current_process_name;
 use std::env;
 use log::info;
+use std::path::PathBuf;
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -73,8 +74,8 @@ fn serve_foreground(args: &ArgMatches) {
     let default_document_root = default_document_root.to_str().unwrap();
 
     let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
-    let document_root = args.value_of("document-root").unwrap_or(default_document_root).to_string();
-    let script_filename = args.value_of("passthru").unwrap_or("index.php").to_string();
+    let document_root = get_document_root(args.value_of("document-root").unwrap_or(default_document_root).to_string());
+    let script_filename = get_script_filename(&document_root, args.value_of("passthru").unwrap_or("index.php").to_string());
 
     info!("Configured document root: {}", &document_root);
     info!("PHP entrypoint file: {}", &script_filename);
@@ -85,6 +86,42 @@ fn serve_foreground(args: &ArgMatches) {
         &document_root,
         &script_filename
     );
+}
+
+fn get_script_filename(document_root: &str, script_filename_arg: String) -> String {
+    let path = PathBuf::from(&script_filename_arg);
+
+    if path.is_absolute() {
+        debug!("Script path \"{}\" is absolute.", script_filename_arg);
+        return script_filename_arg;
+    }
+
+    debug!("Script path \"{}\" is relative.", script_filename_arg);
+
+    let mut path = PathBuf::from(document_root);
+    path.push(&script_filename_arg);
+
+    debug!("Relative script path \"{}\" resolved to \"{}\".", &script_filename_arg, path.to_str().unwrap());
+
+    String::from(path.to_str().unwrap())
+}
+
+fn get_document_root(document_root_arg: String) -> String {
+    let path = PathBuf::from(&document_root_arg);
+
+    if path.is_absolute() {
+        debug!("Document root \"{}\" is absolute.", document_root_arg);
+        return document_root_arg;
+    }
+
+    debug!("Script path \"{}\" is relative.", document_root_arg);
+
+    let mut path = env::current_dir().unwrap();
+    path.push(&document_root_arg);
+
+    debug!("Relative document root \"{}\" resolved to \"{}\".", &document_root_arg, path.to_str().unwrap());
+
+    String::from(path.to_str().unwrap())
 }
 
 fn serve_background(args: &ArgMatches) {
