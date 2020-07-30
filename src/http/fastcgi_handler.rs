@@ -11,6 +11,7 @@ use hyper::Body;
 use regex::Regex;
 use regex::Captures;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 pub(crate) async fn handle_fastcgi(
     document_root: String,
@@ -22,7 +23,9 @@ pub(crate) async fn handle_fastcgi(
 ) -> anyhow::Result<Response<Body>> {
     let remote_addr = remote_addr.ip().to_string();
     let remote_addr = remote_addr.as_str();
-    let request_uri = req.uri().to_string();
+    let uri = req.uri();
+    let request_uri = uri.to_string();
+    let query_string = uri.query().unwrap_or("").to_string();
     let headers = req.headers().clone();
     let method = req.method().to_string();
     let method = method.as_str();
@@ -41,27 +44,21 @@ pub(crate) async fn handle_fastcgi(
     let empty_header = &HeaderValue::from_str("").unwrap();
 
     let pathinfo = get_pathinfo_from_uri(&request_uri);
-    let script_name = if pathinfo.0.len() > 0 { pathinfo.0.clone() } else { script_filename.clone() };
+    let script_name = if pathinfo.0.len() > 0 {
+        let path = PathBuf::from(&document_root).join(pathinfo.0.clone());
+        path.to_str().unwrap().to_string()
+    } else {
+        script_filename.clone()
+    };
 
     // Fastcgi params, please reference to nginx-php-fpm config.
     let mut params = Params::with_predefine();
-    params.insert("CONTENT_LENGTH",
-            headers
-                .get("Content-Length")
-                .unwrap_or(empty_header)
-                .to_str()
-                .unwrap_or(""),
-        );
-    params.insert("CONTENT_TYPE",
-            headers
-                .get("Content-Type")
-                .unwrap_or(empty_header)
-                .to_str()
-                .unwrap_or(""),
-        );
+    params.insert("CONTENT_LENGTH", headers.get("Content-Length").unwrap_or(empty_header).to_str().unwrap_or(""));
+    params.insert("CONTENT_TYPE", headers.get("Content-Type").unwrap_or(empty_header).to_str().unwrap_or(""));
     params.insert("DOCUMENT_ROOT", &document_root);
     params.insert("DOCUMENT_URI", &request_uri);
-    params.insert("QUERY_STRING", "");
+    params.insert("PATH_INFO", pathinfo.1.as_str());
+    params.insert("QUERY_STRING", &query_string);
     params.insert("REMOTE_ADDR", remote_addr);
     params.insert("REMOTE_PORT", http_port_str.as_ref());
     params.insert("REQUEST_METHOD", method);
@@ -71,9 +68,8 @@ pub(crate) async fn handle_fastcgi(
     params.insert("SERVER_ADDR", "127.0.0.1");
     params.insert("SERVER_NAME", "127.0.0.1");
     params.insert("SERVER_PORT", php_port_str.as_ref());
-    params.insert("SERVER_SOFTWARE", "rymfony/rust/fastcgi-client");
     params.insert("SERVER_PROTOCOL", http_version);
-    params.insert("PATH_INFO", pathinfo.1.as_str());
+    params.insert("SERVER_SOFTWARE", "Rymfony v0.1.0");
 
     let mut headers_normalized = Vec::new();
     for (name, value) in headers.iter() {
@@ -129,7 +125,7 @@ fn get_pathinfo_from_uri(request_uri: &str) -> (String, String) {
 
     let capts: Captures = php_file_regex.captures(request_uri).unwrap();
 
-    let php_file = capts[1].to_string();
+    let php_file = capts[1].trim_start_matches("/").to_string();
     let path_info = capts[2].to_string();
 
     (php_file, path_info)

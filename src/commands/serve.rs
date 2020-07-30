@@ -72,11 +72,8 @@ fn serve_foreground(args: &ArgMatches) {
 
     info!("Starting HTTP server...");
 
-    let default_document_root = env::current_dir().unwrap();
-    let default_document_root = default_document_root.to_str().unwrap();
-
     let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
-    let document_root = get_document_root(args.value_of("document-root").unwrap_or(default_document_root).to_string());
+    let document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
     let script_filename = get_script_filename(&document_root, args.value_of("passthru").unwrap_or("index.php").to_string());
 
     info!("Configured document root: {}", &document_root);
@@ -128,16 +125,34 @@ fn get_document_root(document_root_arg: String) -> String {
     let path = PathBuf::from(&document_root_arg);
 
     if path.is_absolute() {
-        debug!("Document root \"{}\" is absolute.", document_root_arg);
         return document_root_arg;
     }
 
-    debug!("Script path \"{}\" is relative.", document_root_arg);
+    let document_root = if document_root_arg == "" {
+        autodetect_document_root()
+    } else {
+        PathBuf::from(document_root_arg)
+    };
 
-    let mut path = env::current_dir().unwrap();
-    path.push(&document_root_arg);
+    String::from(document_root.to_str().unwrap())
+}
 
-    debug!("Relative document root \"{}\" resolved to \"{}\".", &document_root_arg, path.to_str().unwrap());
+fn autodetect_document_root() -> PathBuf {
+    let current_dir = env::current_dir().unwrap();
 
-    String::from(path.to_str().unwrap())
+    // {cwd}/public/ , usually recent projects
+    let mut public_dir = PathBuf::from(&current_dir);
+    public_dir.push("public/");
+    if public_dir.is_dir() {
+        return public_dir;
+    }
+
+    // {cwd}/web/ , symfony 2 style
+    let mut web_dir = PathBuf::from(&current_dir);
+    web_dir.push("web/");
+    if web_dir.is_dir() {
+        return web_dir;
+    }
+
+    current_dir
 }

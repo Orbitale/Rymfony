@@ -55,9 +55,6 @@ SUBCOMMANDS:
 
 ### `rymfony serve`
 
-⚠️  For now, the server "works" but it **lacks some features**.<br>
-If you are keen to see Rymfony work, we definitely need your help into doing it! Feel free to create an issue if you need advices!
-
 This command allows you to run a web server, in foreground or background, and you can customize the port to listen to.
 
 ```
@@ -74,12 +71,14 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-        --port <port>    The TCP port to listen to [default: 8000]
+        --document-root <document-root>    Project's document root
+        --passthru <passthru>              The PHP script all requests will be passed to
+        --port <port>                      The TCP port to listen to [default: 8000]
 ```
 
 ### `rymfony stop`
 
-If a server is actually in a background running for the current project, it will be stopped.
+If a server is running in the background running for the current project, it will be stopped.
 
 Note that this is checked via a `.pid` file, containing the PID of the running server.
 
@@ -118,23 +117,44 @@ $ rymfony php:list
 └──────────────────────┘
 ```
 
+And on my Windows 10 machine:
+
+```
+> rymfony.exe php:list
+┌──────────────────────────┐
+| Binary path              |
+├──────────────────────────┤
+| E:\dev\php74\php-cgi.exe |
+| E:\dev\php74\php.exe     |
+└──────────────────────────┘
+```
+
 ## Roadmap
 
 **If you want to contribute to any of these points, feel free to do it!**
 
 - To do (order of priority):
-    - [ ] Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
-    - [ ] Make sure the server process is **totally** detached from the terminal in Windows. There are some issues about this, and it needs more investigation. Check [this blog post section](https://www.orbitale.io/2020/06/25/being-a-php-developer-on-windows-10-cool-snippets.html#3-symfony-binary-the-http-server) for more information.
-    - [ ] When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
-    - [ ] Allow listing running servers globally, without necessarily using a `.pid` file.
-    - [ ] Allow stopping a server globally, without necessarily using a `.pid` file.
-    - [ ] When searching for PHP binaries, be able to flag their type (native, cgi, fpm) and their version.
-    - [ ] Search for PHP binaries elsewhere than in `PATH`, such as with Homebrew or phpenv. This will need many checks about the "standard locations" where PHP can be found.
-    - [ ] Allow passing environment variables to PHP via an `-e|--env` option.
-    - [ ] Allow passing a custom option to specify which method the user wants to use to start PHP (like `--use-fpm` or `--use-native`, something like that).
-    - [ ] (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
-    - [ ] (utopia) Detect whether the project uses Docker Compose
-    - [ ] (utopia) Be able to dynamically create environment variables for some common use-cases (database, redis, rabbitmq, mailcatcher).
+    - Commands
+        - [ ] Create `open:local` command
+        - [ ] Create `server:logs` command
+        - [ ] Create `server:list` command
+        - [ ] Create `server:status` command
+    - Miscellaneous
+        - [ ] Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
+    - HTTP server
+        - [ ] Make sure the server process is **totally** detached from the terminal in Windows. There are some issues about this, and it needs more investigation. Check [this blog post section](https://www.orbitale.io/2020/06/25/being-a-php-developer-on-windows-10-cool-snippets.html#3-symfony-binary-the-http-server) for more information.
+        - [ ] When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
+        - [ ] Allow listing running servers globally, without necessarily using a `.pid` file.
+        - [ ] Allow stopping a server globally, without necessarily using a `.pid` file.
+    - PHP
+        - [ ] When searching for PHP binaries, be able to flag their type (native, cgi, fpm) and their version.
+        - [ ] Search for PHP binaries elsewhere than in `PATH`, such as with Homebrew or phpenv. This will need many checks about the "standard locations" where PHP can be found.
+        - [ ] Allow passing environment variables to PHP via an `-e|--env` option.
+        - [ ] Allow passing a custom option to specify which method the user wants to use to start PHP (like `--use-fpm` or `--use-native`, something like that).
+        - [ ] (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
+    - Going way further
+        - [ ] (utopia) Detect whether the project uses Docker Compose
+        - [ ] (utopia) Be able to dynamically create environment variables for some common use-cases (database, redis, rabbitmq, mailcatcher).
 - Done (latest first):
     - [x] Transform the standard web server into an HTTP proxy to PHP.
     - [x] Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
