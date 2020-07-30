@@ -90,6 +90,22 @@ fn serve_foreground(args: &ArgMatches) {
     );
 }
 
+fn serve_background(args: &ArgMatches) {
+    let subprocess = Command::new(current_process_name::get().as_str())
+        .arg("serve")
+        .arg("--port")
+        .arg(args.value_of("port").unwrap_or(DEFAULT_PORT))
+        .spawn()
+        .expect("Failed to start server as a background process");
+
+    let pid = subprocess.id();
+    let mut file = File::create(".pid").expect("Cannot create PID file");
+    file.write_all(pid.to_string().as_ref())
+        .expect("Cannot write to PID file");
+
+    info!("Background server running with PID {}", pid);
+}
+
 fn get_script_filename(document_root: &str, script_filename_arg: String) -> String {
     let path = PathBuf::from(&script_filename_arg);
 
@@ -124,20 +140,4 @@ fn get_document_root(document_root_arg: String) -> String {
     debug!("Relative document root \"{}\" resolved to \"{}\".", &document_root_arg, path.to_str().unwrap());
 
     String::from(path.to_str().unwrap())
-}
-
-fn serve_background(args: &ArgMatches) {
-    let subprocess = Command::new(current_process_name::get().as_str())
-        .arg("serve")
-        .arg("--port")
-        .arg(args.value_of("port").unwrap_or(DEFAULT_PORT))
-        .spawn()
-        .expect("Failed to start server as a background process");
-
-    let pid = subprocess.id();
-    let mut file = File::create(".pid").expect("Cannot create PID file");
-    file.write_all(pid.to_string().as_ref())
-        .expect("Cannot write to PID file");
-
-    info!("Background server running with PID {}", pid);
 }
