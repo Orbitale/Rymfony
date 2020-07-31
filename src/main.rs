@@ -38,6 +38,8 @@ use std::fs;
 use std::process::Command;
 use utils::current_process_name;
 use log::LevelFilter;
+use std::env;
+use std::path::PathBuf;
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
@@ -46,7 +48,12 @@ fn main() {
         .map(|()| log::set_max_level(LevelFilter::Info))
         .unwrap();
 
-    fs::create_dir_all("~/.rymfony/").unwrap();
+    let path = env::var("HOME").unwrap_or(String::from(""));
+
+    if path != "" {
+        let path = PathBuf::from(path).join("rymfony");
+        fs::create_dir_all(path).unwrap();
+    }
 
     let commands = vec![
         crate::commands::php_list::command_config(),

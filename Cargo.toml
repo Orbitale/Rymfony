@@ -21,6 +21,7 @@ regex = "1.3"
 rayon = "1.3"
 prettytable-rs = "0.8"
 log = "0.4"
+which = "4.0"
 
 [dependencies.ctrlc]
 git = "https://github.com/mettke/rust-ctrlc"
