@@ -8,6 +8,7 @@ mod commands {
     pub(crate) mod php_list;
     pub(crate) mod serve;
     pub(crate) mod stop;
+    pub(crate) mod new_symfony;
 }
 
 mod utils {
@@ -30,12 +31,6 @@ mod http {
     pub(crate) mod version;
 }
 
-use crate::commands::php_list::command_config as php_list_cmd;
-use crate::commands::php_list::php_list;
-use crate::commands::serve::command_config as serve_cmd;
-use crate::commands::serve::serve;
-use crate::commands::stop::command_config as stop_cmd;
-use crate::commands::stop::stop;
 use crate::utils::logger::SimpleLogger;
 
 use clap::App;
@@ -53,7 +48,12 @@ fn main() {
 
     fs::create_dir_all("~/.rymfony/").unwrap();
 
-    let commands = vec![serve_cmd(), stop_cmd(), php_list_cmd()];
+    let commands = vec![
+        crate::commands::php_list::command_config(),
+        crate::commands::serve::command_config(),
+        crate::commands::stop::command_config(),
+        crate::commands::new_symfony::command_config()
+    ];
 
     let app = App::new("rymfony")
         .version("0.1")
@@ -66,18 +66,12 @@ fn main() {
     let subcommand_name = matches.subcommand_name();
 
     match subcommand_name {
-        Some("serve") => {
-            serve(matches.subcommand_matches("serve").unwrap());
-        }
-        Some("server:start") => {
-            serve(matches.subcommand_matches("server:start").unwrap());
-        }
-        Some("stop") => {
-            stop();
-        }
-        Some("php:list") => {
-            php_list();
-        }
+        Some("serve") => crate::commands::serve::serve(matches.subcommand_matches("serve").unwrap()),
+        Some("server:start") => crate::commands::serve::serve(matches.subcommand_matches("server:start").unwrap()),
+        Some("stop") => crate::commands::stop::stop(),
+        Some("new") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new").unwrap()),
+        Some("new:symfony") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new:symfony").unwrap()),
+        Some("php:list") => crate::commands::php_list::php_list(),
         _ => {
             // If no subcommand is specified,
             // re-run the program with "--help"
