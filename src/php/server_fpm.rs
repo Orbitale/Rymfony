@@ -6,7 +6,7 @@ use users::{get_current_gid, get_current_uid};
 
 use crate::php::php_server::PhpServer;
 #[cfg(not(target_family = "windows"))]
-use crate::php::php_server::PhpServerSapi;
+use crate::php::structs::PhpServerSapi;
 use std::process::Child;
 
 // Possible values: alert, error, warning, notice, debug

@@ -9,7 +9,7 @@ use clap::SubCommand;
 
 use crate::http::proxy_server;
 use crate::php::php_server;
-use crate::php::php_server::PhpServerSapi;
+use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
 use std::env;
 use log::info;
@@ -67,6 +67,7 @@ fn serve_foreground(args: &ArgMatches) {
         PhpServerSapi::FPM => "FPM",
         PhpServerSapi::CLI => "CLI",
         PhpServerSapi::CGI => "CGI",
+        PhpServerSapi::Unknown => "?",
     };
     info!("PHP started with module {}", sapi);
 

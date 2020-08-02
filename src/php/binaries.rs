@@ -6,6 +6,10 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 use std::str;
+use crate::php::structs::PhpServerSapi;
+use crate::php::structs::PhpVersion;
+use crate::php::structs::PhpBinary;
+use std::collections::HashMap;
 
 pub(crate) fn current() -> String {
     let binaries = all();
@@ -31,69 +35,79 @@ pub(crate) fn current() -> String {
     "php".to_string()
 }
 
-pub(crate) fn all() -> Vec<String> {
+pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
+
+    let mut binaries: Vec<String> = Vec::new();
+
+    if cfg!(target_family = "windows") {
+        binaries.extend(binaries_from_env());
+    } else {
+        binaries.extend(binaries_from_path(PathBuf::from("/usr/bin")))
+    };
+
+    let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+) \(([^\)])+\)").unwrap();
+
+    let binaries: Vec<PhpBinary> = binaries
+        .into_par_iter()
+        .filter(|binary| {
+            let version = get_version_from_binary(&binary);
+            php_version_output_regex.is_match(version.trim())
+        })
+        .map(|binary| {
+            let version = get_version_from_binary(&binary);
+
+            let capts = php_version_output_regex.captures(&binary).unwrap();
+
+            let sapi = match &capts[2] {
+                #[cfg(not(target_os = "windows"))]
+                "FPM" => PhpServerSapi::FPM,
+                "CLI" => PhpServerSapi::CLI,
+                "CGI" => PhpServerSapi::CGI,
+                _ => PhpServerSapi::Unknown,
+            };
+
+            PhpBinary::from(version.trim().to_string(), PathBuf::from(binary), sapi)
+        })
+        .collect();
+
+    let mut versions: HashMap<PhpVersion, PhpBinary> = HashMap::new();
+
+    for bin in binaries {
+        let php_version = PhpVersion::from_version(&String::from(""));
+    }
+
+    versions
+}
+
+fn binaries_from_env() -> Vec<String> {
     let path_string = env::var_os("PATH").unwrap();
     let path_dirs = path_string
         .to_str()
         .unwrap()
-        .split(get_path_separator())
+        .split(if cfg!(target_family = "windows") {
+            ";"
+        } else {
+            ":"
+        })
         .collect::<Vec<&str>>();
 
-    let binaries: Vec<String> = path_dirs
-        // consumes `path_dirs` and produce an iterator
+    path_dirs
         .into_par_iter()
         .map(|dir| {
-            // use `PathBuf` directly instead of `Path::new(…).into_owned()`
             binaries_from_path(PathBuf::from(dir))
         })
-        // at that point, `binaries_from_path` returns a `Vec<String>` so the iterator is of kind “`Vec<Vec<String>>`”, we only want `Vec<String>`
         .flatten()
-        // enjoy!
-        .collect();
-
-    let php_version_output_regex = Regex::new(r"^PHP \d\.\d+\.\d+ \(([^\)])+\)").unwrap();
-
-    // you can use the same variable name, it's OK,
-    // the previous one will be dropped
-    binaries
-        // consume `binaries` and generate an iterator
-        .into_par_iter()
-        // with `php_version_output_regex`, basically, we want to filter the
-        // results, so let's use `Iterator::filter`!
-        .filter(|binary| {
-            // `Command::new` can take a reference to a string. `binary` is
-            // of kind `String`, so just share it by giving a reference
-            let process = Command::new(binary.as_str())
-                .arg("--version")
-                .stdout(Stdio::piped())
-                .spawn()
-                .unwrap();
-
-            let output = process.wait_with_output().unwrap();
-
-            // instead of getting a slice of the `Vec<u8>` from `output.stdout` to
-            // then use `str::from_utf8`, let's just move the ownership from `Vec`
-            // (which is its value) to `String` (which also owns its value), it's much
-            // simpler!
-            let output_string = String::from_utf8(output.stdout).unwrap();
-
-            // finally, no need to call `.to_owned()` after `.is_match(…)`.
-            // `is_match` returns a boolean, it's going to be our `filter`'s result
-            php_version_output_regex.is_match(output_string.trim())
-        })
         .collect()
-}
-
-fn get_path_separator() -> &'static str {
-    if cfg!(target_family = "windows") {
-        ";"
-    } else {
-        ":"
-    }
 }
 
 fn binaries_from_path(path: PathBuf) -> Vec<String> {
     let mut binaries: Vec<String> = vec![];
+
+    if !path.is_dir() {
+        println!("not a dir {}", path.to_str().unwrap());
+
+        return binaries;
+    }
 
     let binaries_regex = if cfg!(target_family = "windows") {
         // On Windows, we mostly have "php" and "php-cgi"
@@ -124,4 +138,16 @@ fn glob_from_path(path: &str) -> String {
     } else {
         format!("{}/php*", path)
     }
+}
+
+fn get_version_from_binary(binary: &str) -> String {
+    let process = Command::new(binary.as_str())
+        .arg("--version")
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    let output = process.wait_with_output().unwrap();
+
+    String::from_utf8(output.stdout).unwrap()
 }

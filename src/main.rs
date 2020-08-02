@@ -19,6 +19,7 @@ mod utils {
 
 mod php {
     pub(crate) mod binaries;
+    pub(crate) mod structs;
     pub(crate) mod php_server;
     pub(crate) mod server_cgi;
     pub(crate) mod server_fpm;
