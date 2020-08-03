@@ -51,7 +51,7 @@ fn main() {
     let path = env::var("HOME").unwrap_or(String::from(""));
 
     if path != "" {
-        let path = PathBuf::from(path).join("rymfony");
+        let path = PathBuf::from(path).join(".rymfony");
         fs::create_dir_all(path).unwrap();
     }
 

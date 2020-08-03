@@ -85,7 +85,9 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .replace("{{ port }}", port.as_str())
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL);
 
-    let fpm_config_filename = "~/.rymfony/fpm-conf.ini";
+    let home_dir = env::var("HOME").unwrap();
+    let fpm_config_filename = format!("{}/.rymfony/fpm-conf.ini", home_dir);
+    let fpm_config_filename = fpm_config_filename.as_str();
 
     let mut file = File::create(fpm_config_filename).unwrap();
     file.write_all(config.as_bytes())
