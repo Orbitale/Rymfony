@@ -1,8 +1,8 @@
 use crate::php::binaries;
-use crate::php::structs::PhpServerSapi;
 use crate::php::server_cgi::start as start_cgi;
 use crate::php::server_fpm::start as start_fpm;
 use crate::php::server_native::start as start_native;
+use crate::php::structs::PhpServerSapi;
 #[cfg(not(target_os = "windows"))]
 use crate::utils::stop_process;
 

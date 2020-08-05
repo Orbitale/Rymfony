@@ -1,15 +1,15 @@
-use std::net::TcpStream;
 use std::net::SocketAddr;
+use std::net::TcpStream;
 
 use fastcgi_client::Client;
 use fastcgi_client::Params;
 use http::Request;
-use hyper::header::HeaderValue;
 use hyper::header::HeaderName;
-use hyper::Response;
+use hyper::header::HeaderValue;
 use hyper::Body;
-use regex::Regex;
+use hyper::Response;
 use regex::Captures;
+use regex::Regex;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -53,8 +53,22 @@ pub(crate) async fn handle_fastcgi(
 
     // Fastcgi params, please reference to nginx-php-fpm config.
     let mut params = Params::with_predefine();
-    params.insert("CONTENT_LENGTH", headers.get("Content-Length").unwrap_or(empty_header).to_str().unwrap_or(""));
-    params.insert("CONTENT_TYPE", headers.get("Content-Type").unwrap_or(empty_header).to_str().unwrap_or(""));
+    params.insert(
+        "CONTENT_LENGTH",
+        headers
+            .get("Content-Length")
+            .unwrap_or(empty_header)
+            .to_str()
+            .unwrap_or(""),
+    );
+    params.insert(
+        "CONTENT_TYPE",
+        headers
+            .get("Content-Type")
+            .unwrap_or(empty_header)
+            .to_str()
+            .unwrap_or(""),
+    );
     params.insert("DOCUMENT_ROOT", &document_root);
     params.insert("DOCUMENT_URI", &request_uri);
     params.insert("PATH_INFO", pathinfo.1.as_str());
@@ -76,10 +90,12 @@ pub(crate) async fn handle_fastcgi(
         let header_name = format!("HTTP_{}", name.as_str().replace("-", "_").to_uppercase());
 
         headers_normalized.push((header_name, value.to_str().unwrap()));
-    };
+    }
     params.extend(headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
 
-    let output = client.do_request(&params, &mut std::io::Cursor::new(body)).unwrap();
+    let output = client
+        .do_request(&params, &mut std::io::Cursor::new(body))
+        .unwrap();
 
     let stdout: Vec<u8> = output.get_stdout().unwrap();
     let stdout: &[u8] = stdout.as_slice();
@@ -95,23 +111,30 @@ pub(crate) async fn handle_fastcgi(
 
     let single_header_regex = Regex::new(r"^([^:]+):(.*)$").unwrap();
 
-    let headers_normalized: HashMap<HeaderName, HeaderValue> = headers.split("\r\n").map(|header: &str| {
-        let headers_capts = single_header_regex.captures(header).unwrap();
+    let headers_normalized: HashMap<HeaderName, HeaderValue> = headers
+        .split("\r\n")
+        .map(|header: &str| {
+            let headers_capts = single_header_regex.captures(header).unwrap();
 
-        let header_name = &headers_capts[1].as_bytes();
-        let header_value = &headers_capts[2];
+            let header_name = &headers_capts[1].as_bytes();
+            let header_value = &headers_capts[2];
 
-        (HeaderName::from_bytes(header_name).unwrap(), HeaderValue::from_str(header_value).unwrap())
-    }).collect();
+            (
+                HeaderName::from_bytes(header_name).unwrap(),
+                HeaderValue::from_str(header_value).unwrap(),
+            )
+        })
+        .collect();
 
     let mut response_builder = Response::builder();
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.extend(headers_normalized);
 
-    let response = response_builder.body(
-        Body::from(body)
-        //Body::from(body)
-    ).unwrap();
+    let response = response_builder
+        .body(
+            Body::from(body), //Body::from(body)
+        )
+        .unwrap();
 
     anyhow::Result::Ok(response)
 }

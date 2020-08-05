@@ -11,8 +11,8 @@ use crate::http::proxy_server;
 use crate::php::php_server;
 use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
-use std::env;
 use log::info;
+use std::env;
 use std::path::PathBuf;
 
 const DEFAULT_PORT: &str = "8000";
@@ -63,7 +63,6 @@ fn serve_foreground(args: &ArgMatches) {
     let php_server = php_server::start();
 
     let sapi = match php_server.sapi() {
-        #[cfg(not(target_os = "windows"))]
         PhpServerSapi::FPM => "FPM",
         PhpServerSapi::CLI => "CLI",
         PhpServerSapi::CGI => "CGI",
@@ -75,7 +74,10 @@ fn serve_foreground(args: &ArgMatches) {
 
     let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
     let document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
-    let script_filename = get_script_filename(&document_root, args.value_of("passthru").unwrap_or("index.php").to_string());
+    let script_filename = get_script_filename(
+        &document_root,
+        args.value_of("passthru").unwrap_or("index.php").to_string(),
+    );
 
     info!("Configured document root: {}", &document_root);
     info!("PHP entrypoint file: {}", &script_filename);
@@ -84,7 +86,7 @@ fn serve_foreground(args: &ArgMatches) {
         port.parse::<u16>().unwrap(),
         php_server.port(),
         &document_root,
-        &script_filename
+        &script_filename,
     );
 }
 
@@ -117,7 +119,11 @@ fn get_script_filename(document_root: &str, script_filename_arg: String) -> Stri
     let mut path = PathBuf::from(document_root);
     path.push(&script_filename_arg);
 
-    debug!("Relative script path \"{}\" resolved to \"{}\".", &script_filename_arg, path.to_str().unwrap());
+    debug!(
+        "Relative script path \"{}\" resolved to \"{}\".",
+        &script_filename_arg,
+        path.to_str().unwrap()
+    );
 
     String::from(path.to_str().unwrap())
 }

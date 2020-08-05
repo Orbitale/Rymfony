@@ -1,5 +1,5 @@
-use std::net::SocketAddr;
 use std::convert::Infallible;
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 use console::style;
@@ -19,7 +19,7 @@ pub(crate) async fn start<'a>(
     http_port: u16,
     php_port: u16,
     document_root: &'a String,
-    script_filename: &'a String
+    script_filename: &'a String,
 ) {
     let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], http_port));
     let static_files_server = Static::new(Path::new(document_root));
@@ -44,15 +44,32 @@ pub(crate) async fn start<'a>(
                     let http_version = crate::http::version::as_str(req.version());
 
                     let render_static = get_render_static_path(&document_root, &request_path);
-                    let render_static = !request_path.contains(".php") && render_static != "" && request_path != "" && request_path != "/";
+                    let render_static = !request_path.contains(".php")
+                        && render_static != ""
+                        && request_path != ""
+                        && request_path != "/";
 
-                    info!("{} {} {}{}", http_version, req.method(), request_uri, if render_static {" (static)"} else {""});
+                    info!(
+                        "{} {} {}{}",
+                        http_version,
+                        req.method(),
+                        request_uri,
+                        if render_static { " (static)" } else { "" }
+                    );
 
                     if render_static {
                         return serve_static(req, static_files_server.clone()).await;
                     }
 
-                    return handle_fastcgi(document_root.clone(), script_filename.clone(), remote_addr.clone(), req, http_port, php_port).await;
+                    return handle_fastcgi(
+                        document_root.clone(),
+                        script_filename.clone(),
+                        remote_addr.clone(),
+                        req,
+                        http_port,
+                        php_port,
+                    )
+                    .await;
                 }
             }))
         }
@@ -70,7 +87,7 @@ pub(crate) async fn start<'a>(
 
 async fn serve_static(
     req: Request<Body>,
-    static_files_server: Static
+    static_files_server: Static,
 ) -> anyhow::Result<Response<Body>> {
     let static_files_server = static_files_server.clone();
     let response_future = static_files_server.serve(req);
@@ -87,8 +104,7 @@ fn get_render_static_path(document_root: &str, request_path: &str) -> String {
 
     let static_doc_root = PathBuf::from(&document_root);
 
-    let docroot_path = PathBuf::from(&static_doc_root)
-        .join(request_path);
+    let docroot_path = PathBuf::from(&static_doc_root).join(request_path);
 
     let docroot_public_path = PathBuf::from(&static_doc_root)
         .join("public")

@@ -1,6 +1,6 @@
 use log::Level;
-use log::Record;
 use log::Metadata;
+use log::Record;
 
 pub(crate) struct SimpleLogger;
 

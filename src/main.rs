@@ -5,10 +5,10 @@ extern crate log;
 extern crate regex;
 
 mod commands {
+    pub(crate) mod new_symfony;
     pub(crate) mod php_list;
     pub(crate) mod serve;
     pub(crate) mod stop;
-    pub(crate) mod new_symfony;
 }
 
 mod utils {
@@ -19,11 +19,11 @@ mod utils {
 
 mod php {
     pub(crate) mod binaries;
-    pub(crate) mod structs;
     pub(crate) mod php_server;
     pub(crate) mod server_cgi;
     pub(crate) mod server_fpm;
     pub(crate) mod server_native;
+    pub(crate) mod structs;
 }
 
 mod http {
@@ -35,12 +35,12 @@ mod http {
 use crate::utils::logger::SimpleLogger;
 
 use clap::App;
-use std::fs;
-use std::process::Command;
-use utils::current_process_name;
 use log::LevelFilter;
 use std::env;
+use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
+use utils::current_process_name;
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
@@ -60,7 +60,7 @@ fn main() {
         crate::commands::php_list::command_config(),
         crate::commands::serve::command_config(),
         crate::commands::stop::command_config(),
-        crate::commands::new_symfony::command_config()
+        crate::commands::new_symfony::command_config(),
     ];
 
     let app = App::new("rymfony")
@@ -74,11 +74,19 @@ fn main() {
     let subcommand_name = matches.subcommand_name();
 
     match subcommand_name {
-        Some("serve") => crate::commands::serve::serve(matches.subcommand_matches("serve").unwrap()),
-        Some("server:start") => crate::commands::serve::serve(matches.subcommand_matches("server:start").unwrap()),
+        Some("serve") => {
+            crate::commands::serve::serve(matches.subcommand_matches("serve").unwrap())
+        }
+        Some("server:start") => {
+            crate::commands::serve::serve(matches.subcommand_matches("server:start").unwrap())
+        }
         Some("stop") => crate::commands::stop::stop(),
-        Some("new") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new").unwrap()),
-        Some("new:symfony") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new:symfony").unwrap()),
+        Some("new") => {
+            crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new").unwrap())
+        }
+        Some("new:symfony") => crate::commands::new_symfony::new_symfony(
+            matches.subcommand_matches("new:symfony").unwrap(),
+        ),
         Some("php:list") => crate::commands::php_list::php_list(),
         _ => {
             // If no subcommand is specified,
