@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::Copy;
 
 pub(crate) enum PhpServerSapi {
     FPM,
@@ -36,12 +37,16 @@ impl PhpServerSapi {
 //
 
 #[derive(Hash, Eq, PartialEq)]
-pub(crate) struct PhpVersion {
-    _version: String,
+pub(crate) struct PhpVersion<'a> {
+    _version: &'a str,
 }
 
 impl PhpVersion {
-    pub(crate) fn from(version: String) -> PhpVersion {
+    pub(crate) fn from_string(version: String) -> PhpVersion {
+        PhpVersion::from_str(version.as_str())
+    }
+
+    pub(crate) fn from_str(version: &str) -> PhpVersion {
         let version_regex = Regex::new("^[578]\\.\\d{1,2}\\.\\d+$").unwrap();
 
         if !version_regex.is_match(&version) {
@@ -55,6 +60,12 @@ impl PhpVersion {
 
     pub(crate) fn version(&self) -> &str {
         self._version.as_str()
+    }
+}
+
+impl Copy for PhpVersion {
+    fn clone(&self) -> PhpVersion {
+        *self
     }
 }
 
@@ -137,7 +148,7 @@ impl PhpBinary {
             PhpServerSapi::CGI => {
                 self.cgi = path.clone();
             }
-            PhpServerSapi::Unknown => false,
+            PhpServerSapi::Unknown => (),
         }
     }
 
