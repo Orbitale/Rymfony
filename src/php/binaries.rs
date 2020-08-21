@@ -7,20 +7,18 @@ use std::process::Stdio;
 use std::str;
 
 use glob::glob;
-use rayon::prelude::*;
 use regex::Regex;
 
 use crate::php::structs::PhpBinary;
 use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
-use tokio::stream::StreamExt;
 
 pub(crate) fn current() -> String {
     let binaries = all();
 
-    for (_version, binary) in binaries {
+    for (_version, _binary) in binaries {
         // TODO: check for a better solution to choose current PHP version
-        return binary.path().to_string();
+        //return binary.path().to_string();
     }
 
     "php".to_string()
@@ -33,7 +31,7 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 
     merge_binaries(
         binaries_from_dir(PathBuf::from("/usr/bin")),
-        &binaries
+        &mut binaries
     );
 
     binaries
@@ -54,18 +52,17 @@ fn binaries_from_env(binaries: HashMap<PhpVersion, PhpBinary>) -> HashMap<PhpVer
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
     path_dirs
-        .into_par_iter()
+        .iter()
         .map(|dir| {
             let binaries_from_dir = binaries_from_dir(PathBuf::from(dir));
 
             for (version, binary) in binaries_from_dir {
-                let mut current: PhpBinary = if binaries.contains_key(&version) {
-                    binaries[&version]
+                if binaries.contains_key(&version) {
+                    let mut bin = binaries.get_mut(&version).unwrap();
+                    bin.merge_with(binary);
                 } else {
-                    PhpBinary::from_version(version.clone())
+                    binaries.insert(version, binary);
                 };
-
-                current.merge_with(binary);
             }
         });
 
@@ -104,21 +101,21 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
 
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
-    for path in binaries_paths {
+    binaries_paths.iter().map(|path| {
         let (version, sapi) = get_binary_metadata(&path);
 
         if binaries.contains_key(&version) {
-            let mut current = binaries[&version];
+            let current = &mut binaries.get_mut(&version).unwrap();
 
             if !current.has_sapi(&sapi) {
                 current.add_sapi(&sapi, &path);
             }
         } else {
-            let mut bin = PhpBinary::from_version(&version);
+            let mut bin = PhpBinary::from_version(version.clone());
             bin.add_sapi(&sapi, &path);
             &binaries.insert(version.clone(), bin);
         }
-    }
+    });
 
     binaries
 }
@@ -139,7 +136,8 @@ fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
         .unwrap();
 
     let output = process.wait_with_output().unwrap();
-    let output = String::from(output.stdout.to_str().unwrap());
+    let stdout = output.stdout;
+    let output = String::from_utf8(stdout).unwrap();
 
     let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+) \(([^\)]+)\)").unwrap();
 
@@ -155,21 +153,20 @@ fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
     let sapi = &capts[2];
 
     (
-        PhpVersion::from(version.to_string()),
+        PhpVersion::from_str(version),
         PhpServerSapi::from_str(&sapi),
     )
 }
 
 fn merge_binaries(
     from: HashMap<PhpVersion, PhpBinary>,
-    mut into: &HashMap<PhpVersion, PhpBinary>
+    into: &mut HashMap<PhpVersion, PhpBinary>
 ) {
     for (version, binary) in from {
-        let mut current_into = if into.contains_key(&version) {
-            into[version]
+        if into.contains_key(&version) {
+            into.get_mut(&version).unwrap().merge_with(binary)
         } else {
-            PhpBinary::from_version(version.clone())
-        };
-        current_into.merge_with(binary);
+            into.insert(version.clone(), PhpBinary::from_version(version.clone()));
+        }
     }
 }

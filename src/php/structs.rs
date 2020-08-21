@@ -1,5 +1,4 @@
 use regex::Regex;
-use std::Copy;
 
 pub(crate) enum PhpServerSapi {
     FPM,
@@ -37,16 +36,18 @@ impl PhpServerSapi {
 //
 
 #[derive(Hash, Eq, PartialEq)]
-pub(crate) struct PhpVersion<'a> {
-    _version: &'a str,
+pub(crate) struct PhpVersion {
+    _version: String,
 }
 
 impl PhpVersion {
-    pub(crate) fn from_string(version: String) -> PhpVersion {
-        PhpVersion::from_str(version.as_str())
+    pub(crate) fn clone(&self) -> PhpVersion {
+        PhpVersion {
+            _version: self._version.clone()
+        }
     }
 
-    pub(crate) fn from_str(version: &str) -> PhpVersion {
+    pub(crate) fn from_string(version: String) -> PhpVersion {
         let version_regex = Regex::new("^[578]\\.\\d{1,2}\\.\\d+$").unwrap();
 
         if !version_regex.is_match(&version) {
@@ -58,16 +59,14 @@ impl PhpVersion {
         }
     }
 
+    pub(crate) fn from_str(version: &str) -> PhpVersion {
+        PhpVersion::from_string(version.to_string())
+    }
+
     pub(crate) fn version(&self) -> &str {
         self._version.as_str()
     }
-}
-
-impl Copy for PhpVersion {
-    fn clone(&self) -> PhpVersion {
-        *self
     }
-}
 
 //
 //
@@ -77,18 +76,30 @@ impl Copy for PhpVersion {
 //
 //
 //
+
 
 #[derive(Hash, Eq, PartialEq)]
 pub(crate) struct PhpBinary {
-    _version: PhpVersion,
     directory: String,
     cli: String,
     fpm: String,
     cgi: String,
     default: bool,
+    _version: PhpVersion,
 }
 
 impl PhpBinary {
+    pub(crate) fn clone(&self) -> PhpBinary {
+        PhpBinary {
+            _version: self._version.clone(),
+            directory: self.directory.clone(),
+            cli: self.cli.clone(),
+            fpm: self.fpm.clone(),
+            cgi: self.cgi.clone(),
+            default: self.default.clone(),
+        }
+    }
+
     pub(crate) fn from_version(version: PhpVersion) -> PhpBinary {
         PhpBinary {
             _version: version,
@@ -121,11 +132,7 @@ impl PhpBinary {
     }
 
     pub(crate) fn version(&self) -> &str {
-        self._version.as_str()
-    }
-
-    pub(crate) fn path(&self) -> &str {
-        self._path.to_str().unwrap()
+        self._version.version()
     }
 
     pub(crate) fn has_sapi(&self, sapi: &PhpServerSapi) -> bool {
@@ -157,7 +164,7 @@ impl PhpBinary {
             PhpServerSapi::FPM => self.fpm.clone(),
             PhpServerSapi::CLI => self.cli.clone(),
             PhpServerSapi::CGI => self.cgi.clone(),
-            PhpServerSapi::Unknown => false,
+            PhpServerSapi::Unknown => String::from(""),
         }
     }
 }
