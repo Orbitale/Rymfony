@@ -16,7 +16,7 @@ use crate::php::structs::PhpVersion;
 pub(crate) fn current() -> String {
     let binaries = all();
 
-    for (_version, _binary) in binaries {
+    for (version, binary) in binaries {
         // TODO: check for a better solution to choose current PHP version
         //return binary.path().to_string();
     }
@@ -33,6 +33,8 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
         binaries_from_dir(PathBuf::from("/usr/bin")),
         &mut binaries
     );
+
+    dbg!(&binaries);
 
     binaries
 }
@@ -51,20 +53,18 @@ fn binaries_from_env(binaries: HashMap<PhpVersion, PhpBinary>) -> HashMap<PhpVer
 
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
-    path_dirs
-        .iter()
-        .map(|dir| {
-            let binaries_from_dir = binaries_from_dir(PathBuf::from(dir));
+    for dir in path_dirs {
+        let binaries_from_dir = binaries_from_dir(PathBuf::from(dir));
 
-            for (version, binary) in binaries_from_dir {
-                if binaries.contains_key(&version) {
-                    let mut bin = binaries.get_mut(&version).unwrap();
-                    bin.merge_with(binary);
-                } else {
-                    binaries.insert(version, binary);
-                };
-            }
-        });
+        for (version, binary) in binaries_from_dir {
+            if binaries.contains_key(&version) {
+                let mut bin = binaries.get_mut(&version).unwrap();
+                bin.merge_with(binary);
+            } else {
+                binaries.insert(version, binary);
+            };
+        }
+    }
 
     binaries
 }
@@ -101,7 +101,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
 
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
-    binaries_paths.iter().map(|path| {
+    for path in binaries_paths.iter() {
         let (version, sapi) = get_binary_metadata(&path);
 
         if binaries.contains_key(&version) {
@@ -115,7 +115,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
             bin.add_sapi(&sapi, &path);
             &binaries.insert(version.clone(), bin);
         }
-    });
+    }
 
     binaries
 }

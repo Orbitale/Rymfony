@@ -32,7 +32,7 @@ pub(crate) fn php_list() {
     table.set_format(format);
     table.set_titles(row!["Binary path"]);
 
-    for (_php_version, _php_binary) in php::binaries::all() {
+    for (php_version, php_binary) in php::binaries::all() {
         // TODO: refactor this
         //table.add_row(row![&php_version.version(), &php_binary.path()]);
     }

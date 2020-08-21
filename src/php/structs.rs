@@ -1,5 +1,9 @@
 use regex::Regex;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 
+#[derive(Debug)]
 pub(crate) enum PhpServerSapi {
     FPM,
     CGI,
@@ -26,6 +30,17 @@ impl PhpServerSapi {
     }
 }
 
+impl Display for PhpServerSapi {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match &self {
+            PhpServerSapi::FPM => write!(f, "FPM"),
+            PhpServerSapi::CLI => write!(f, "CLI"),
+            PhpServerSapi::CGI => write!(f, "CGI"),
+            PhpServerSapi::Unknown => write!(f, "unknown"),
+        }
+    }
+}
+
 //
 //
 //
@@ -35,7 +50,7 @@ impl PhpServerSapi {
 //
 //
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Debug)]
 pub(crate) struct PhpVersion {
     _version: String,
 }
@@ -78,7 +93,7 @@ impl PhpVersion {
 //
 
 
-#[derive(Hash, Eq, PartialEq)]
+#[derive(Hash, Eq, PartialEq, Debug)]
 pub(crate) struct PhpBinary {
     directory: String,
     cli: String,
@@ -155,7 +170,9 @@ impl PhpBinary {
             PhpServerSapi::CGI => {
                 self.cgi = path.clone();
             }
-            PhpServerSapi::Unknown => (),
+            PhpServerSapi::Unknown => {
+                panic!("Unknown sapi \"{}\" at path \"{}\"", &sapi, &path);
+            },
         }
     }
 
