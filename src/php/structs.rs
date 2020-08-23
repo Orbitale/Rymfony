@@ -97,7 +97,6 @@ impl PhpVersion {
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 pub(crate) struct PhpBinary {
-    directory: String,
     cli: String,
     fpm: String,
     cgi: String,
@@ -109,7 +108,6 @@ impl PhpBinary {
     pub(crate) fn clone(&self) -> PhpBinary {
         PhpBinary {
             _version: self._version.clone(),
-            directory: self.directory.clone(),
             cli: self.cli.clone(),
             fpm: self.fpm.clone(),
             cgi: self.cgi.clone(),
@@ -120,16 +118,11 @@ impl PhpBinary {
     pub(crate) fn from_version(version: PhpVersion) -> PhpBinary {
         PhpBinary {
             _version: version,
-            directory: String::from(""),
             cli: String::from(""),
             fpm: String::from(""),
             cgi: String::from(""),
             default: false,
         }
-    }
-
-    pub(crate) fn set_directory(&mut self, directory: String) {
-        self.directory = directory.clone();
     }
 
     pub(crate) fn merge_with(&mut self, from: PhpBinary) {
@@ -150,6 +143,15 @@ impl PhpBinary {
 
     pub(crate) fn version(&self) -> &str {
         self._version.version()
+    }
+    pub(crate) fn cli(&self) -> &String {
+        &self.cli
+    }
+    pub(crate) fn fpm(&self) -> &String {
+        &self.fpm
+    }
+    pub(crate) fn cgi(&self) -> &String {
+        &self.cgi
     }
 
     pub(crate) fn has_sapi(&self, sapi: &PhpServerSapi) -> bool {

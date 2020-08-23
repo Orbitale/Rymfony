@@ -30,11 +30,15 @@ pub(crate) fn php_list() {
         .build();
 
     table.set_format(format);
-    table.set_titles(row!["Binary path"]);
+    table.set_titles(row!["Version", "PHP CLI", "PHP FPM", "PHP CGI"]);
 
     for (php_version, php_binary) in php::binaries::all() {
-        // TODO: refactor this
-        //table.add_row(row![&php_version.version(), &php_binary.path()]);
+        table.add_row(row![
+            php_version.version(),
+            php_binary.cli(),
+            php_binary.fpm(),
+            php_binary.cgi(),
+        ]);
     }
 
     table.printstd();
