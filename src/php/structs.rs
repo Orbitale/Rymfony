@@ -16,6 +16,7 @@ impl PhpServerSapi {
         let str = str.to_lowercase();
         match str.as_str() {
             "fpm" => PhpServerSapi::FPM,
+            "fpm-fcgi" => PhpServerSapi::FPM,
             "cli" => PhpServerSapi::CLI,
             "cgi" => PhpServerSapi::CGI,
             "cgi-fcgi" => PhpServerSapi::CGI,
