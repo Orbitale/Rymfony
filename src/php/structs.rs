@@ -13,10 +13,12 @@ pub(crate) enum PhpServerSapi {
 
 impl PhpServerSapi {
     pub(crate) fn from_str(str: &str) -> PhpServerSapi {
-        match str {
-            "FPM" => PhpServerSapi::FPM,
-            "CLI" => PhpServerSapi::CLI,
-            "CGI" => PhpServerSapi::CGI,
+        let str = str.to_lowercase();
+        match str.as_str() {
+            "fpm" => PhpServerSapi::FPM,
+            "cli" => PhpServerSapi::CLI,
+            "cgi" => PhpServerSapi::CGI,
+            "cgi-fcgi" => PhpServerSapi::CGI,
             _ => PhpServerSapi::Unknown,
         }
     }

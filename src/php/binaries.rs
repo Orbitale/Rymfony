@@ -92,7 +92,11 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
         if !binaries_regex.is_match(binary.to_str().unwrap()) {
             continue;
         }
-        let binary = binary.canonicalize().unwrap();
+
+        // Canonicalize on Windows leaves the "\\?" prefix on canonicalized paths.
+        // Let's not use it, they should be absolute anyway on Windows, so they're usable.
+        #[cfg(not(target_family = "windows"))]
+        let binary: PathBuf = binary.canonicalize().unwrap();
 
         binaries_paths.push(binary.to_str().unwrap().parse().unwrap());
     }
@@ -139,7 +143,7 @@ fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
     let stdout = output.stdout;
     let output = String::from_utf8(stdout).unwrap();
 
-    let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+) \(([^\)]+)\)").unwrap();
+    let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+) \(([^)]+)\)").unwrap();
 
     if !php_version_output_regex.is_match(&output) {
         panic!(
