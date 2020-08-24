@@ -25,21 +25,19 @@ pub(crate) fn current() -> String {
 }
 
 pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
-    let binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
+    let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
-    let mut binaries = binaries_from_env(binaries);
+    binaries_from_env(&mut binaries);
 
     merge_binaries(
         binaries_from_dir(PathBuf::from("/usr/bin")),
         &mut binaries
     );
 
-    dbg!(&binaries);
-
     binaries
 }
 
-fn binaries_from_env(binaries: HashMap<PhpVersion, PhpBinary>) -> HashMap<PhpVersion, PhpBinary> {
+fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
     let path_string = env::var_os("PATH").unwrap();
     let path_dirs = path_string
         .to_str()
@@ -50,8 +48,6 @@ fn binaries_from_env(binaries: HashMap<PhpVersion, PhpBinary>) -> HashMap<PhpVer
             ":"
         })
         .collect::<Vec<&str>>();
-
-    let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
     for dir in path_dirs {
         let binaries_from_dir = binaries_from_dir(PathBuf::from(dir));
@@ -65,8 +61,6 @@ fn binaries_from_env(binaries: HashMap<PhpVersion, PhpBinary>) -> HashMap<PhpVer
             };
         }
     }
-
-    binaries
 }
 
 fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {

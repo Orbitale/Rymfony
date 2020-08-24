@@ -4,6 +4,10 @@ extern crate prettytable;
 extern crate log;
 extern crate regex;
 
+mod config {
+    pub(crate) mod config;
+}
+
 mod commands {
     pub(crate) mod new_symfony;
     pub(crate) mod php_list;
