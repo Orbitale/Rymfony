@@ -2,6 +2,9 @@ use regex::Regex;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
+use serde::Serializer;
+use serde::Serialize;
+use serde::Deserialize;
 
 #[derive(Debug)]
 pub(crate) enum PhpServerSapi {
@@ -53,7 +56,7 @@ impl Display for PhpServerSapi {
 //
 //
 
-#[derive(Hash, Eq, PartialEq, Debug)]
+#[derive(Hash, Eq, PartialEq, Debug, Deserialize)]
 pub(crate) struct PhpVersion {
     _version: String,
 }
@@ -86,6 +89,13 @@ impl PhpVersion {
     }
     }
 
+impl Serialize for PhpVersion {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
+        S: Serializer {
+        serializer.serialize_str(&self._version.as_str())
+    }
+}
+
 //
 //
 //
@@ -96,33 +106,24 @@ impl PhpVersion {
 //
 
 
-#[derive(Hash, Eq, PartialEq, Debug)]
+#[derive(Hash, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub(crate) struct PhpBinary {
     cli: String,
     fpm: String,
     cgi: String,
-    default: bool,
+    system: bool,
+    #[serde(skip_serializing)]
     _version: PhpVersion,
 }
 
 impl PhpBinary {
-    pub(crate) fn clone(&self) -> PhpBinary {
-        PhpBinary {
-            _version: self._version.clone(),
-            cli: self.cli.clone(),
-            fpm: self.fpm.clone(),
-            cgi: self.cgi.clone(),
-            default: self.default.clone(),
-        }
-    }
-
     pub(crate) fn from_version(version: PhpVersion) -> PhpBinary {
         PhpBinary {
             _version: version,
             cli: String::from(""),
             fpm: String::from(""),
             cgi: String::from(""),
-            default: false,
+            system: false,
         }
     }
 
@@ -138,13 +139,6 @@ impl PhpBinary {
         }
     }
 
-    pub(crate) fn set_default(&mut self, default: bool) {
-        self.default = default;
-    }
-
-    pub(crate) fn version(&self) -> &str {
-        self._version.version()
-    }
     pub(crate) fn cli(&self) -> &String {
         &self.cli
     }

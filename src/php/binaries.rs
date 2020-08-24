@@ -14,9 +14,9 @@ use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
 
 pub(crate) fn current() -> String {
-    let binaries = all();
+    let _binaries = all();
 
-    for (version, binary) in binaries {
+    for (_version, _binary) in _binaries {
         // TODO: check for a better solution to choose current PHP version
         //return binary.path().to_string();
     }
@@ -54,7 +54,7 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
 
         for (version, binary) in binaries_from_dir {
             if binaries.contains_key(&version) {
-                let mut bin = binaries.get_mut(&version).unwrap();
+                let bin = binaries.get_mut(&version).unwrap();
                 bin.merge_with(binary);
             } else {
                 binaries.insert(version, binary);
