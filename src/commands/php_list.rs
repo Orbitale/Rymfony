@@ -38,7 +38,7 @@ pub(crate) fn php_list() {
     table.set_titles(row!["Version", "PHP CLI", "PHP FPM", "PHP CGI"]);
 
     let mut ordered_binaries: Vec<_> = binaries.into_iter().collect();
-    ordered.sort_by(|x,y| x.0.version().cmp(y.0.version()));
+    ordered_binaries.sort_by(|x,y| x.0.version().cmp(y.0.version()));
 
     for (php_version, php_binary) in ordered_binaries {
         table.add_row(row![
