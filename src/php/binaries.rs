@@ -29,10 +29,9 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 
     binaries_from_env(&mut binaries);
 
-    merge_binaries(
-        binaries_from_dir(PathBuf::from("/usr/bin")),
-        &mut binaries
-    );
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/bin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/sbin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/")), &mut binaries);
 
     binaries
 }
@@ -64,10 +63,6 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
 }
 
 fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
-    if !path.is_dir() {
-        return HashMap::new();
-    }
-
     let binaries_regex = if cfg!(target_family = "windows") {
         // On Windows, we mostly have "php" and "php-cgi"
         Regex::new(r"php(\d+(\.\d+))?(-cgi)?\.exe$").unwrap()
@@ -83,6 +78,11 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
 
     for entry in glob(&path_glob).expect("Failed to read glob pattern") {
         let binary: PathBuf = entry.unwrap();
+        if binary.is_dir() {
+            // This means that we have a "php"-like dir.
+            // For recursive search, insert a "*" glob character in the "path" variable beforehand.
+            continue;
+        }
         if !binaries_regex.is_match(binary.to_str().unwrap()) {
             continue;
         }
