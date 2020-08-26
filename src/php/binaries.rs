@@ -31,7 +31,12 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 
     merge_binaries(binaries_from_dir(PathBuf::from("/usr/bin")), &mut binaries);
     merge_binaries(binaries_from_dir(PathBuf::from("/usr/sbin")), &mut binaries);
-    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/")), &mut binaries);
+
+    if cfg!(target_os = "macos") {
+        merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")), &mut binaries);
+        merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")), &mut binaries);
+        merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/php*/bin")), &mut binaries);
+    }
 
     binaries
 }
@@ -49,16 +54,7 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
         .collect::<Vec<&str>>();
 
     for dir in path_dirs {
-        let binaries_from_dir = binaries_from_dir(PathBuf::from(dir));
-
-        for (version, binary) in binaries_from_dir {
-            if binaries.contains_key(&version) {
-                let bin = binaries.get_mut(&version).unwrap();
-                bin.merge_with(binary);
-            } else {
-                binaries.insert(version, binary);
-            };
-        }
+        merge_binaries(binaries_from_dir(PathBuf::from(dir)), binaries);
     }
 }
 
@@ -162,9 +158,9 @@ fn merge_binaries(
 ) {
     for (version, binary) in from {
         if into.contains_key(&version) {
-            into.get_mut(&version).unwrap().merge_with(binary)
+            into.get_mut(&version).unwrap().merge_with(binary);
         } else {
-            into.insert(version.clone(), PhpBinary::from_version(version.clone()));
-        }
+            into.insert(version, binary);
+        };
     }
 }
