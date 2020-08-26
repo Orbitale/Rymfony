@@ -69,7 +69,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
     } else {
         // This will probably need to be updated for other platforms.
         // This matches "php", "php7.4", "php-fpm", "php7.4-fpm" and "php-fpm7.4"
-        Regex::new(r"php(\d+(\.\d+))?([_-]?fpm)?(\d+(\.\d+))?$").unwrap()
+        Regex::new(r"php(\d+(\.\d+))?([_-]?fpm|[_-]?cgi)?(\d+(\.\d+))?$").unwrap()
     };
 
     let mut binaries_paths: Vec<String> = Vec::new();
