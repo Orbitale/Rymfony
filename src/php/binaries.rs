@@ -158,6 +158,6 @@ fn merge_binaries(
             into.get_mut(&version).unwrap().merge_with(binary);
         } else {
             into.insert(version, binary);
-        };
+        }
     }
 }
