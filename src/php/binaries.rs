@@ -31,12 +31,9 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 
     merge_binaries(binaries_from_dir(PathBuf::from("/usr/bin")), &mut binaries);
     merge_binaries(binaries_from_dir(PathBuf::from("/usr/sbin")), &mut binaries);
-
-    if cfg!(target_os = "macos") {
-        merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")), &mut binaries);
-        merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")), &mut binaries);
-        merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/php*/bin")), &mut binaries);
-    }
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/php*/bin")), &mut binaries);
 
     binaries
 }
