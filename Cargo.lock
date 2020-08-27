@@ -1061,6 +1061,7 @@ dependencies = [
  "clap",
  "console",
  "ctrlc",
+ "dirs",
  "fastcgi-client",
  "glob",
  "http",
