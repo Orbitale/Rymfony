@@ -1,5 +1,5 @@
 #[cfg(not(target_family = "windows"))]
-use std::{env, fs::File, io::prelude::*, process::Command};
+use std::{env, fs::File, io::prelude::*, process::Command, path::PathBuf};
 
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
@@ -85,11 +85,23 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .replace("{{ port }}", port.as_str())
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL);
 
-    let fpm_config_filename = "~/.rymfony/fpm-conf.ini";
+    let home = env::var("HOME").unwrap_or(String::from(""));
 
-    let mut file = File::create(fpm_config_filename).unwrap();
-    file.write_all(config.as_bytes())
+    let fpm_config_file_path;
+
+    if home != "" {
+        fpm_config_file_path = PathBuf::from(home.as_str())
+            .join(".rymfony")
+            .join("fpm-conf.ini");
+    } else {
+        panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.");
+    }
+
+    let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
+    fpm_config_file.write_all(config.as_bytes())
         .expect("Could not write to php-fpm config file.");
+
+    dbg!(&fpm_config_file);
 
     let cwd = env::current_dir().unwrap();
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
@@ -100,7 +112,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .arg("--pid")
         .arg(pid_filename)
         .arg("--fpm-config")
-        .arg(fpm_config_filename);
+        .arg(fpm_config_file_path.to_str().unwrap());
 
     if let Ok(child) = command.spawn() {
         info!("Running php-fpm with PID {}", child.id());
