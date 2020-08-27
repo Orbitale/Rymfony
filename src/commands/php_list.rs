@@ -35,17 +35,19 @@ pub(crate) fn php_list() {
         .build();
 
     table.set_format(format);
-    table.set_titles(row!["Version", "PHP CLI", "PHP FPM", "PHP CGI"]);
+    table.set_titles(row!["Version", "PHP CLI", "PHP FPM", "PHP CGI", "System"]);
 
     let mut ordered_binaries: Vec<_> = binaries.into_iter().collect();
     ordered_binaries.sort_by(|x,y| x.0.version().cmp(y.0.version()));
 
     for (php_version, php_binary) in ordered_binaries {
+        let system = if php_binary.system() { "*" } else { "" };
         table.add_row(row![
             php_version.version(),
             php_binary.cli(),
             php_binary.fpm(),
             php_binary.cgi(),
+            system
         ]);
     }
 
