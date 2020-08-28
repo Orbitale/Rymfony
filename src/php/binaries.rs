@@ -18,7 +18,9 @@ pub(crate) fn current() -> String {
 
     for (_version, _binary) in _binaries {
         // TODO: check for a better solution to choose current PHP version
-        //return binary.path().to_string();
+        if _binary.system() {
+            return _binary.preferred_sapi().to_string();
+        }
     }
 
     "php".to_string()
@@ -153,7 +155,11 @@ fn merge_binaries(
     from: HashMap<PhpVersion, PhpBinary>,
     into: &mut HashMap<PhpVersion, PhpBinary>
 ) {
-    for (version, binary) in from {
+    for (version, mut binary) in from {
+        // this needs to be fixed, but for now we assume that the first ever found version is
+        // the one that is first in PATH and therefor the "system" binary
+        &binary.set_system(if into.len() == 0 { true } else { false });
+
         if into.contains_key(&version) {
             into.get_mut(&version).unwrap().merge_with(binary);
         } else {

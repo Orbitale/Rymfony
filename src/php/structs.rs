@@ -158,6 +158,26 @@ impl PhpBinary {
         }
     }
 
+    pub(crate) fn system(&self) -> bool {
+        self.system.clone()
+    }
+
+    pub(crate) fn set_system(&mut self, is_system: bool) {
+        self.system = is_system;
+    }
+
+    pub(crate) fn preferred_sapi(&self) -> String {
+        if self.fpm != "" {
+            return self.fpm.clone();
+        } else if self.cgi != "" {
+            return self.cgi.clone();
+        } else if self.cli != "" {
+            return self.cli.clone();
+        } else {
+            panic!("Cannot detect preferred sapi for PHP \"{}\"", self._version.version());
+        }
+    }
+
     pub(crate) fn add_sapi(&mut self, sapi: &PhpServerSapi, path: &String) {
         match sapi {
             PhpServerSapi::FPM => {
