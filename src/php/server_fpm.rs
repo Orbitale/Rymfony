@@ -29,7 +29,7 @@ error_log = /dev/fd/2
 ; This gives the advantage of keeping control over the process,
 ; and possibly retrieve logs too (since logs can be piped with fpm's stderr with current config)
 daemonize = no
-systemd_interval = 0
+{{ systemd }}systemd_interval = 0
 
 [www]
 ; Only works if launched as a root user
@@ -79,11 +79,15 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
 
     let port = FPM_DEFAULT_PORT.to_string();
 
+    // TODO systemd support should be detected dynamically on Linux
+    let systemd_support = !cfg!(target_os = "macos");
+
     let config = FPM_DEFAULT_CONFIG
         .replace("{{ uid }}", uid_str.as_str())
         .replace("{{ gid }}", gid_str.as_str())
         .replace("{{ port }}", port.as_str())
-        .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL);
+        .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
+        .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
     let home = env::var("HOME").unwrap_or(String::from(""));
 
