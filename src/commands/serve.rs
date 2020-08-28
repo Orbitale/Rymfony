@@ -11,6 +11,7 @@ use crate::http::proxy_server;
 use crate::php::php_server;
 use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
+use crate::utils::network;
 use log::info;
 use std::env;
 use std::path::PathBuf;
@@ -57,6 +58,19 @@ pub(crate) fn serve(args: &ArgMatches) {
     }
 }
 
+fn parse_default_port(port: &str) -> u16 {
+    let local_port = port.parse::<u16>();
+
+    match local_port {
+        Ok(_n) => return local_port.unwrap(),
+        Err(_n) => {
+            info!("Port needs to be an integer, using {} as fallback", DEFAULT_PORT);
+        },
+    }
+
+    DEFAULT_PORT.parse::<u16>().unwrap()
+}
+
 fn serve_foreground(args: &ArgMatches) {
     info!("Starting PHP...");
 
@@ -72,7 +86,11 @@ fn serve_foreground(args: &ArgMatches) {
 
     info!("Starting HTTP server...");
 
-    let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
+    let port = network::find_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
+    if port.is_none() {
+        panic!("Unable to detect an available port, use --port with a value lower than 65535");
+    }
+
     let document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
     let script_filename = get_script_filename(
         &document_root,
@@ -83,7 +101,7 @@ fn serve_foreground(args: &ArgMatches) {
     info!("PHP entrypoint file: {}", &script_filename);
 
     proxy_server::start(
-        port.parse::<u16>().unwrap(),
+        port.unwrap(),
         php_server.port(),
         &document_root,
         &script_filename,
@@ -91,10 +109,15 @@ fn serve_foreground(args: &ArgMatches) {
 }
 
 fn serve_background(args: &ArgMatches) {
+    let port = network::find_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
+    if port.is_none() {
+        panic!("Unable to detect an available port, use --port with a value lower than 65535");
+    }
+
     let subprocess = Command::new(current_process_name::get().as_str())
         .arg("serve")
         .arg("--port")
-        .arg(args.value_of("port").unwrap_or(DEFAULT_PORT))
+        .arg(port.unwrap().to_string())
         .spawn()
         .expect("Failed to start server as a background process");
 
