@@ -77,7 +77,7 @@ pub(crate) async fn start<'a>(
 
     let http_server = Server::bind(&addr).serve(make_service);
 
-    info!(
+    println!(
         "Server listening to {}",
         style(format!("http://{}", addr)).cyan()
     );
