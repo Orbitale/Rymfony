@@ -6,9 +6,8 @@ use users::{get_current_gid, get_current_uid};
 
 use crate::php::php_server::PhpServer;
 #[cfg(not(target_family = "windows"))]
-use crate::php::structs::PhpServerSapi;
+use crate::{php::structs::PhpServerSapi,utils::network};
 use std::process::Child;
-use crate::utils::network;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
@@ -78,10 +77,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let gid = get_current_gid();
     let gid_str = gid.to_string();
 
-    let port = network::find_port(FPM_DEFAULT_PORT);
-    if port.is_none() {
-        panic!("Could not detect free listen port for PHP-FPM");
-    }
+    let port = network::find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
 
     // TODO systemd support should be detected dynamically on Linux
     let systemd_support = !cfg!(target_os = "macos");

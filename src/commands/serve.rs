@@ -86,10 +86,7 @@ fn serve_foreground(args: &ArgMatches) {
 
     info!("Starting HTTP server...");
 
-    let port = network::find_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
-    if port.is_none() {
-        panic!("Unable to detect an available port, use --port with a value lower than 65535");
-    }
+    let port = network::find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
 
     let document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
     let script_filename = get_script_filename(
@@ -101,7 +98,7 @@ fn serve_foreground(args: &ArgMatches) {
     info!("PHP entrypoint file: {}", &script_filename);
 
     proxy_server::start(
-        port.unwrap(),
+        port,
         php_server.port(),
         &document_root,
         &script_filename,
@@ -109,15 +106,12 @@ fn serve_foreground(args: &ArgMatches) {
 }
 
 fn serve_background(args: &ArgMatches) {
-    let port = network::find_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
-    if port.is_none() {
-        panic!("Unable to detect an available port, use --port with a value lower than 65535");
-    }
+    let port = network::find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
 
     let subprocess = Command::new(current_process_name::get().as_str())
         .arg("serve")
         .arg("--port")
-        .arg(port.unwrap().to_string())
+        .arg(port.to_string())
         .spawn()
         .expect("Failed to start server as a background process");
 
