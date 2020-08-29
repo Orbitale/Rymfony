@@ -132,7 +132,7 @@ fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
     let stdout = output.stdout;
     let output = String::from_utf8(stdout).unwrap();
 
-    let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+) \(([^)]+)\)").unwrap();
+    let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+)[^ ]* \(([^)]+)\)").unwrap();
 
     if !php_version_output_regex.is_match(&output) {
         panic!(
