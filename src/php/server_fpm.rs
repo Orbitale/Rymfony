@@ -6,7 +6,7 @@ use users::{get_current_gid, get_current_uid};
 
 use crate::php::php_server::PhpServer;
 #[cfg(not(target_family = "windows"))]
-use crate::php::structs::PhpServerSapi;
+use crate::{php::structs::PhpServerSapi,utils::network};
 use std::process::Child;
 
 // Possible values: alert, error, warning, notice, debug
@@ -14,7 +14,7 @@ use std::process::Child;
 const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
 
 #[cfg(not(target_family = "windows"))]
-const FPM_DEFAULT_PORT: u16 = 65535;
+const FPM_DEFAULT_PORT: u16 = 60000;
 
 // The placeholders between brackets {{ }} will be replaced with proper values.
 #[cfg(not(target_family = "windows"))]
@@ -77,7 +77,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let gid = get_current_gid();
     let gid_str = gid.to_string();
 
-    let port = FPM_DEFAULT_PORT.to_string();
+    let port = network::find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT)));
 
     // TODO systemd support should be detected dynamically on Linux
     let systemd_support = !cfg!(target_os = "macos");
@@ -85,7 +85,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let config = FPM_DEFAULT_CONFIG
         .replace("{{ uid }}", uid_str.as_str())
         .replace("{{ gid }}", gid_str.as_str())
-        .replace("{{ port }}", port.as_str())
+        .replace("{{ port }}", &port.unwrap().to_string())
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
         .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
@@ -121,7 +121,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     if let Ok(child) = command.spawn() {
         info!("Running php-fpm with PID {}", child.id());
 
-        return (PhpServer::new(FPM_DEFAULT_PORT, PhpServerSapi::FPM), child);
+        return (PhpServer::new(port.unwrap(), PhpServerSapi::FPM), child);
     }
 
     panic!("Could not start php-fpm.");

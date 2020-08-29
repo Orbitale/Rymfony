@@ -18,6 +18,7 @@ mod commands {
 mod utils {
     pub(crate) mod current_process_name;
     pub(crate) mod logger;
+    pub(crate) mod network;
     pub(crate) mod stop_process;
 }
 
