@@ -98,10 +98,15 @@ It will actually search in the `PATH` directories for any binary that matches so
   * `php`
   * `phpX.Y`
   * `php-fpm`
+  * `php-cgi`
   * `phpX.Y-fpm`
+  * `phpX.Y-cgi`
   * `php-fpmX.Y`
+  * `php-cgiX.Y`
 
-Here is for example the output on my Ubuntu 20.04 machine:
+More locations that are searched can be found in [binaries.rs](src/php/binaries.rs).
+
+Here is the output from an Ubuntu 20.04 machine:
 
 ```
 $ rymfony php:list
@@ -117,7 +122,7 @@ $ rymfony php:list
 └──────────────────────┘
 ```
 
-And on my Windows 10 machine:
+Windows 10:
 
 ```
 > rymfony.exe php:list
@@ -127,6 +132,19 @@ And on my Windows 10 machine:
 | E:\dev\php74\php-cgi.exe |
 | E:\dev\php74\php.exe     |
 └──────────────────────────┘
+```
+
+macOS Catalina (using Homebrew): 
+```
+$ rymfony php:list
+┌─────────┬───────────────────────────────────────────────┬──────────────────────────────────────────┬───────────────────────────────────────────────────┬────────┐
+| Version | PHP CLI                                       | PHP FPM                                  | PHP CGI                                           | System |
+├─────────┼───────────────────────────────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────────────────┼────────┤
+| 5.5.5   | /usr/local/php5-5.5.5-20131020-222726/bin/php |                                          | /usr/local/php5-5.5.5-20131020-222726/bin/php-cgi |        |
+| 7.3.11  | /usr/bin/php                                  | /usr/sbin/php-fpm                        |                                                   |        |
+| 7.3.21  | /usr/local/Cellar/php@7.3/7.3.21/bin/php      |                                          | /usr/local/Cellar/php@7.3/7.3.21/bin/php-cgi      |        |
+| 7.4.9   | /usr/local/Cellar/php/7.4.9/bin/php           | /usr/local/Cellar/php/7.4.9/sbin/php-fpm | /usr/local/Cellar/php/7.4.9/bin/php-cgi           | *      |
+└─────────┴───────────────────────────────────────────────┴──────────────────────────────────────────┴───────────────────────────────────────────────────┴────────┘
 ```
 
 ## Roadmap
@@ -165,11 +183,11 @@ To do (order of priority, done first):
         - [x] When searching for PHP binaries, be able to flag their type (native, cgi, fpm) and their version.
         - [ ] Search for PHP binaries elsewhere than in `PATH`, such as with Homebrew or phpenv. This will need many checks about the "standard locations" where PHP can be found.
             - [x] Search in `/usr/bin` for most Ubuntu defaults
-            - [ ] Search in `/usr/local/Cellar` for most Homebrew defaults on Mac
-            - Please suggest more places where PHP could be present!
+            - [x] Search in `/usr/local/Cellar` for most Homebrew defaults on Mac
+            - Please [suggest](https://github.com/Pierstoval/rymfony/issues/new) more places where PHP could be present!
         - [ ] Flag the current path-based `php` script to check its version and mark it as "System" (just like in Symfony CLI)
         - [ ] Store a list of all PHP binaries in `~/.rymfony/php_versions.json`
-        - [ ] Implement a way to retrieve the current PHP version based on the "System" PHP script
+        - [x] Implement a way to retrieve the current PHP version based on the "System" PHP script
         - [ ] Implement a way to retrieve the current PHP version based on a local `.php-version` file
     - [ ] Allow passing environment variables to PHP via an `-e|--env` option.
     - [ ] Allow passing a custom option to specify which method the user wants to use to start PHP (like `--use-fpm` or `--use-native`, something like that).
