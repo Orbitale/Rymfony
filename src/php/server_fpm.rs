@@ -11,6 +11,8 @@ use crate::{php::structs::PhpServerSapi};
 use crate::utils::network::find_available_port;
 use std::process::Child;
 
+use wsl::is_wsl;
+
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
 const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
@@ -82,7 +84,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let port = find_available_port(FPM_DEFAULT_PORT);
 
     // TODO systemd support should be detected dynamically on Linux
-    let systemd_support = !cfg!(target_os = "macos");
+    let systemd_support = !cfg!(target_os = "macos") && !is_wsl();
 
     let config = FPM_DEFAULT_CONFIG
         .replace("{{ uid }}", uid_str.as_str())
