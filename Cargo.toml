@@ -25,6 +25,7 @@ which = "4.0"
 dirs = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+wsl="0.1"
 
 [dependencies.ctrlc]
 git = "https://github.com/mettke/rust-ctrlc"
