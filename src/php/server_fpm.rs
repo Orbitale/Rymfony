@@ -11,6 +11,7 @@ use crate::{php::structs::PhpServerSapi};
 use crate::utils::network::find_available_port;
 use std::process::Child;
 
+#[cfg(not(target_family = "windows"))]
 use wsl::is_wsl;
 
 // Possible values: alert, error, warning, notice, debug
