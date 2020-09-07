@@ -177,23 +177,29 @@ To do (order of priority, done first):
     - [ ] When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
     - [ ] Allow listing running servers globally, without necessarily using a `.pid` file.
     - [ ] Allow stopping a server globally, without necessarily using a `.pid` file.
+    - [ ] (possibly hard work) Find a way to force the entire request-response workflow to be streamed instead of buffered (will make better performances and memory usage)
 - PHP
     - [x] Create a tool to discover the `php` binary if none of the two above are detected.
     - [x] Create a tool to discover the `php-fpm` binary if on Linux.
     - [x] Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier).
     - [ ] Properly search for PHP binaries in the current machine
-        - [x] When searching for PHP binaries, be able to flag their type (native, cgi, fpm) and their version.
+        - [x] When searching for PHP binaries, be able to flag their type (native, cgi, fpm) and their version. 
+        - [x] Implement a way to retrieve the current PHP version based on the "System" PHP script
         - [ ] Search for PHP binaries elsewhere than in `PATH`, such as with Homebrew or phpenv. This will need many checks about the "standard locations" where PHP can be found.
             - [x] Search in `/usr/bin` for most Ubuntu defaults
             - [x] Search in `/usr/local/Cellar` for most Homebrew defaults on Mac
-            - Please [suggest](https://github.com/Pierstoval/rymfony/issues/new) more places where PHP could be present!
+            - 💡 Please [suggest](https://github.com/Pierstoval/rymfony/issues/new) more places where PHP could be present!
         - [ ] Flag the current path-based `php` script to check its version and mark it as "System" (just like in Symfony CLI)
         - [ ] Store a list of all PHP binaries in `~/.rymfony/php_versions.json`
-        - [x] Implement a way to retrieve the current PHP version based on the "System" PHP script
+        - [ ] Deserialize the `php-versions.json` config file if it exists when using `binaries::all()` or `binaries::current()` to make the command faster
+        - [ ] Add an option to the `php:list` command such as `--refresh` that will make another lookup and save the `~/.rymfony/php-versions.json` file again 😄
         - [ ] Implement a way to retrieve the current PHP version based on a local `.php-version` file
     - [ ] Allow passing environment variables to PHP via an `-e|--env` option.
     - [ ] Allow passing a custom option to specify which method the user wants to use to start PHP (like `--use-fpm` or `--use-native`, something like that).
     - [ ] (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
+    - PHP Server
+        - [ ] Don't rewrite the `fpm-conf.ini` configuration file each time a server is launched.
+        - [ ] Find a way to differenciate servers configurations, in case multiple servers are started
 - Going way further
     - [ ] (utopia) Detect whether the project uses Docker Compose
     - [ ] (utopia) Be able to dynamically create environment variables for some common use-cases (database, redis, rabbitmq, mailcatcher).
