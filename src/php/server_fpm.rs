@@ -1,20 +1,25 @@
 #[cfg(not(target_family = "windows"))]
-use std::{env, fs::File, io::prelude::*, process::Command};
+use std::{env, fs::File, io::prelude::*, process::Command, path::PathBuf};
 
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
 
 use crate::php::php_server::PhpServer;
 #[cfg(not(target_family = "windows"))]
-use crate::php::php_server::PhpServerSapi;
+use crate::{php::structs::PhpServerSapi};
+#[cfg(not(target_family = "windows"))]
+use crate::utils::network::find_available_port;
 use std::process::Child;
+
+#[cfg(not(target_family = "windows"))]
+use wsl::is_wsl;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
 const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
 
 #[cfg(not(target_family = "windows"))]
-const FPM_DEFAULT_PORT: u16 = 65535;
+const FPM_DEFAULT_PORT: u16 = 60000;
 
 // The placeholders between brackets {{ }} will be replaced with proper values.
 #[cfg(not(target_family = "windows"))]
@@ -29,7 +34,7 @@ error_log = /dev/fd/2
 ; This gives the advantage of keeping control over the process,
 ; and possibly retrieve logs too (since logs can be piped with fpm's stderr with current config)
 daemonize = no
-systemd_interval = 0
+{{ systemd }}systemd_interval = 0
 
 [www]
 ; Only works if launched as a root user
@@ -77,21 +82,35 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let gid = get_current_gid();
     let gid_str = gid.to_string();
 
-    let port = FPM_DEFAULT_PORT.to_string();
+    let port = find_available_port(FPM_DEFAULT_PORT);
+
+    // TODO systemd support should be detected dynamically on Linux
+    let systemd_support = !cfg!(target_os = "macos") && !is_wsl();
 
     let config = FPM_DEFAULT_CONFIG
         .replace("{{ uid }}", uid_str.as_str())
         .replace("{{ gid }}", gid_str.as_str())
-        .replace("{{ port }}", port.as_str())
-        .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL);
+        .replace("{{ port }}", &port.to_string())
+        .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
+        .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
-    let home_dir = env::var("HOME").unwrap();
-    let fpm_config_filename = format!("{}/.rymfony/fpm-conf.ini", home_dir);
-    let fpm_config_filename = fpm_config_filename.as_str();
+    let home = env::var("HOME").unwrap_or(String::from(""));
 
-    let mut file = File::create(fpm_config_filename).unwrap();
-    file.write_all(config.as_bytes())
+    let fpm_config_file_path;
+
+    if home != "" {
+        fpm_config_file_path = PathBuf::from(home.as_str())
+            .join(".rymfony")
+            .join("fpm-conf.ini");
+    } else {
+        panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.");
+    }
+
+    let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
+    fpm_config_file.write_all(config.as_bytes())
         .expect("Could not write to php-fpm config file.");
+
+    dbg!(&fpm_config_file);
 
     let cwd = env::current_dir().unwrap();
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
@@ -102,12 +121,12 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .arg("--pid")
         .arg(pid_filename)
         .arg("--fpm-config")
-        .arg(fpm_config_filename);
+        .arg(fpm_config_file_path.to_str().unwrap());
 
     if let Ok(child) = command.spawn() {
         info!("Running php-fpm with PID {}", child.id());
 
-        return (PhpServer::new(FPM_DEFAULT_PORT, PhpServerSapi::FPM), child);
+        return (PhpServer::new(port, PhpServerSapi::FPM), child);
     }
 
     panic!("Could not start php-fpm.");

@@ -1,118 +1,113 @@
-use glob::glob;
-use rayon::prelude::*;
-use regex::Regex;
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 use std::str;
 
+use glob::glob;
+use regex::Regex;
+
+use crate::php::structs::PhpBinary;
+use crate::php::structs::PhpServerSapi;
+use crate::php::structs::PhpVersion;
+
 pub(crate) fn current() -> String {
-    let binaries = all();
+    let _binaries = all();
 
-    let binaries_regex = if cfg!(target_family = "windows") {
-        // On Windows, we mostly have "php" and "php-cgi"
-        Regex::new(r"php(\d+(\.\d+))?(-cgi)\.exe$").unwrap()
-    } else {
-        // This will probably need to be updated for other platforms.
-        // This matches "php", "php7.4", "php-fpm", "php7.4-fpm" and "php-fpm7.4"
-        Regex::new(r"php(\d+(\.\d+))?(-fpm)(\d+(\.\d+))?$").unwrap()
-    };
-
-    for binary in binaries {
-        if !binaries_regex.is_match(binary.as_str()) {
-            continue;
-        }
-
+    for (_version, _binary) in _binaries {
         // TODO: check for a better solution to choose current PHP version
-        return binary.to_string();
+        if _binary.system() {
+            return _binary.preferred_sapi().to_string();
+        }
     }
 
     "php".to_string()
 }
 
-pub(crate) fn all() -> Vec<String> {
+pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
+    let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
+
+    binaries_from_env(&mut binaries);
+
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/bin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/sbin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")), &mut binaries);
+    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/php*/bin")), &mut binaries);
+
+    binaries
+}
+
+fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
     let path_string = env::var_os("PATH").unwrap();
     let path_dirs = path_string
         .to_str()
         .unwrap()
-        .split(get_path_separator())
+        .split(if cfg!(target_family = "windows") {
+            ";"
+        } else {
+            ":"
+        })
         .collect::<Vec<&str>>();
 
-    let binaries: Vec<String> = path_dirs
-        // consumes `path_dirs` and produce an iterator
-        .into_par_iter()
-        .map(|dir| {
-            // use `PathBuf` directly instead of `Path::new(…).into_owned()`
-            binaries_from_path(PathBuf::from(dir))
-        })
-        // at that point, `binaries_from_path` returns a `Vec<String>` so the iterator is of kind “`Vec<Vec<String>>`”, we only want `Vec<String>`
-        .flatten()
-        // enjoy!
-        .collect();
-
-    let php_version_output_regex = Regex::new(r"^PHP \d\.\d+\.\d+ \(([^\)])+\)").unwrap();
-
-    // you can use the same variable name, it's OK,
-    // the previous one will be dropped
-    binaries
-        // consume `binaries` and generate an iterator
-        .into_par_iter()
-        // with `php_version_output_regex`, basically, we want to filter the
-        // results, so let's use `Iterator::filter`!
-        .filter(|binary| {
-            // `Command::new` can take a reference to a string. `binary` is
-            // of kind `String`, so just share it by giving a reference
-            let process = Command::new(binary.as_str())
-                .arg("--version")
-                .stdout(Stdio::piped())
-                .spawn()
-                .unwrap();
-
-            let output = process.wait_with_output().unwrap();
-
-            // instead of getting a slice of the `Vec<u8>` from `output.stdout` to
-            // then use `str::from_utf8`, let's just move the ownership from `Vec`
-            // (which is its value) to `String` (which also owns its value), it's much
-            // simpler!
-            let output_string = String::from_utf8(output.stdout).unwrap();
-
-            // finally, no need to call `.to_owned()` after `.is_match(…)`.
-            // `is_match` returns a boolean, it's going to be our `filter`'s result
-            php_version_output_regex.is_match(output_string.trim())
-        })
-        .collect()
-}
-
-fn get_path_separator() -> &'static str {
-    if cfg!(target_family = "windows") {
-        ";"
-    } else {
-        ":"
+    for dir in path_dirs {
+        merge_binaries(binaries_from_dir(PathBuf::from(dir)), binaries);
     }
 }
 
-fn binaries_from_path(path: PathBuf) -> Vec<String> {
-    let mut binaries: Vec<String> = vec![];
-
+fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
     let binaries_regex = if cfg!(target_family = "windows") {
         // On Windows, we mostly have "php" and "php-cgi"
         Regex::new(r"php(\d+(\.\d+))?(-cgi)?\.exe$").unwrap()
     } else {
         // This will probably need to be updated for other platforms.
         // This matches "php", "php7.4", "php-fpm", "php7.4-fpm" and "php-fpm7.4"
-        Regex::new(r"php(\d+(\.\d+))?(-fpm)?(\d+(\.\d+))?$").unwrap()
+        Regex::new(r"php(\d+(\.\d+))?([_-]?fpm|[_-]?cgi)?(\d+(\.\d+))?$").unwrap()
     };
+
+    let mut binaries_paths: Vec<String> = Vec::new();
 
     let path_glob = glob_from_path(path.display().to_string().as_str());
 
     for entry in glob(&path_glob).expect("Failed to read glob pattern") {
         let binary: PathBuf = entry.unwrap();
+        if binary.is_dir() {
+            // This means that we have a "php"-like dir.
+            // For recursive search, insert a "*" glob character in the "path" variable beforehand.
+            continue;
+        }
         if !binaries_regex.is_match(binary.to_str().unwrap()) {
             continue;
         }
 
-        binaries.push(binary.to_str().unwrap().parse().unwrap());
+        // Canonicalize on Windows leaves the "\\?" prefix on canonicalized paths.
+        // Let's not use it, they should be absolute anyway on Windows, so they're usable.
+        #[cfg(not(target_family = "windows"))]
+        let binary: PathBuf = binary.canonicalize().unwrap();
+
+        binaries_paths.push(binary.to_str().unwrap().parse().unwrap());
+    }
+
+    let binaries_paths: HashSet<String> = binaries_paths.iter().cloned().collect();
+
+    let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
+
+    for path in binaries_paths.iter() {
+        let (version, sapi) = get_binary_metadata(&path);
+
+        if binaries.contains_key(&version) {
+            let current = &mut binaries.get_mut(&version).unwrap();
+
+            if !current.has_sapi(&sapi) {
+                current.add_sapi(&sapi, &path);
+            }
+        } else {
+            let mut bin = PhpBinary::from_version(version.clone());
+            bin.add_sapi(&sapi, &path);
+            &binaries.insert(version.clone(), bin);
+        }
     }
 
     binaries
@@ -123,5 +118,52 @@ fn glob_from_path(path: &str) -> String {
         format!("{}/php*.exe", path)
     } else {
         format!("{}/php*", path)
+    }
+}
+
+fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
+    let process = Command::new(binary)
+        .arg("--version")
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    let output = process.wait_with_output().unwrap();
+    let stdout = output.stdout;
+    let output = String::from_utf8(stdout).unwrap();
+
+    let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+)[^ ]* \(([^)]+)\)").unwrap();
+
+    if !php_version_output_regex.is_match(&output) {
+        panic!(
+            "Version \"{}\" for php binary \"{}\" is invalid.",
+            &output, &binary
+        );
+    }
+
+    let capts = php_version_output_regex.captures(&output).unwrap();
+    let version = &capts[1];
+    let sapi = &capts[2];
+
+    (
+        PhpVersion::from_str(version),
+        PhpServerSapi::from_str(&sapi),
+    )
+}
+
+fn merge_binaries(
+    from: HashMap<PhpVersion, PhpBinary>,
+    into: &mut HashMap<PhpVersion, PhpBinary>
+) {
+    for (version, mut binary) in from {
+        // this needs to be fixed, but for now we assume that the first ever found version is
+        // the one that is first in PATH and therefor the "system" binary
+        &binary.set_system(if into.len() == 0 { true } else { false });
+
+        if into.contains_key(&version) {
+            into.get_mut(&version).unwrap().merge_with(binary);
+        } else {
+            into.insert(version, binary);
+        }
     }
 }

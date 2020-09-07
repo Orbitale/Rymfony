@@ -1,5 +1,7 @@
-use crate::php::php_server::{PhpServer, PhpServerSapi};
-use std::process::{Child, Command};
+use crate::php::php_server::PhpServer;
+use crate::php::structs::PhpServerSapi;
+use std::process::Child;
+use std::process::Command;
 
 const NATIVE_DEFAULT_PORT: u16 = 65535;
 

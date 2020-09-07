@@ -36,8 +36,7 @@ pub(crate) fn new_symfony(args: &ArgMatches) {
     let initialize_git = !args.is_present("no_git");
 
     if directory == "" {
-        let path = env::current_dir().unwrap()
-            .join("symfony");
+        let path = env::current_dir().unwrap().join("symfony");
 
         directory = path.to_str().unwrap().to_string();
     }
@@ -45,12 +44,14 @@ pub(crate) fn new_symfony(args: &ArgMatches) {
     let mut path = PathBuf::from(&directory);
 
     if !path.is_absolute() {
-        path = PathBuf::from(env::current_dir().unwrap())
-            .join(&directory);
+        path = PathBuf::from(env::current_dir().unwrap()).join(&directory);
     }
 
     if path.is_dir() {
-        error!("Directory {} already exists. Please choose another directory to create your project.", &path.to_str().unwrap());
+        error!(
+            "Directory {} already exists. Please choose another directory to create your project.",
+            &path.to_str().unwrap()
+        );
 
         return;
     }
@@ -73,8 +74,7 @@ pub(crate) fn new_symfony(args: &ArgMatches) {
         } else {
             "symfony/skeleton"
         })
-        .arg(path.to_str().unwrap())
-    ;
+        .arg(path.to_str().unwrap());
 
     match command.output() {
         Ok(_) => (),
@@ -94,8 +94,7 @@ pub(crate) fn new_symfony(args: &ArgMatches) {
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .arg("init")
-            .arg(path.to_str().unwrap())
-        ;
+            .arg(path.to_str().unwrap());
 
         match command.output() {
             Ok(_) => (),

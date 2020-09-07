@@ -9,10 +9,12 @@ use clap::SubCommand;
 
 use crate::http::proxy_server;
 use crate::php::php_server;
-use crate::php::php_server::PhpServerSapi;
+use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
-use std::env;
+use crate::utils::network::parse_default_port;
+use crate::utils::network::find_available_port;
 use log::info;
+use std::env;
 use std::path::PathBuf;
 
 const DEFAULT_PORT: &str = "8000";
@@ -63,35 +65,41 @@ fn serve_foreground(args: &ArgMatches) {
     let php_server = php_server::start();
 
     let sapi = match php_server.sapi() {
-        #[cfg(not(target_os = "windows"))]
         PhpServerSapi::FPM => "FPM",
         PhpServerSapi::CLI => "CLI",
         PhpServerSapi::CGI => "CGI",
+        PhpServerSapi::Unknown => "?",
     };
     info!("PHP started with module {}", sapi);
 
     info!("Starting HTTP server...");
 
-    let port = args.value_of("port").unwrap_or(DEFAULT_PORT);
+    let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
+
     let document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
-    let script_filename = get_script_filename(&document_root, args.value_of("passthru").unwrap_or("index.php").to_string());
+    let script_filename = get_script_filename(
+        &document_root,
+        args.value_of("passthru").unwrap_or("index.php").to_string(),
+    );
 
     info!("Configured document root: {}", &document_root);
     info!("PHP entrypoint file: {}", &script_filename);
 
     proxy_server::start(
-        port.parse::<u16>().unwrap(),
+        port,
         php_server.port(),
         &document_root,
-        &script_filename
+        &script_filename,
     );
 }
 
 fn serve_background(args: &ArgMatches) {
+    let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
+
     let subprocess = Command::new(current_process_name::get().as_str())
         .arg("serve")
         .arg("--port")
-        .arg(args.value_of("port").unwrap_or(DEFAULT_PORT))
+        .arg(port.to_string())
         .spawn()
         .expect("Failed to start server as a background process");
 
@@ -116,7 +124,11 @@ fn get_script_filename(document_root: &str, script_filename_arg: String) -> Stri
     let mut path = PathBuf::from(document_root);
     path.push(&script_filename_arg);
 
-    debug!("Relative script path \"{}\" resolved to \"{}\".", &script_filename_arg, path.to_str().unwrap());
+    debug!(
+        "Relative script path \"{}\" resolved to \"{}\".",
+        &script_filename_arg,
+        path.to_str().unwrap()
+    );
 
     String::from(path.to_str().unwrap())
 }
