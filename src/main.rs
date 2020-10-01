@@ -40,10 +40,9 @@ mod http {
 use crate::utils::logger::SimpleLogger;
 
 use clap::App;
+use dirs::home_dir;
 use log::LevelFilter;
-use std::env;
 use std::fs;
-use std::path::PathBuf;
 use std::process::Command;
 use utils::current_process_name;
 
@@ -54,11 +53,11 @@ fn main() {
         .map(|()| log::set_max_level(LevelFilter::Info))
         .unwrap();
 
-    let path = env::var("HOME").unwrap_or(String::from(""));
+    let home_dir = home_dir().unwrap();
 
-    if path != "" {
-        let path = PathBuf::from(path).join(".rymfony");
-        fs::create_dir_all(path).unwrap();
+    if home_dir.to_str().unwrap() != "" {
+        let rymfony_path = home_dir.join(".rymfony");
+        fs::create_dir_all(rymfony_path).unwrap();
     }
 
     let commands = vec![
