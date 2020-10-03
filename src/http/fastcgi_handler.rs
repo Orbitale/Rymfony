@@ -12,6 +12,7 @@ use regex::Captures;
 use regex::Regex;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::io::Error;
 
 pub(crate) async fn handle_fastcgi(
     document_root: String,
@@ -35,7 +36,13 @@ pub(crate) async fn handle_fastcgi(
 
     let http_version = crate::http::version::as_str(parts.version);
 
-    let stream = TcpStream::connect(("127.0.0.1", php_port)).unwrap();
+    let stream = match TcpStream::connect(("127.0.0.1", php_port)) {
+        Ok(t) => t,
+        Err(e) => {
+            return anyhow::Result::Ok(error_as_response(e));
+        }
+    };
+
     let mut client = Client::new(stream, false);
 
     let http_port_str = http_port.to_string();
@@ -152,4 +159,23 @@ fn get_pathinfo_from_uri(request_uri: &str) -> (String, String) {
     let path_info = capts[2].to_string();
 
     (php_file, path_info)
+}
+
+fn error_as_response(error: Error) -> Response<Body> {
+    let mut response_builder = Response::builder();
+    let response_headers = response_builder.headers_mut().unwrap();
+    response_headers.append("Content-Type", "text/html".parse().unwrap());
+
+    let mut body_str = String::from("<html lang=\"en\"><head><meta charset=\"utf-8\"><title>Internal 500 error</title></head><body>Internal 500 Error");
+    body_str.push_str(format!("Returned error: <pre>{}</pre>", &error).as_str());
+    body_str.push_str("</body></html>");
+
+    let response = response_builder
+        .status(500)
+        .body(
+            Body::from(body_str), //Body::from(body)
+        )
+        .unwrap();
+
+    response
 }
