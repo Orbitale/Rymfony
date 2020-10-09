@@ -44,9 +44,24 @@ $requestBody = file_get_contents("php://input");
 
 
 header('X-Some-Random-Header: some-random-value');
-echo "Hey! It works!\n";
-echo json_encode([
+$content = "Hey! It works!\n"
+    .json_encode([
     'Server parameters' => $display,
     'Request headers' => $headers,
     'Request body' => $requestBody,
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+$date = date('Y-m-d H:i:s');
+
+$logs = <<<LOG
+===========================
+Date: {$date}
+Content:
+{$content}
+===========================
+
+LOG;
+
+file_put_contents('_local_logs.txt', $logs, FILE_APPEND);
+
+echo $content;

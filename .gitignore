@@ -1,3 +1,4 @@
 /target
 .fpm.pid
 .pid
+_local_logs.txt
