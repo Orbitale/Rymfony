@@ -1,8 +1,11 @@
-#[macro_use]
-extern crate prettytable;
-#[macro_use]
-extern crate log;
+#[allow(unused_imports)]
+
+#[macro_use] extern crate prettytable;
+#[macro_use] extern crate log;
 extern crate regex;
+extern crate pretty_env_logger;
+extern crate ctrlc;
+extern crate async_fcgi;
 
 mod config {
     pub(crate) mod config;
@@ -37,21 +40,14 @@ mod http {
     pub(crate) mod version;
 }
 
-use crate::utils::logger::SimpleLogger;
-
 use clap::App;
 use dirs::home_dir;
-use log::LevelFilter;
 use std::fs;
 use std::process::Command;
 use utils::current_process_name;
 
-static LOGGER: SimpleLogger = SimpleLogger;
-
 fn main() {
-    log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Info))
-        .unwrap();
+    pretty_env_logger::init();
 
     let home_dir = home_dir().unwrap();
 

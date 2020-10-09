@@ -13,6 +13,10 @@ hyper-staticfile = "0.5"
 fastcgi-client = "0.5"
 anyhow = "1.0"
 http = "0.2"
+async-fcgi = { version = "0.1.0", features = ["web_server", "con_pool"] }
+#httparse = "1.3.4"
+#http-bytes = "0.1.0"
+#actix-http = "2.0.0"
 tokio = { version = "0.2", features = ["full"] }
 pretty_env_logger = "0.4"
 console = "0.11"
@@ -26,11 +30,8 @@ dirs = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 wsl="0.1"
-
-[dependencies.ctrlc]
-git = "https://github.com/mettke/rust-ctrlc"
-branch = "master"
-features = ["termination"]
+ctrlc = { version = "3.1.6", features = ["termination"] }
+bytes = "0.5.6"
 
 [target.'cfg(not(target_family = "windows"))'.dependencies]
 users = "0.10"
