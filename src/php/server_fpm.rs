@@ -96,21 +96,18 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
         .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
-    let home = env::var("HOME").unwrap_or(String::from(""));
+    let home_dir = dirs::home_dir().unwrap();
 
-    let fpm_config_file_path;
+    let fpm_config_file_path = PathBuf::from(home_dir.to_str().unwrap())
+        .join(".rymfony")
+        .join("fpm-conf.ini")
+    ;
 
-    if home != "" {
-        fpm_config_file_path = PathBuf::from(home.as_str())
-            .join(".rymfony")
-            .join("fpm-conf.ini");
-    } else {
-        panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.");
+    if !fpm_config_file_path.exists() {
+        let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
+        fpm_config_file.write_all(config.as_bytes())
+            .expect("Could not write to php-fpm config file.");
     }
-
-    // let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-    // fpm_config_file.write_all(config.as_bytes())
-    //     .expect("Could not write to php-fpm config file.");
 
     let cwd = env::current_dir().unwrap();
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
