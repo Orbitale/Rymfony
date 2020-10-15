@@ -6,6 +6,7 @@ extern crate regex;
 extern crate pretty_env_logger;
 extern crate ctrlc;
 extern crate httparse;
+extern crate gfcgi;
 
 mod config {
     pub(crate) mod config;
