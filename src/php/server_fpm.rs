@@ -9,6 +9,8 @@ use crate::php::php_server::PhpServer;
 use crate::{php::structs::PhpServerSapi};
 #[cfg(not(target_family = "windows"))]
 use crate::utils::network::find_available_port;
+#[cfg(not(target_family = "windows"))]
+use std::process::Stdio;
 use std::process::Child;
 
 #[cfg(not(target_family = "windows"))]
@@ -106,17 +108,17 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.");
     }
 
-    let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-    fpm_config_file.write_all(config.as_bytes())
-        .expect("Could not write to php-fpm config file.");
-
-    dbg!(&fpm_config_file);
+    // let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
+    // fpm_config_file.write_all(config.as_bytes())
+    //     .expect("Could not write to php-fpm config file.");
 
     let cwd = env::current_dir().unwrap();
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
 
     let mut command = Command::new(php_bin);
     command
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .arg("--nodaemonize")
         .arg("--pid")
         .arg(pid_filename)

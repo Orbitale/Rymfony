@@ -57,7 +57,7 @@ pub(crate) fn start() -> PhpServer {
         )),
     }
 
-    ctrlc::set_handler_mut(move || {
+    ctrlc::set_handler(move || {
         info!("Stopping PHP process... ");
 
         #[cfg(not(target_os = "windows"))]

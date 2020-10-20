@@ -42,11 +42,30 @@ ksort($display);
 
 $requestBody = file_get_contents("php://input");
 
+$date = date('Y-m-d H:i:s');
 
-header('X-Some-Random-Header: some-random-value');
-echo "Hey! It works!\n";
-echo json_encode([
+$content = "Hey! It works!\n"
+    .json_encode([
+    'Date' => $date,
     'Server parameters' => $display,
     'Request headers' => $headers,
     'Request body' => $requestBody,
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+$logs = <<<LOG
+===========================
+Date: {$date}
+Content:
+{$content}
+===========================
+
+LOG;
+
+file_put_contents('_local_logs.txt', $logs, FILE_APPEND);
+
+header('X-Some-Random-Header: some-random-value');
+echo $content;
+
+if (\function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+}

@@ -7,12 +7,12 @@ use http::Request;
 use hyper::header::HeaderName;
 use hyper::header::HeaderValue;
 use hyper::Body;
+use hyper::HeaderMap;
 use hyper::Response;
 use regex::Captures;
 use regex::Regex;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::io::Error;
 
 pub(crate) async fn handle_fastcgi(
     document_root: String,
@@ -32,14 +32,12 @@ pub(crate) async fn handle_fastcgi(
     let method = method.as_str();
     let (parts, request_body) = req.into_parts();
 
-    let body = hyper::body::to_bytes(request_body).await.unwrap();
-
     let http_version = crate::http::version::as_str(parts.version);
 
     let stream = match TcpStream::connect(("127.0.0.1", php_port)) {
         Ok(t) => t,
         Err(e) => {
-            return anyhow::Result::Ok(error_as_response(e));
+            return anyhow::Result::Ok(error_as_response(e, 503));
         }
     };
 
@@ -48,83 +46,92 @@ pub(crate) async fn handle_fastcgi(
     let http_port_str = http_port.to_string();
     let php_port_str = php_port.to_string();
 
-    let empty_header = &HeaderValue::from_str("").unwrap();
-
-    let pathinfo = get_pathinfo_from_uri(&request_uri);
-    let script_name = if pathinfo.0.len() > 0 {
-        let path = PathBuf::from(&document_root).join(pathinfo.0.clone());
+    let (php_file, pathinfo) = get_pathinfo_from_uri(&request_uri);
+    let script_name = if php_file.len() > 0 {
+        let path = PathBuf::from(&document_root).join(php_file.clone());
         path.to_str().unwrap().to_string()
     } else {
         script_filename.clone()
     };
 
-    // Fastcgi params, please reference to nginx-php-fpm config.
-    let mut params = Params::with_predefine();
-    params.insert(
-        "CONTENT_LENGTH",
-        headers
-            .get("Content-Length")
-            .unwrap_or(empty_header)
-            .to_str()
-            .unwrap_or(""),
-    );
-    params.insert(
-        "CONTENT_TYPE",
-        headers
-            .get("Content-Type")
-            .unwrap_or(empty_header)
-            .to_str()
-            .unwrap_or(""),
-    );
-    params.insert("DOCUMENT_ROOT", &document_root);
-    params.insert("DOCUMENT_URI", &request_uri);
-    params.insert("PATH_INFO", pathinfo.1.as_str());
-    params.insert("QUERY_STRING", &query_string);
-    params.insert("REMOTE_ADDR", remote_addr);
-    params.insert("REMOTE_PORT", http_port_str.as_ref());
-    params.insert("REQUEST_METHOD", method);
-    params.insert("REQUEST_URI", &request_uri);
-    params.insert("SCRIPT_FILENAME", &script_filename);
-    params.insert("SCRIPT_NAME", &script_name);
-    params.insert("SERVER_ADDR", "127.0.0.1");
-    params.insert("SERVER_NAME", "127.0.0.1");
-    params.insert("SERVER_PORT", php_port_str.as_ref());
-    params.insert("SERVER_PROTOCOL", http_version);
-    params.insert("SERVER_SOFTWARE", "Rymfony v0.1.0");
+    //
+    // Mandatory FastCGI parameters.
+    // See: https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/
+    //
+    let mut fcgi_params = Params::with_predefine();
+    let empty_header = &HeaderValue::from_str("").unwrap();
+    fcgi_params.insert("CONTENT_LENGTH", get_header_value(&headers, "Content-Length", &empty_header));
+    fcgi_params.insert("CONTENT_TYPE", get_header_value(&headers, "Content-Type", &empty_header));
+    fcgi_params.insert("DOCUMENT_ROOT", &document_root);
+    fcgi_params.insert("DOCUMENT_URI", &request_uri);
+    fcgi_params.insert("PATH_INFO", pathinfo.as_str());
+    fcgi_params.insert("QUERY_STRING", &query_string);
+    fcgi_params.insert("REMOTE_ADDR", remote_addr);
+    fcgi_params.insert("REMOTE_PORT", http_port_str.as_ref());
+    fcgi_params.insert("REQUEST_METHOD", method);
+    fcgi_params.insert("REQUEST_URI", &request_uri);
+    fcgi_params.insert("SCRIPT_FILENAME", &script_filename);
+    fcgi_params.insert("SCRIPT_NAME", &script_name);
+    fcgi_params.insert("SERVER_ADDR", "127.0.0.1");
+    fcgi_params.insert("SERVER_NAME", "127.0.0.1");
+    fcgi_params.insert("SERVER_PORT", php_port_str.as_ref());
+    fcgi_params.insert("SERVER_PROTOCOL", http_version);
+    fcgi_params.insert("SERVER_SOFTWARE", "Rymfony v0.1.0");
 
-    let mut headers_normalized = Vec::new();
+    //
+    // Send all Request HTTP headers to FastCGI,
+    // in the form of "HTTP_..." parameters.
+    // That's supposed to be how FastCGI and PHP work.
+    //
+    let mut fcgi_headers_normalized = Vec::new();
     for (name, value) in headers.iter() {
         let header_name = format!("HTTP_{}", name.as_str().replace("-", "_").to_uppercase());
 
-        headers_normalized.push((header_name, value.to_str().unwrap()));
+        fcgi_headers_normalized.push((header_name, value.to_str().unwrap()));
     }
-    params.extend(headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
+    fcgi_params.extend(fcgi_headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
 
-    let output = client
-        .do_request(&params, &mut std::io::Cursor::new(body))
-        .unwrap();
+    let request_body_bytes = hyper::body::to_bytes(request_body).await.unwrap();
+    let mut fcgi_request_body = &mut std::io::Cursor::new(request_body_bytes);
 
-    let stdout: Vec<u8> = output.get_stdout().unwrap();
-    let stdout: &[u8] = stdout.as_slice();
-    let stdout: &str = std::str::from_utf8(stdout).unwrap();
-    let stdout: String = String::from(stdout);
+    //
+    // Ignition! Do the request!
+    //
+    let fcgi_output = client.do_request(&fcgi_params, &mut fcgi_request_body).unwrap();
+    let fcgi_stderr = fcgi_output.get_stderr().unwrap_or_default();
 
-    let response_headers_regex = Regex::new(r"(?s)^(.*)\r\n\r\n(.*)$").unwrap();
+    //
+    // The CGI response *never* returns the HTTP Status Line.
+    // However, the "httparse" crate needs it.
+    // So we create a fake one.
+    // Later on, this will be overriden by the "Status" header (see below), so it's a fine hack.
+    //
+    let mut fcgi_stdout = format!("{} 200 Ok\r\n", http_version).as_bytes().to_vec();
+    fcgi_stdout.extend(fcgi_output.get_stdout().unwrap_or_default());
 
-    let capts: Captures = response_headers_regex.captures(&stdout).unwrap();
+    trace!("Received FastCGI response.");
 
-    let headers: &str = &capts[1];
-    let body: String = String::from(&capts[2]);
+    if fcgi_stderr.len() > 0 {
+        error!("FastCGI returned an error:\n{}", std::str::from_utf8(&fcgi_stderr).unwrap());
+        return anyhow::Result::Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
+    }
 
-    let single_header_regex = Regex::new(r"^([^:]+):(.*)$").unwrap();
+    //
+    // Convert the contents of "fcgi_stdout" into a proper list of HTTP Headers.
+    // Body is supposed to be a bunch of bytes.
+    //
+    let mut normalized_headers = [httparse::EMPTY_HEADER; 80];
+    let mut res = httparse::Response::new(&mut normalized_headers);
+    let headers_len = res.parse(fcgi_stdout.as_slice())?.unwrap();
+    let response_headers = res.headers;
+    debug!("Response headers ready to normalize");
+    let mut headers_normalized: HashMap<HeaderName, HeaderValue> = response_headers
+        .iter()
+        .map(|header| {
+            let header_name = header.name.as_bytes();
+            let header_value = std::str::from_utf8(header.value).unwrap();
 
-    let headers_normalized: HashMap<HeaderName, HeaderValue> = headers
-        .split("\r\n")
-        .map(|header: &str| {
-            let headers_capts = single_header_regex.captures(header).unwrap();
-
-            let header_name = &headers_capts[1].as_bytes();
-            let header_value = &headers_capts[2];
+            debug!("Normalized headers: \"{}: {}\"", std::str::from_utf8(&header_name).unwrap(), &header_value);
 
             (
                 HeaderName::from_bytes(header_name).unwrap(),
@@ -132,18 +139,57 @@ pub(crate) async fn handle_fastcgi(
             )
         })
         .collect();
+    debug!("Response headers are now normalized");
+    let (_, body) = fcgi_stdout.split_at(headers_len);
 
+    // ... However, it seems I can't just put bytes in the body, and that only String is possible...
+    let body = String::from_utf8(body.to_vec()).unwrap();
+    let response_body = Body::from(body);
+
+    //
+    // CGI's RFC says that the "Status" response header
+    // can contain the HTTP Response Status code.
+    // It's not explicit whether it should be removed from the end response,
+    // but we use ".remove()" to do so, to make sure there is no conflict between
+    // the real HTTP Status line and the "Status" header (what a whoopsie it would be anyway...).
+    // See: https://tools.ietf.org/html/rfc3875#section-6.3.3
+    //
+    let response_status_header = headers_normalized.remove(&HeaderName::from_static("status"));
+
+    let status_code: u16 = if let Some(status_header) = response_status_header {
+        use std::str::FromStr;
+        let status_code_as_string = &status_header.to_str().unwrap().chars().take(3).collect::<String>();
+        let status_code = http::StatusCode::from_str(status_code_as_string).unwrap();
+        status_code.as_u16()
+    } else {
+        debug!("Response does not contain the \"Status\" HTTP header");
+        200
+    };
+
+    //
+    // Finally: a Hyper response.
+    // Everything has to be done to convert the fastcgi response into a Hyper response.
+    //
     let mut response_builder = Response::builder();
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.extend(headers_normalized);
 
     let response = response_builder
-        .body(
-            Body::from(body), //Body::from(body)
-        )
+        .status(status_code)
+        .body(response_body)
         .unwrap();
 
+    trace!("Finish response");
+
     anyhow::Result::Ok(response)
+}
+
+fn get_header_value<'a>(headers: &'a HeaderMap<HeaderValue>, header_name: &str, empty_header: &'a HeaderValue) -> &'a str {
+    headers
+        .get(header_name)
+        .unwrap_or(empty_header)
+        .to_str()
+        .unwrap_or_default()
 }
 
 fn get_pathinfo_from_uri(request_uri: &str) -> (String, String) {
@@ -161,7 +207,8 @@ fn get_pathinfo_from_uri(request_uri: &str) -> (String, String) {
     (php_file, path_info)
 }
 
-fn error_as_response(error: Error) -> Response<Body> {
+fn error_as_response<T>(error: T, status_code: u16) -> Response<Body>
+where T: std::fmt::Display {
     let mut response_builder = Response::builder();
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.append("Content-Type", "text/html".parse().unwrap());
@@ -171,7 +218,7 @@ fn error_as_response(error: Error) -> Response<Body> {
     body_str.push_str("</body></html>");
 
     let response = response_builder
-        .status(500)
+        .status(status_code)
         .body(
             Body::from(body_str), //Body::from(body)
         )
