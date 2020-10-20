@@ -63,7 +63,14 @@ LOG;
 
 file_put_contents('_local_logs.txt', $logs, FILE_APPEND);
 
+$protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0';
+
 http_response_code(200);
-header('HTTP/1.1 200 Ok', true, 200);
-header('X-Some-Random-Header: some-random-value');
+header('Status: 200 Ok', true, 200);
+header($protocol.' 200 Ok', true, 200);
+header('X-Some-Random-Header: some-random-value', true, 200);
 echo $content;
+
+if (\function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+}
