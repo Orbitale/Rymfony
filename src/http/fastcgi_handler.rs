@@ -37,7 +37,7 @@ pub(crate) async fn handle_fastcgi(
     let stream = match TcpStream::connect(("127.0.0.1", php_port)) {
         Ok(t) => t,
         Err(e) => {
-            return anyhow::Result::Ok(error_as_response(e));
+            return anyhow::Result::Ok(error_as_response(e, 503));
         }
     };
 
@@ -55,7 +55,8 @@ pub(crate) async fn handle_fastcgi(
     };
 
     //
-    // Fastcgi params, please reference to nginx-php-fpm config.
+    // Mandatory FastCGI parameters.
+    // See: https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/
     //
     let mut fcgi_params = Params::with_predefine();
     let empty_header = &HeaderValue::from_str("").unwrap();
@@ -79,7 +80,8 @@ pub(crate) async fn handle_fastcgi(
 
     //
     // Send all Request HTTP headers to FastCGI,
-    // In the form of "HTTP_..." parameters.
+    // in the form of "HTTP_..." parameters.
+    // That's supposed to be how FastCGI and PHP work.
     //
     let mut fcgi_headers_normalized = Vec::new();
     for (name, value) in headers.iter() {
@@ -90,19 +92,28 @@ pub(crate) async fn handle_fastcgi(
     fcgi_params.extend(fcgi_headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
 
     let request_body_bytes = hyper::body::to_bytes(request_body).await.unwrap();
+    let mut fcgi_request_body = &mut std::io::Cursor::new(request_body_bytes);
 
     //
     // Ignition! Do the request!
     //
-    let fcgi_output = client.do_request(&fcgi_params, &mut std::io::Cursor::new(request_body_bytes)).unwrap();
+    let fcgi_output = client.do_request(&fcgi_params, &mut fcgi_request_body).unwrap();
+    let fcgi_stderr = fcgi_output.get_stderr().unwrap_or_default();
 
-    let fcgi_stderr: Vec<u8> = fcgi_output.get_stderr().unwrap_or(Vec::new());
-    let fcgi_stdout: Vec<u8> = fcgi_output.get_stdout().unwrap_or(Vec::new());
+    //
+    // The CGI response *never* returns the HTTP Status Line.
+    // However, the "httparse" crate needs it.
+    // So we create a fake one.
+    // Later on, this will be overriden by the "Status" header (see below), so it's a fine hack.
+    //
+    let mut fcgi_stdout = format!("{} 200 Ok\r\n", http_version).as_bytes().to_vec();
+    fcgi_stdout.extend(fcgi_output.get_stdout().unwrap_or_default());
 
     trace!("Received FastCGI response.");
 
     if fcgi_stderr.len() > 0 {
         error!("FastCGI returned an error:\n{}", std::str::from_utf8(&fcgi_stderr).unwrap());
+        return anyhow::Result::Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
     }
 
     //
@@ -114,8 +125,7 @@ pub(crate) async fn handle_fastcgi(
     let headers_len = res.parse(fcgi_stdout.as_slice())?.unwrap();
     let response_headers = res.headers;
     debug!("Response headers ready to normalize");
-    dbg!(&response_headers);
-    let headers_normalized: HashMap<HeaderName, HeaderValue> = response_headers
+    let mut headers_normalized: HashMap<HeaderName, HeaderValue> = response_headers
         .iter()
         .map(|header| {
             let header_name = header.name.as_bytes();
@@ -136,7 +146,25 @@ pub(crate) async fn handle_fastcgi(
     let body = String::from_utf8(body.to_vec()).unwrap();
     let response_body = Body::from(body);
 
+    //
+    // CGI's RFC says that the "Status" response header
+    // can contain the HTTP Response Status code.
+    // It's not explicit whether it should be removed from the end response,
+    // but we use ".remove()" to do so, to make sure there is no conflict between
+    // the real HTTP Status line and the "Status" header (what a whoopsie it would be anyway...).
+    // See: https://tools.ietf.org/html/rfc3875#section-6.3.3
+    //
+    let response_status_header = headers_normalized.remove(&HeaderName::from_static("status"));
 
+    let status_code: u16 = if let Some(status_header) = response_status_header {
+        use std::str::FromStr;
+        let status_code_as_string = &status_header.to_str().unwrap().chars().take(3).collect::<String>();
+        let status_code = http::StatusCode::from_str(status_code_as_string).unwrap();
+        status_code.as_u16()
+    } else {
+        debug!("Response does not contain the \"Status\" HTTP header");
+        200
+    };
 
     //
     // Finally: a Hyper response.
@@ -147,11 +175,11 @@ pub(crate) async fn handle_fastcgi(
     response_headers.extend(headers_normalized);
 
     let response = response_builder
+        .status(status_code)
         .body(response_body)
         .unwrap();
 
     trace!("Finish response");
-    dbg!(&response);
 
     anyhow::Result::Ok(response)
 }
@@ -179,7 +207,7 @@ fn get_pathinfo_from_uri(request_uri: &str) -> (String, String) {
     (php_file, path_info)
 }
 
-fn error_as_response<T>(error: T) -> Response<Body>
+fn error_as_response<T>(error: T, status_code: u16) -> Response<Body>
 where T: std::fmt::Display {
     let mut response_builder = Response::builder();
     let response_headers = response_builder.headers_mut().unwrap();
@@ -190,7 +218,7 @@ where T: std::fmt::Display {
     body_str.push_str("</body></html>");
 
     let response = response_builder
-        .status(500)
+        .status(status_code)
         .body(
             Body::from(body_str), //Body::from(body)
         )
