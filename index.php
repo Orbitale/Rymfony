@@ -42,16 +42,15 @@ ksort($display);
 
 $requestBody = file_get_contents("php://input");
 
+$date = date('Y-m-d H:i:s');
 
-header('X-Some-Random-Header: some-random-value');
 $content = "Hey! It works!\n"
     .json_encode([
+    'Date' => $date,
     'Server parameters' => $display,
     'Request headers' => $headers,
     'Request body' => $requestBody,
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-$date = date('Y-m-d H:i:s');
 
 $logs = <<<LOG
 ===========================
@@ -64,4 +63,7 @@ LOG;
 
 file_put_contents('_local_logs.txt', $logs, FILE_APPEND);
 
+http_response_code(200);
+header('HTTP/1.1 200 Ok', true, 200);
+header('X-Some-Random-Header: some-random-value');
 echo $content;
