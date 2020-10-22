@@ -116,11 +116,11 @@ fn get_render_static_path(document_root: &str, request_path: &str) -> String {
 
     let mut render_static: &str = "";
 
-    if docroot_path.exists() {
+    if docroot_path.is_dir() {
         render_static = docroot_path.to_str().unwrap();
-    } else if docroot_public_path.exists() {
+    } else if docroot_public_path.is_dir() {
         render_static = docroot_public_path.to_str().unwrap();
-    } else if docroot_web_path.exists() {
+    } else if docroot_web_path.is_dir() {
         render_static = docroot_web_path.to_str().unwrap();
     }
 
