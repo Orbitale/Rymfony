@@ -27,7 +27,7 @@ pub(crate) async fn handle_fastcgi(
     let uri = req.uri();
     let request_uri = uri.to_string();
     let query_string = uri.query().unwrap_or("").to_string();
-    let headers = req.headers().clone();
+    let request_headers = req.headers().clone();
     let method = req.method().to_string();
     let method = method.as_str();
     let (parts, request_body) = req.into_parts();
@@ -60,8 +60,8 @@ pub(crate) async fn handle_fastcgi(
     //
     let mut fcgi_params = Params::with_predefine();
     let empty_header = &HeaderValue::from_str("").unwrap();
-    fcgi_params.insert("CONTENT_LENGTH", get_header_value(&headers, "Content-Length", &empty_header));
-    fcgi_params.insert("CONTENT_TYPE", get_header_value(&headers, "Content-Type", &empty_header));
+    fcgi_params.insert("CONTENT_LENGTH", get_header_value(&request_headers, "Content-Length", &empty_header));
+    fcgi_params.insert("CONTENT_TYPE", get_header_value(&request_headers, "Content-Type", &empty_header));
     fcgi_params.insert("DOCUMENT_ROOT", &document_root);
     fcgi_params.insert("DOCUMENT_URI", &request_uri);
     fcgi_params.insert("PATH_INFO", pathinfo.as_str());
@@ -84,7 +84,7 @@ pub(crate) async fn handle_fastcgi(
     // That's supposed to be how FastCGI and PHP work.
     //
     let mut fcgi_headers_normalized = Vec::new();
-    for (name, value) in headers.iter() {
+    for (name, value) in request_headers.iter() {
         let header_name = format!("HTTP_{}", name.as_str().replace("-", "_").to_uppercase());
 
         fcgi_headers_normalized.push((header_name, value.to_str().unwrap()));
@@ -97,8 +97,25 @@ pub(crate) async fn handle_fastcgi(
     //
     // Ignition! Do the request!
     //
-    let fcgi_output = client.do_request(&fcgi_params, &mut fcgi_request_body).unwrap();
-    let fcgi_stderr = fcgi_output.get_stderr().unwrap_or_default();
+    let fcgi_output = client.do_request(&fcgi_params, &mut fcgi_request_body);
+
+    // Retrieve request output
+    let (raw_fcgi_stdout, fcgi_stderr) = match fcgi_output {
+        Ok(fcgi_output) => {
+            (
+                fcgi_output.get_stdout().unwrap_or_default(),
+                fcgi_output.get_stderr().unwrap_or_default()
+            )
+        },
+        Err(e) => {
+            return anyhow::Result::Ok(error_as_response(e, 502));
+        }
+    };
+
+    if raw_fcgi_stdout.len() == 0 {
+        error!("FastCGI returned an empty Response:\n{}", std::str::from_utf8(&fcgi_stderr).unwrap());
+        return anyhow::Result::Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
+    }
 
     //
     // The CGI response *never* returns the HTTP Status Line.
@@ -106,8 +123,8 @@ pub(crate) async fn handle_fastcgi(
     // So we create a fake one.
     // Later on, this will be overriden by the "Status" header (see below), so it's a fine hack.
     //
-    let mut fcgi_stdout = format!("{} 200 Ok\r\n", http_version).as_bytes().to_vec();
-    fcgi_stdout.extend(fcgi_output.get_stdout().unwrap_or_default());
+    let mut fcgi_stdout: Vec<u8> = format!("{} 200 Ok\r\n", http_version).as_bytes().to_vec();
+    fcgi_stdout.extend(raw_fcgi_stdout);
 
     trace!("Received FastCGI response.");
 
