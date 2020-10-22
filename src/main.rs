@@ -41,19 +41,16 @@ mod http {
 }
 
 use clap::App;
+use clap::Arg;
 use dirs::home_dir;
 use std::fs;
 use std::process::Command;
 use utils::current_process_name;
 
 fn main() {
-    pretty_env_logger::init();
-
     let home_dir = home_dir().unwrap();
-
     if home_dir.to_str().unwrap() != "" {
-        let rymfony_path = home_dir.join(".rymfony");
-        fs::create_dir_all(rymfony_path).unwrap();
+        fs::create_dir_all(home_dir.join(".rymfony")).unwrap();
     }
 
     let commands = vec![
@@ -67,9 +64,28 @@ fn main() {
         .version("0.1")
         .author("Alex Rock <alex@orbitale.io>")
         .about("To be determined")
+        .arg(
+            Arg::with_name("verbose")
+                .short("v")
+                .long("verbose")
+                .multiple(true)
+                .takes_value(false)
+                .help("Set the verbosity level. -v for verbose, -vv for debug"),
+        )
+        .arg(
+            Arg::with_name("quiet")
+                .short("q")
+                .long("quiet")
+                .takes_value(false)
+                .help("Do not display any output. Has precedence over -v|--verbose"),
+        )
         .subcommands(commands);
 
     let matches = app.get_matches();
+    let verbose_value = matches.indices_of("verbose").unwrap_or_default();
+    let is_quiet = matches.index_of("quiet").unwrap_or_default() > 0;
+
+    set_verbosity_value(verbose_value.len(), is_quiet);
 
     let subcommand_name = matches.subcommand_name();
 
@@ -101,4 +117,27 @@ fn main() {
                 .expect("An error occured when trying to execute the HTTP server");
         }
     };
+}
+
+fn set_verbosity_value(value: usize, is_quiet: bool) {
+
+    let level = std::env::var("RUST_LOG").unwrap_or(String::from("INFO"));
+    let mut level = level.as_str();
+
+    let mut builder = pretty_env_logger::formatted_timed_builder();
+
+    if is_quiet {
+        level = "OFF";
+    } else {
+        match value {
+            1 => level = "DEBUG", // -v
+            v if v >= 2 => level = "TRACE", // -vv
+            _ => {},
+        }
+    }
+
+    builder
+        .parse_filters(level)
+        .try_init()
+        .unwrap();
 }
