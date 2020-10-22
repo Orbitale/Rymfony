@@ -63,6 +63,8 @@ LOG;
 
 file_put_contents('_local_logs.txt', $logs, FILE_APPEND);
 
+header('Content-Type: text/plain');
+header('Content-Length: '.strlen($content));
 header('X-Some-Random-Header: some-random-value');
 echo $content;
 
