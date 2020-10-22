@@ -108,6 +108,7 @@ pub(crate) async fn handle_fastcgi(
             )
         },
         Err(e) => {
+            error!("FastCGI returned an error. It was displayed as a 502 to the end user.");
             return anyhow::Result::Ok(error_as_response(e, 502));
         }
     };
