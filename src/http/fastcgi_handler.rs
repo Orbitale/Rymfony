@@ -230,9 +230,28 @@ where T: std::fmt::Display {
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.append("Content-Type", "text/html".parse().unwrap());
 
-    let mut body_str = String::from("<html lang=\"en\"><head><meta charset=\"utf-8\"><title>Internal 500 error</title></head><body>Internal 500 Error");
-    body_str.push_str(format!("Returned error: <pre>{}</pre>", &error).as_str());
-    body_str.push_str("</body></html>");
+    let body_str = format!(r###"
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <meta charset="utf-8" />
+                <title>Internal server error</title>
+                <style>
+                    body {{ background-color: #fff; color: #222; font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; }}
+                    .container {{ margin: 30px; max-width: 600px; }}
+                    h1 {{ color: #dc3545; font-size: 24px; }}
+                    h2 {{ font-size: 18px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>Internal server error "{}"</h1>
+                    <h2>The server returned:</h2>
+                    <pre>{}</pre>
+                </div>
+            </body>
+        </html>
+    "###, &status_code, &error);
 
     let response = response_builder
         .status(status_code)
