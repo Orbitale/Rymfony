@@ -52,8 +52,8 @@ pub(crate) async fn start<'a>(
                     info!(
                         "{} {} {}{}",
                         http_version,
-                        req.method(),
-                        request_uri,
+                        style(req.method()).yellow(),
+                        style(request_uri).cyan(),
                         if render_static { " (static)" } else { "" }
                     );
 
@@ -77,7 +77,7 @@ pub(crate) async fn start<'a>(
 
     let http_server = Server::bind(&addr).serve(make_service);
 
-    println!(
+    info!(
         "Server listening to {}",
         style(format!("http://{}", addr)).cyan()
     );

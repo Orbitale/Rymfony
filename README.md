@@ -159,16 +159,19 @@ $ rymfony php:list
 
 To do (order of priority, done first):
 
-- Commands
+- Commands and command-line options
     - 🟩 Add a `stop` command.
-    - 🟥 Create `open:local` command
-    - 🟥 Create `server:logs` command
-    - 🟥 Create `server:list` command
-    - 🟥 Create `server:status` command
-- Miscellaneous
-    - 🟩 (code architecture) Split commands in a `src/commands/` subdirectory for an easier code organization.
-    - 🟩 (code architecture) Separate the "App" command definition (using the `clap` crate) and put it in each command's own dir (best example is how the `serve` command is defined).
+    - 🟥 Create `open:local` command.
+    - 🟥 Create `server:logs` command.
+    - 🟥 Create `server:list` command.
+    - 🟥 Create `server:status` command.
+    - 🟥 Create `php` command (should use the configured PHP version).
+    - 🟥 Create `console` command for Symfony (should use the configured PHP version, and be compatible with SF 2+).
+    - 🟥 Create `artisan` command for Laravel (should use the configured PHP version).
+    - 🟥 Propagate global app arguments so they can be used in subcommands (like `rymfony serve -v`, because if you want verbosity today, you need to pass the option before the subcommand, like this: `rymfony -v serve`). Maybe this can be in the `clap` crate itself (the CLI app package used by Rymfony).
+- Releases
     - 🟩 Publish nightly builds of the binary as artifacts by using Github Actions.
+    - 🟩 Add support for verbosity levels in output logging, like `-v`, `-vv`, `-vvv` and `-q`.
     - 🟥 Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
 - HTTP server
     - 🟩 Make sure we can run a web server using Hyper and Tokio.
@@ -182,7 +185,7 @@ To do (order of priority, done first):
     - 🟥 Allow listing running servers globally, without necessarily using a `.pid` file.
     - 🟥 Allow stopping a server globally, without necessarily using a `.pid` file.
     - 🟥 (possibly hard work) Find a way to force the entire request-response workflow to be streamed instead of buffered (will make better performances and memory usage)
-- PHP
+- PHP server
     - 🟩 Create a tool to discover the `php` binary if none of the two above are detected.
     - 🟩 Create a tool to discover the `php-fpm` binary if on Linux.
     - 🟩 Create a tool to discover the `php-cgi` binary (I'm developing on Windows and it is therefore easier).
@@ -193,8 +196,8 @@ To do (order of priority, done first):
             - 🟩 Search in `/usr/bin` for most Ubuntu defaults
             - 🟩 Search in `/usr/local/Cellar` for most Homebrew defaults on Mac
             - 💡 Please [suggest](https://github.com/Pierstoval/rymfony/issues/new) more places where PHP could be present!
-        - 🟥 Flag the current path-based `php` script to check its version and mark it as "System" (just like in Symfony CLI)
-        - 🟥 Store a list of all PHP binaries in `~/.rymfony/php_versions.json`
+        - 🟩 Flag the current path-based `php` script to check its version and mark it as "System" (just like in Symfony CLI)
+        - 🟩 Store a list of all PHP binaries in `~/.rymfony/php_versions.json`
         - 🟥 Deserialize the `php-versions.json` config file if it exists when using `binaries::all()` or `binaries::current()` to make the command faster
         - 🟥 Add an option to the `php:list` command such as `--refresh` that will make another lookup and save the `~/.rymfony/php-versions.json` file again 😄
         - 🟥 Implement a way to retrieve the current PHP version based on a local `.php-version` file
