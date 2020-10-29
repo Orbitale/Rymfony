@@ -21,7 +21,33 @@ Here are the links to download them:
 
 If you need more architectures and OSes, feel free to check the [build.yaml](./.github/workflows/build.yaml) Github Action and contribute for more!
 
-### Manual install
+#### Download on Linux
+
+```
+sudo curl -sSL https://files.pierstoval.com/rymfony/rymfony.ubuntu-latest?download -o /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony 
+```
+
+#### Download on MacOS
+
+```
+sudo curl -sSL https://files.pierstoval.com/rymfony/rymfony.macOS-latest?download -o /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony 
+```
+
+#### Download on Windows
+
+With `cmd` (`curl` is needed):
+```
+curl -sSL https://files.pierstoval.com/rymfony/rymfony.windows-latest.exe?download -o rymfony.exe 
+```
+
+With Powershell:
+```
+Invoke-WebRequest https://files.pierstoval.com/rymfony/rymfony.windows-latest.exe?download -OutFile rymfony.exe
+```
+
+Then, add the `rymfony.exe` executable somewhere in your PATH.
+
+### Manual build
 
 Make sure you have installed the Rust language and its package manager Cargo on your machine, and run `cargo build --release`.
 
@@ -33,39 +59,46 @@ Run `rymfony help` to see the list of available commands:
 
 ```
 $ rymfony
-rymfony 0.1
+rymfony 0.1.0-dev
 Alex Rock <alex@orbitale.io>
-To be determined
+
+A command-line tool to spawn a PHP server behind an HTTP FastCGI proxy,
+inspired by Symfony CLI, but open-source.
+
+https://github.com/Orbitale/Rymfony
 
 USAGE:
-    rymfony [SUBCOMMAND]
+    rymfony [FLAGS] [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
+    -q, --quiet      Do not display any output. Has precedence over -v|--verbose
     -V, --version    Prints version information
+    -v, --verbose    Set the verbosity level. -v for debug, -vv for trace, -vvv to trace executed modules
 
 SUBCOMMANDS:
-    help        Prints this message or the help of the given subcommand(s)
-    php:list    List all available PHP executables
-    serve       Runs an HTTP server
-    stop        Stops a potentially running HTTP server
+    help            Prints this message or the help of the given subcommand(s)
+    new:symfony     Create a new Symfony project
+    php:list        List all available PHP executables
+    server:start    Runs an HTTP server
+    stop            Stops a potentially running HTTP server
 ```
 
 **Note:** For any command, you can use the `-h|--help` flag to display its details too. If you are familiar with the Symfony console component it is very much similar.
 
 ## Commands
 
-### `rymfony serve`
+### `rymfony serve` (or `server:start`)
 
 This command allows you to run a web server, in foreground or background, and you can customize the port to listen to.
 
 ```
 $ rymfony serve --help
-rymfony-serve 
+rymfony-server:start
 Runs an HTTP server
 
 USAGE:
-    rymfony serve [FLAGS] [OPTIONS]
+    rymfony server:start [FLAGS] [OPTIONS]
 
 FLAGS:
     -d, --daemon     Run the server in the background
@@ -106,34 +139,30 @@ It will actually search in the `PATH` directories for any binary that matches so
   * `php-fpmX.Y`
   * `php-cgiX.Y`
 
-More locations that are searched can be found in [binaries.rs](src/php/binaries.rs).
+More locations for standard PHP installations that are searched can be found in [binaries.rs](src/php/binaries.rs).
+
+> ℹNote: if your PHP binary is not detected, please **open an issue** so we can add support for it!
 
 Here is the output from an Ubuntu 20.04 machine:
 
 ```
 $ rymfony php:list
-┌──────────────────────┐
-| Binary path          |
-├──────────────────────┤
-| /usr/sbin/php-fpm7.4 |
-| /usr/bin/php         |
-| /usr/bin/php7.4      |
-| /sbin/php-fpm7.4     |
-| /bin/php             |
-| /bin/php7.4          |
-└──────────────────────┘
+┌─────────┬─────────────────┬──────────────────────┬─────────┬────────┐
+| Version | PHP CLI         | PHP FPM              | PHP CGI | System |
+├─────────┼─────────────────┼──────────────────────┼─────────┼────────┤
+| 7.4.11  | /usr/bin/php7.4 | /usr/sbin/php-fpm7.4 |         | *      |
+└─────────┴─────────────────┴──────────────────────┴─────────┴────────┘
 ```
 
 Windows 10:
 
 ```
-> rymfony.exe php:list
-┌──────────────────────────┐
-| Binary path              |
-├──────────────────────────┤
-| E:\dev\php74\php-cgi.exe |
-| E:\dev\php74\php.exe     |
-└──────────────────────────┘
+> rymfony php:list
+┌─────────┬──────────────────────┬─────────┬──────────────────────────┬────────┐
+| Version | PHP CLI              | PHP FPM | PHP CGI                  | System |
+├─────────┼──────────────────────┼─────────┼──────────────────────────┼────────┤
+| 7.4.2   | E:\dev\php74\php.exe |         | E:\dev\php74\php-cgi.exe | *      |
+└─────────┴──────────────────────┴─────────┴──────────────────────────┴────────┘
 ```
 
 macOS Catalina (using Homebrew): 
@@ -172,6 +201,7 @@ To do (order of priority, done first):
 - Releases
     - 🟩 Publish nightly builds of the binary as artifacts by using Github Actions.
     - 🟩 Add support for verbosity levels in output logging, like `-v`, `-vv`, `-vvv` and `-q`.
+    - 🟩 Add version hash to nightly builds.
     - 🟥 Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
 - HTTP server
     - 🟩 Make sure we can run a web server using Hyper and Tokio.
