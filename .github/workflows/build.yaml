@@ -96,7 +96,7 @@ jobs:
             - name: Build
               run: |
                 $_BUILDOS="${{ matrix.os }}" -replace '-latest',''
-                $GITHUB_SHA="$GITHUB_SHA".substring(0,8)
+                $GITHUB_SHA=$env:GITHUB_SHA.substring(0,8)
                 echo $_BUILDOS-$GITHUB_SHA-nightly > build_type.txt
                 cargo build --release --all-targets
 
