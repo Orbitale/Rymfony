@@ -17,6 +17,14 @@ jobs:
         steps:
             - uses: actions/checkout@master
 
+            - uses: actions/cache@v2
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  target/
+                key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
             - name: Install SSH key
               uses: shimataro/ssh-key-action@v2
               with:
