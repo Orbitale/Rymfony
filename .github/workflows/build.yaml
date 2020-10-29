@@ -95,8 +95,9 @@ jobs:
 
             - name: Build
               run: |
-                set _BUILDOS="${{ matrix.os }}"
-                echo %_BUILDOS:-latest=%-%GITHUB_SHA:~0,8%-nightly > build_type.txt
+                $_BUILDOS="${{ matrix.os }}" -replace '-latest',''
+                $GITHUB_SHA="$GITHUB_SHA".substring(0,8)
+                echo $_BUILDOS-$GITHUB_SHA-nightly > build_type.txt
                 cargo build --release --all-targets
 
             - name: List releases
