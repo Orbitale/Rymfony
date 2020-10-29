@@ -44,7 +44,8 @@ jobs:
 
             - name: Build
               run: |
-                echo "${{ matrix.os }}-${GITHUB_SHA::8}-nightly" > build_type.txt
+                export _BUILDOS="${{ matrix.os }}"
+                echo "${_BUILDOS/-latest/}-${GITHUB_SHA::8}-nightly" > build_type.txt
                 cargo build --release --all-targets
 
             - name: List releases
@@ -65,6 +66,16 @@ jobs:
         steps:
             - uses: actions/checkout@master
 
+            - uses: actions/cache@v2
+              with:
+                path: |
+                  ~/.cargo/registry
+                  ~/.cargo/git
+                  %HOME%/.cargo/registry
+                  %HOME%/.cargo/git
+                  target/
+                key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
             - name: Install SSH key
               uses: shimataro/ssh-key-action@v2
               with:
@@ -83,7 +94,10 @@ jobs:
                   rust-version: ${{ matrix.rust }}
 
             - name: Build
-              run: cargo build --release --all-targets
+              run: |
+                export _BUILDOS="${{ matrix.os }}"
+                echo %_BUILDOS:-latest=%-%GITHUB_SHA:~0,8%-nightly > build_type.txt
+                cargo build --release --all-targets
 
             - name: List releases
               run: |
