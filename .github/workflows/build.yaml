@@ -35,7 +35,9 @@ jobs:
                   rust-version: ${{ matrix.rust }}
 
             - name: Build
-              run: cargo build --release --all-targets
+              run: |
+                echo "${{ matrix.os }}-${GITHUB_SHA::8}-nightly" > build_type.txt
+                cargo build --release --all-targets
 
             - name: List releases
               run: |
