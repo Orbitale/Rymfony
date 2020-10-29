@@ -75,7 +75,12 @@ fn main() {
     let app = App::new("rymfony")
         .version(version.as_str())
         .author("Alex Rock <alex@orbitale.io>")
-        .about("To be determined")
+        .about("
+A command-line tool to spawn a PHP server behind an HTTP FastCGI proxy,
+inspired by Symfony CLI, but open-source.
+
+https://github.com/Orbitale/Rymfony
+")
         .arg(
             Arg::with_name("verbose")
                 .short("v")
