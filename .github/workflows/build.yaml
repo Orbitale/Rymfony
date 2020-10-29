@@ -95,7 +95,7 @@ jobs:
 
             - name: Build
               run: |
-                export _BUILDOS="${{ matrix.os }}"
+                set _BUILDOS="${{ matrix.os }}"
                 echo %_BUILDOS:-latest=%-%GITHUB_SHA:~0,8%-nightly > build_type.txt
                 cargo build --release --all-targets
 
