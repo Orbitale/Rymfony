@@ -55,6 +55,8 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use log::Level;
 
+const RYMFONY_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() {
     let home_dir = home_dir().unwrap();
     if home_dir.to_str().unwrap() != "" {
@@ -68,8 +70,10 @@ fn main() {
         crate::commands::new_symfony::command_config(),
     ];
 
+    let version = format!("{}-{}", RYMFONY_VERSION, get_version_suffix());
+
     let app = App::new("rymfony")
-        .version("0.1")
+        .version(version.as_str())
         .author("Alex Rock <alex@orbitale.io>")
         .about("To be determined")
         .arg(
@@ -215,5 +219,15 @@ fn colored_level<'a>(style: &'a mut Style, level: Level) -> StyledValue<'a, &'st
         Level::Info => style.set_color(Color::Green).value(" INFO"),
         Level::Warn => style.set_color(Color::Yellow).value(" WARN"),
         Level::Error => style.set_color(Color::Red).value("ERROR"),
+    }
+}
+
+fn get_version_suffix() -> String {
+    let build_type = include_str!("../build_type.txt").trim().replace("\n", "");
+
+    if build_type == "" {
+        "dev".to_string()
+    } else {
+        build_type
     }
 }
