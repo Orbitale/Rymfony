@@ -1,5 +1,3 @@
-#[allow(unused_imports)]
-
 #[macro_use] extern crate prettytable;
 #[macro_use] extern crate log;
 extern crate regex;
