@@ -16,20 +16,19 @@ use std::path::PathBuf;
 
 pub(crate) async fn handle_fastcgi(
     document_root: String,
-    script_filename: String,
+    php_entrypoint_file: String,
     remote_addr: SocketAddr,
     req: Request<Body>,
     http_port: u16,
     php_port: u16,
 ) -> anyhow::Result<Response<Body>> {
     let remote_addr = remote_addr.ip().to_string();
-    let remote_addr = remote_addr.as_str();
     let uri = req.uri();
     let request_uri = uri.to_string();
     let query_string = uri.query().unwrap_or("").to_string();
+    let request_uri_without_query = request_uri.replace(format!("?{}", query_string).as_str(), "");
     let request_headers = req.headers().clone();
     let method = req.method().to_string();
-    let method = method.as_str();
     let (parts, request_body) = req.into_parts();
 
     let http_version = crate::http::version::as_str(parts.version);
@@ -48,33 +47,35 @@ pub(crate) async fn handle_fastcgi(
 
     let (php_file, pathinfo) = get_pathinfo_from_uri(&request_uri);
     let script_name = if php_file.len() > 0 {
-        let path = PathBuf::from(&document_root).join(php_file.clone());
-        path.to_str().unwrap().to_string()
+        php_file.clone()
     } else {
-        script_filename.clone()
+        php_entrypoint_file.clone()
     };
+    let script_name = format!("/{}", script_name);
+    let script_filename = get_script_filename(&document_root, php_entrypoint_file);
 
     //
     // Mandatory FastCGI parameters.
     // See: https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/
+    // See also RFC there: https://tools.ietf.org/html/rfc3875#page-11
     //
     let mut fcgi_params = Params::with_predefine();
     let empty_header = &HeaderValue::from_str("").unwrap();
     fcgi_params.insert("CONTENT_LENGTH", get_header_value(&request_headers, "Content-Length", &empty_header));
     fcgi_params.insert("CONTENT_TYPE", get_header_value(&request_headers, "Content-Type", &empty_header));
-    fcgi_params.insert("DOCUMENT_ROOT", &document_root);
-    fcgi_params.insert("DOCUMENT_URI", &request_uri);
+    fcgi_params.insert("DOCUMENT_ROOT", document_root.as_str());
+    fcgi_params.insert("DOCUMENT_URI", request_uri_without_query.as_str());
     fcgi_params.insert("PATH_INFO", pathinfo.as_str());
-    fcgi_params.insert("QUERY_STRING", &query_string);
-    fcgi_params.insert("REMOTE_ADDR", remote_addr);
-    fcgi_params.insert("REMOTE_PORT", http_port_str.as_ref());
-    fcgi_params.insert("REQUEST_METHOD", method);
-    fcgi_params.insert("REQUEST_URI", &request_uri);
-    fcgi_params.insert("SCRIPT_FILENAME", &script_filename);
-    fcgi_params.insert("SCRIPT_NAME", &script_name);
-    fcgi_params.insert("SERVER_ADDR", "127.0.0.1");
+    fcgi_params.insert("QUERY_STRING", query_string.as_str());
+    fcgi_params.insert("REMOTE_ADDR", remote_addr.as_str());
+    fcgi_params.insert("REMOTE_PORT", php_port_str.as_str());
+    fcgi_params.insert("REQUEST_METHOD", method.as_str());
+    fcgi_params.insert("REQUEST_URI", request_uri.as_str());
+    fcgi_params.insert("SCRIPT_FILENAME", script_filename.as_str());
+    fcgi_params.insert("SCRIPT_NAME", script_name.as_str());
+    // fcgi_params.insert("SERVER_ADDR", "127.0.0.1"); // Doesn't seem to be mandatory...
     fcgi_params.insert("SERVER_NAME", "127.0.0.1");
-    fcgi_params.insert("SERVER_PORT", php_port_str.as_ref());
+    fcgi_params.insert("SERVER_PORT", http_port_str.as_str());
     fcgi_params.insert("SERVER_PROTOCOL", http_version);
     fcgi_params.insert("SERVER_SOFTWARE", "Rymfony v0.1.0");
 
@@ -211,18 +212,49 @@ fn get_header_value<'a>(headers: &'a HeaderMap<HeaderValue>, header_name: &str, 
 }
 
 fn get_pathinfo_from_uri(request_uri: &str) -> (String, String) {
-    let php_file_regex = Regex::new(r"(^.*\.php)((?:/|$).*)$").unwrap();
+    let php_file_regex = Regex::new(r"(^.*\.php)((?:/|$).*)(?:\?.*)?$").unwrap();
 
     if !php_file_regex.is_match(request_uri) {
-        return (String::from(""), request_uri.to_string());
+        return (String::from(""), filter_pathinfo(request_uri.to_string()));
     }
 
     let capts: Captures = php_file_regex.captures(request_uri).unwrap();
 
     let php_file = capts[1].trim_start_matches("/").to_string();
-    let path_info = capts[2].to_string();
+    let path_info = filter_pathinfo(capts[2].to_string());
 
     (php_file, path_info)
+}
+
+fn get_script_filename(document_root: &String, script_filename_arg: String) -> String {
+    let path = PathBuf::from(&script_filename_arg);
+
+    if path.is_absolute() {
+        debug!("Script path \"{}\" is absolute.", script_filename_arg);
+        return script_filename_arg;
+    }
+
+    debug!("Script path \"{}\" is relative.", script_filename_arg);
+
+    let mut path = PathBuf::from(document_root);
+    path.push(&script_filename_arg);
+
+    debug!(
+        "Relative script path \"{}\" resolved to \"{}\".",
+        &script_filename_arg,
+        path.to_str().unwrap()
+    );
+
+    String::from(path.to_str().unwrap())
+}
+
+fn filter_pathinfo(path_info: String) -> String {
+    if path_info == "/" {
+        // Seems like Symfony CLI does it. More research needed, if any issue.
+        return "".to_string();
+    }
+
+    path_info
 }
 
 fn error_as_response<T>(error: T, status_code: u16) -> Response<Body>

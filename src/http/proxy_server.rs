@@ -15,27 +15,27 @@ use hyper_staticfile::Static;
 use crate::http::fastcgi_handler::handle_fastcgi;
 
 #[tokio::main]
-pub(crate) async fn start<'a>(
+pub(crate) async fn start(
     http_port: u16,
     php_port: u16,
-    document_root: &'a String,
-    script_filename: &'a String,
+    document_root: String,
+    php_entrypoint_file: String,
 ) {
     let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], http_port));
-    let static_files_server = Static::new(Path::new(document_root));
+    let static_files_server = Static::new(Path::new(&document_root));
 
     let document_root = document_root.clone();
-    let script_filename = script_filename.clone();
+    let php_entrypoint_file = php_entrypoint_file.clone();
 
     let make_service = make_service_fn(move |socket: &AddrStream| {
         let remote_addr = socket.remote_addr();
         let document_root = document_root.clone();
-        let script_filename = script_filename.clone();
+        let php_entrypoint_file = php_entrypoint_file.clone();
         let static_files_server = static_files_server.clone();
         async move {
             Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
                 let document_root = document_root.clone();
-                let script_filename = script_filename.clone();
+                let php_entrypoint_file = php_entrypoint_file.clone();
                 let static_files_server = static_files_server.clone();
                 async move {
                     let request_uri = req.uri();
@@ -61,9 +61,11 @@ pub(crate) async fn start<'a>(
                         return serve_static(req, static_files_server.clone()).await;
                     }
 
+                    trace!("Forwarding to FastCGI");
+
                     return handle_fastcgi(
                         document_root.clone(),
-                        script_filename.clone(),
+                        php_entrypoint_file.clone(),
                         remote_addr.clone(),
                         req,
                         http_port,
@@ -116,12 +118,17 @@ fn get_render_static_path(document_root: &str, request_path: &str) -> String {
 
     let mut render_static: &str = "";
 
-    if docroot_path.is_dir() {
+    if docroot_path.is_dir() || docroot_path.is_file() {
         render_static = docroot_path.to_str().unwrap();
-    } else if docroot_public_path.is_dir() {
+        debug!("Static file {} found in document root.", &render_static);
+    } else if docroot_public_path.is_dir() || docroot_public_path.is_file() {
         render_static = docroot_public_path.to_str().unwrap();
-    } else if docroot_web_path.is_dir() {
+        debug!("Static file {} found in \"public/\" subdirectory.", &render_static);
+    } else if docroot_web_path.is_dir() || docroot_web_path.is_file() {
+        debug!("Static file {} found in \"web/\" subdirectory.", &render_static);
         render_static = docroot_web_path.to_str().unwrap();
+    } else {
+        debug!("No static file found based on \"{}\" path.", request_path);
     }
 
     String::from(render_static)

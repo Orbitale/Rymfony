@@ -77,10 +77,7 @@ fn serve_foreground(args: &ArgMatches) {
     let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
 
     let document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
-    let script_filename = get_script_filename(
-        &document_root,
-        args.value_of("passthru").unwrap_or("index.php").to_string(),
-    );
+    let script_filename = args.value_of("passthru").unwrap_or("index.php").to_string();
 
     info!("Configured document root: {}", &document_root);
     info!("PHP entrypoint file: {}", &script_filename);
@@ -88,8 +85,8 @@ fn serve_foreground(args: &ArgMatches) {
     proxy_server::start(
         port,
         php_server.port(),
-        &document_root,
-        &script_filename,
+        document_root,
+        script_filename,
     );
 }
 
@@ -109,28 +106,6 @@ fn serve_background(args: &ArgMatches) {
         .expect("Cannot write to PID file");
 
     info!("Background server running with PID {}", pid);
-}
-
-fn get_script_filename(document_root: &str, script_filename_arg: String) -> String {
-    let path = PathBuf::from(&script_filename_arg);
-
-    if path.is_absolute() {
-        debug!("Script path \"{}\" is absolute.", script_filename_arg);
-        return script_filename_arg;
-    }
-
-    debug!("Script path \"{}\" is relative.", script_filename_arg);
-
-    let mut path = PathBuf::from(document_root);
-    path.push(&script_filename_arg);
-
-    debug!(
-        "Relative script path \"{}\" resolved to \"{}\".",
-        &script_filename_arg,
-        path.to_str().unwrap()
-    );
-
-    String::from(path.to_str().unwrap())
 }
 
 fn get_document_root(document_root_arg: String) -> String {
