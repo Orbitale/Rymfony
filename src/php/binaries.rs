@@ -31,11 +31,11 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 
     binaries_from_env(&mut binaries);
 
-    merge_binaries(binaries_from_dir(PathBuf::from("/usr/bin")), &mut binaries);
-    merge_binaries(binaries_from_dir(PathBuf::from("/usr/sbin")), &mut binaries);
-    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")), &mut binaries);
-    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")), &mut binaries);
-    merge_binaries(binaries_from_dir(PathBuf::from("/usr/local/php*/bin")), &mut binaries);
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/php*/bin")));
 
     binaries
 }
@@ -53,7 +53,7 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
         .collect::<Vec<&str>>();
 
     for dir in path_dirs {
-        merge_binaries(binaries_from_dir(PathBuf::from(dir)), binaries);
+        merge_binaries(binaries, binaries_from_dir(PathBuf::from(dir)));
     }
 }
 
@@ -152,8 +152,8 @@ fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
 }
 
 fn merge_binaries(
-    from: HashMap<PhpVersion, PhpBinary>,
-    into: &mut HashMap<PhpVersion, PhpBinary>
+    into: &mut HashMap<PhpVersion, PhpBinary>,
+    from: HashMap<PhpVersion, PhpBinary>
 ) {
     for (version, mut binary) in from {
         // this needs to be fixed, but for now we assume that the first ever found version is
