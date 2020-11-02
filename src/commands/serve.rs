@@ -88,6 +88,8 @@ fn serve_foreground(args: &ArgMatches) {
         document_root,
         script_filename,
     );
+
+    unreachable!();
 }
 
 fn serve_background(args: &ArgMatches) {
