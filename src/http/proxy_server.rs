@@ -1,18 +1,30 @@
-use std::convert::Infallible;
+use crate::http::fastcgi_handler::handle_fastcgi;
+
+// use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 use console::style;
-use hyper::server::conn::AddrStream;
-use hyper::service::make_service_fn;
-use hyper::service::service_fn;
+// use hyper::server::conn::AddrStream;
+// use hyper::server::conn::AddrIncoming;
+// use hyper::service::make_service_fn;
+// use hyper::service::service_fn;
 use hyper::Body;
 use hyper::Request;
-use hyper::Response;
-use hyper::Server;
+// use hyper::Response;
+// use hyper::Server;
 use hyper_staticfile::Static;
 
-use crate::http::fastcgi_handler::handle_fastcgi;
+use warp::Filter;
+use warp::method;
+use warp::http::Response;
+use http::Method;
+use http::HeaderMap;
+use warp::filters::path::FullPath;
+use warp::filters::header::headers_cloned;
+use std::collections::HashMap;
+use hyper::body::Bytes;
 
 #[tokio::main]
 pub(crate) async fn start(
@@ -21,70 +33,88 @@ pub(crate) async fn start(
     document_root: String,
     php_entrypoint_file: String,
 ) {
-    let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], http_port));
-    let static_files_server = Static::new(Path::new(&document_root));
+    let routes = warp::any()
+        .and(warp::addr::remote())
+        .and(method())
+        .and(warp::path::full())
+        .and(warp::query::<HashMap<String, String>>())
+        .and(headers_cloned())
+        .and(warp::body::bytes())
+        .map(|
+            remote_addr: Option<SocketAddr>,
+            method: Method,
+            request_path: FullPath,
+            query: HashMap<String, String>,
+            headers: HeaderMap,
+            body: Bytes
+        | {
+            let document_root = document_root.clone();
+            let php_entrypoint_file = php_entrypoint_file.clone();
+            let http_port = http_port.clone();
 
-    let document_root = document_root.clone();
-    let php_entrypoint_file = php_entrypoint_file.clone();
+            let query_string: String = query.iter()
+                .map(|(key, value)| {
+                    format!("{}={}", key, value)
+                })
+                .collect::<Vec<String>>()
+                .join("&")
+            ;
 
-    let make_service = make_service_fn(move |socket: &AddrStream| {
-        let remote_addr = socket.remote_addr();
-        let document_root = document_root.clone();
-        let php_entrypoint_file = php_entrypoint_file.clone();
-        let static_files_server = static_files_server.clone();
-        async move {
-            Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                let document_root = document_root.clone();
-                let php_entrypoint_file = php_entrypoint_file.clone();
-                let static_files_server = static_files_server.clone();
-                async move {
-                    let request_uri = req.uri();
-                    let request_path = request_uri.path();
+            let request_path = request_path.as_str();
+            let mut request_uri = request_path.to_string();
 
-                    let http_version = crate::http::version::as_str(req.version());
+            if query_string.len() > 0 {
+                request_uri.push_str("?");
+                request_uri.push_str(&query_string);
+            }
 
-                    let render_static = get_render_static_path(&document_root, &request_path);
-                    let render_static = !request_path.contains(".php")
-                        && render_static != ""
-                        && request_path != ""
-                        && request_path != "/";
+            let mut req = http::Request::builder()
+                .method(method)
+                .uri(request_uri)
+                .body(Body::from(body))
+                .unwrap();
+            { *req.headers_mut() = headers; }
 
-                    info!(
-                        "{} {} {}{}",
-                        http_version,
-                        style(req.method()).yellow(),
-                        style(request_uri).cyan(),
-                        if render_static { " (static)" } else { "" }
-                    );
+            let render_static = get_render_static_path(&document_root, &request_path);
+            let render_static = !request_path.contains(".php")
+                && render_static != ""
+                && request_path != ""
+                && request_path != "/";
 
-                    if render_static {
-                        return serve_static(req, static_files_server.clone()).await;
-                    }
+            info!(
+                "{} {}{}",
+                style(method.as_str()).yellow(),
+                style(&request_uri).cyan(),
+                if render_static { " (static)" } else { "" }
+            );
 
+            let response = async move {
+                if render_static {
+                    serve_static(req, Static::new(Path::new(&document_root))).await.unwrap()
+                } else {
                     trace!("Forwarding to FastCGI");
 
-                    return handle_fastcgi(
-                        document_root.clone(),
-                        php_entrypoint_file.clone(),
-                        remote_addr.clone(),
+                    let remote_addr = remote_addr.unwrap();
+
+                    handle_fastcgi(
+                        document_root,
+                        php_entrypoint_file,
+                        remote_addr,
                         req,
                         http_port,
                         php_port,
                     )
-                    .await;
-                }
-            }))
-        }
-    });
+                        .await
+                        .unwrap()
+                };
+            };
 
-    let http_server = Server::bind(&addr).serve(make_service);
+            return Ok(response);
+        })
+    ;
 
-    info!(
-        "Server listening to {}",
-        style(format!("http://{}", addr)).cyan()
-    );
-
-    http_server.await.unwrap();
+    warp::serve(routes).run(([127, 0, 0, 1], http_port)).await;
+    // http_server.await.unwrap();
 }
 
 async fn serve_static(

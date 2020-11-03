@@ -173,7 +173,7 @@ pub(crate) async fn handle_fastcgi(
     // the real HTTP Status line and the "Status" header (what a whoopsie it would be anyway...).
     // See: https://tools.ietf.org/html/rfc3875#section-6.3.3
     //
-    let response_status_header = headers_normalized.remove(&HeaderName::from_static("status"));
+    let response_status_header = headers_normalized.remove("status");
 
     let status_code: u16 = if let Some(status_header) = response_status_header {
         use std::str::FromStr;
