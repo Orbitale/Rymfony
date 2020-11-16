@@ -17,8 +17,8 @@ pub(crate) fn php_list() {
 
     let mut table = Table::new();
     let format = format::FormatBuilder::new()
-        .column_separator('|')
-        .borders('|')
+        .column_separator('│')
+        .borders('│')
         .separators(
             &[format::LinePosition::Top],
             format::LineSeparator::new('─', '┬', '┌', '┐'),
