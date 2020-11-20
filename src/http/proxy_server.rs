@@ -40,14 +40,14 @@ pub(crate) async fn start(
         .and(warp::query::<HashMap<String, String>>())
         .and(headers_cloned())
         .and(warp::body::bytes())
-        .map(|
+        .and_then(|
             remote_addr: Option<SocketAddr>,
             method: Method,
             request_path: FullPath,
             query: HashMap<String, String>,
             headers: HeaderMap,
             body: Bytes
-        | {
+        | async move {
             let document_root = document_root.clone();
             let php_entrypoint_file = php_entrypoint_file.clone();
             let http_port = http_port.clone();
@@ -88,7 +88,7 @@ pub(crate) async fn start(
                 if render_static { " (static)" } else { "" }
             );
 
-            let response = async move {
+            let response =
                 if render_static {
                     serve_static(req, Static::new(Path::new(&document_root))).await.unwrap()
                 } else {
@@ -106,8 +106,8 @@ pub(crate) async fn start(
                     )
                         .await
                         .unwrap()
-                };
-            };
+                }
+            ;
 
             return Ok(response);
         })
