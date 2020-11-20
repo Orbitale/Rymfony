@@ -1,19 +1,12 @@
 use crate::http::fastcgi_handler::handle_fastcgi;
 
-// use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::path::PathBuf;
 
 use console::style;
-// use hyper::server::conn::AddrStream;
-// use hyper::server::conn::AddrIncoming;
-// use hyper::service::make_service_fn;
-// use hyper::service::service_fn;
 use hyper::Body;
 use hyper::Request;
-// use hyper::Response;
-// use hyper::Server;
 use hyper_staticfile::Static;
 
 use warp::Filter;
@@ -29,6 +22,8 @@ use std::convert::Infallible;
 
 #[tokio::main]
 pub(crate) async fn start(
+    use_tls: bool,
+    forward_http_to_https: bool,
     http_port: u16,
     php_port: u16,
     document_root: String,
@@ -46,81 +41,85 @@ pub(crate) async fn start(
         .and(warp::query::<HashMap<String, String>>())
         .and(headers_cloned())
         .and(warp::body::bytes())
-        .and_then(|
+        .and_then(move |
             remote_addr: Option<SocketAddr>,
             method: Method,
             request_path: FullPath,
             query: HashMap<String, String>,
             headers: HeaderMap,
             body: Bytes
-        | async move {
+        | {
             let http_port = http_port.clone();
             let php_port = php_port.clone();
             let document_root = document_root.clone();
             let php_entrypoint_file = php_entrypoint_file.clone();
+            let method = method.clone();
 
-            let query_string: String = query.iter()
-                .map(|(key, value)| {
-                    format!("{}={}", key, value)
-                })
-                .collect::<Vec<String>>()
-                .join("&")
-            ;
+            async move {
+                let query_string: String = query.iter()
+                    .map(|(key, value)| {
+                        format!("{}={}", key, value)
+                    })
+                    .collect::<Vec<String>>()
+                    .join("&")
+                    ;
 
-            let request_path = request_path.as_str();
-            let mut request_uri = request_path.to_string();
+                let request_path = request_path.as_str();
+                let mut request_uri = request_path.to_string();
 
-            if query_string.len() > 0 {
-                request_uri.push_str("?");
-                request_uri.push_str(&query_string);
-            }
-
-            let mut req = http::Request::builder()
-                .method(method)
-                .uri(request_uri)
-                .body(Body::from(body))
-                .unwrap();
-            { *req.headers_mut() = headers; }
-
-            let render_static = get_render_static_path(&document_root, &request_path);
-            let render_static = !request_path.contains(".php")
-                && render_static != ""
-                && request_path != ""
-                && request_path != "/";
-
-            info!(
-                "{} {}{}",
-                style(method.as_str()).yellow(),
-                style(&request_uri).cyan(),
-                if render_static { " (static)" } else { "" }
-            );
-
-            let response =
-                if render_static {
-                    serve_static(req, Static::new(Path::new(&document_root))).await
-                } else {
-                    trace!("Forwarding to FastCGI");
-
-                    let remote_addr = remote_addr.unwrap();
-
-                    handle_fastcgi(
-                        &document_root,
-                        &php_entrypoint_file,
-                        remote_addr,
-                        req,
-                        &http_port,
-                        &php_port,
-                    )
-                        .await
+                if query_string.len() > 0 {
+                    request_uri.push_str("?");
+                    request_uri.push_str(&query_string);
                 }
-            ;
 
-            response
+                let mut req = http::Request::builder()
+                    .method(&method)
+                    .uri(&request_uri)
+                    .body(Body::from(body))
+                    .unwrap();
+                { *req.headers_mut() = headers; }
+
+                let render_static = get_render_static_path(&document_root, &request_path);
+                let render_static = !request_path.contains(".php")
+                    && render_static != ""
+                    && request_path != ""
+                    && request_path != "/";
+
+                info!(
+                    "{} {}{}",
+                    style(method.as_str()).yellow(),
+                    style(&request_uri).cyan(),
+                    if render_static { " (static)" } else { "" }
+                );
+
+                let response =
+                    if render_static {
+                        serve_static(req, Static::new(Path::new(&document_root))).await
+                    } else {
+                        trace!("Forwarding to FastCGI");
+
+                        let remote_addr = remote_addr.unwrap();
+
+                        handle_fastcgi(
+                            &document_root,
+                            &php_entrypoint_file,
+                            remote_addr,
+                            req,
+                            &http_port,
+                            &php_port,
+                        )
+                            .await
+                    }
+                    ;
+
+                response
+            }
         })
     ;
 
-    warp::serve(routes).run(([127, 0, 0, 1], http_port)).await;
-    // http_server.await.unwrap();
+    let serve = warp::serve(routes);
+
+    serve.run(([127, 0, 0, 1], http_port)).await;
 }
 
 async fn serve_static(
