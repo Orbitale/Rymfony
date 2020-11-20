@@ -25,6 +25,7 @@ use warp::filters::path::FullPath;
 use warp::filters::header::headers_cloned;
 use std::collections::HashMap;
 use hyper::body::Bytes;
+use std::convert::Infallible;
 
 #[tokio::main]
 pub(crate) async fn start(
@@ -33,6 +34,11 @@ pub(crate) async fn start(
     document_root: String,
     php_entrypoint_file: String,
 ) {
+    let http_port = http_port.clone();
+    let php_port = php_port.clone();
+    let document_root = document_root.clone();
+    let php_entrypoint_file = php_entrypoint_file.clone();
+
     let routes = warp::any()
         .and(warp::addr::remote())
         .and(method())
@@ -48,9 +54,10 @@ pub(crate) async fn start(
             headers: HeaderMap,
             body: Bytes
         | async move {
+            let http_port = http_port.clone();
+            let php_port = php_port.clone();
             let document_root = document_root.clone();
             let php_entrypoint_file = php_entrypoint_file.clone();
-            let http_port = http_port.clone();
 
             let query_string: String = query.iter()
                 .map(|(key, value)| {
@@ -90,26 +97,25 @@ pub(crate) async fn start(
 
             let response =
                 if render_static {
-                    serve_static(req, Static::new(Path::new(&document_root))).await.unwrap()
+                    serve_static(req, Static::new(Path::new(&document_root))).await
                 } else {
                     trace!("Forwarding to FastCGI");
 
                     let remote_addr = remote_addr.unwrap();
 
                     handle_fastcgi(
-                        document_root,
-                        php_entrypoint_file,
+                        &document_root,
+                        &php_entrypoint_file,
                         remote_addr,
                         req,
-                        http_port,
-                        php_port,
+                        &http_port,
+                        &php_port,
                     )
                         .await
-                        .unwrap()
                 }
             ;
 
-            return Ok(response);
+            response
         })
     ;
 
@@ -120,7 +126,7 @@ pub(crate) async fn start(
 async fn serve_static(
     req: Request<Body>,
     static_files_server: Static,
-) -> anyhow::Result<Response<Body>> {
+) -> Result<Response<Body>, Infallible> {
     let static_files_server = static_files_server.clone();
     let response_future = static_files_server.serve(req);
 
