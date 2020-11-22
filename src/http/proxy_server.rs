@@ -20,6 +20,8 @@ use std::collections::HashMap;
 use hyper::body::Bytes;
 use std::convert::Infallible;
 
+use crate::config::certificates::get_cert_path;
+
 #[tokio::main]
 pub(crate) async fn start(
     use_tls: bool,
@@ -34,7 +36,7 @@ pub(crate) async fn start(
     let document_root = document_root.clone();
     let php_entrypoint_file = php_entrypoint_file.clone();
 
-    let routes = warp::any()
+    let mut routes = warp::any()
         .and(warp::addr::remote())
         .and(method())
         .and(warp::path::full())
@@ -117,9 +119,20 @@ pub(crate) async fn start(
         })
     ;
 
-    let serve = warp::serve(routes);
+    if use_tls {
+        let (cert_path, key_path) = get_cert_path()
+            .expect("Could not generate TLS certificate");
 
-    serve.run(([127, 0, 0, 1], http_port)).await;
+        warp::serve(routes)
+            .tls()
+            .cert_path(cert_path)
+            .key_path(key_path)
+            .run(([127, 0, 0, 1], http_port)).await
+
+    } else {
+        warp::serve(routes)
+            .run(([127, 0, 0, 1], http_port)).await
+    };
 }
 
 async fn serve_static(

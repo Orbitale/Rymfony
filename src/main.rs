@@ -8,6 +8,7 @@ extern crate httparse;
 
 mod config {
     pub(crate) mod config;
+    pub(crate) mod certificates;
 }
 
 mod commands {
