@@ -13,15 +13,19 @@ use regex::Captures;
 use regex::Regex;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::convert::Infallible;
 
 pub(crate) async fn handle_fastcgi(
-    document_root: String,
-    php_entrypoint_file: String,
+    document_root: &str,
+    php_entrypoint_file: &str,
     remote_addr: SocketAddr,
     req: Request<Body>,
-    http_port: u16,
-    php_port: u16,
-) -> anyhow::Result<Response<Body>> {
+    http_port: &u16,
+    php_port: &u16,
+) -> Result<Response<Body>, Infallible> {
+    let document_root = String::from(document_root);
+    let php_entrypoint_file = String::from(php_entrypoint_file);
+
     let remote_addr = remote_addr.ip().to_string();
     let uri = req.uri();
     let request_uri = uri.to_string();
@@ -33,10 +37,10 @@ pub(crate) async fn handle_fastcgi(
 
     let http_version = crate::http::version::as_str(parts.version);
 
-    let stream = match TcpStream::connect(("127.0.0.1", php_port)) {
+    let stream = match TcpStream::connect(("127.0.0.1", *php_port)) {
         Ok(t) => t,
         Err(e) => {
-            return anyhow::Result::Ok(error_as_response(e, 503));
+            return Ok(error_as_response(e, 503));
         }
     };
 
@@ -63,7 +67,7 @@ pub(crate) async fn handle_fastcgi(
     let empty_header = &HeaderValue::from_str("").unwrap();
     fcgi_params.insert("CONTENT_LENGTH", get_header_value(&request_headers, "Content-Length", &empty_header));
     fcgi_params.insert("CONTENT_TYPE", get_header_value(&request_headers, "Content-Type", &empty_header));
-    fcgi_params.insert("DOCUMENT_ROOT", document_root.as_str());
+    fcgi_params.insert("DOCUMENT_ROOT", &document_root);
     fcgi_params.insert("DOCUMENT_URI", request_uri_without_query.as_str());
     fcgi_params.insert("PATH_INFO", pathinfo.as_str());
     fcgi_params.insert("QUERY_STRING", query_string.as_str());
@@ -110,13 +114,13 @@ pub(crate) async fn handle_fastcgi(
         },
         Err(e) => {
             error!("FastCGI returned an error. It was displayed as a 502 to the end user.");
-            return anyhow::Result::Ok(error_as_response(e, 502));
+            return Ok(error_as_response(e, 502));
         }
     };
 
     if raw_fcgi_stdout.len() == 0 {
         error!("FastCGI returned an empty Response:\n{}", std::str::from_utf8(&fcgi_stderr).unwrap());
-        return anyhow::Result::Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
+        return Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
     }
 
     //
@@ -132,7 +136,7 @@ pub(crate) async fn handle_fastcgi(
 
     if fcgi_stderr.len() > 0 {
         error!("FastCGI returned an error:\n{}", std::str::from_utf8(&fcgi_stderr).unwrap());
-        return anyhow::Result::Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
+        return Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
     }
 
     //
@@ -141,7 +145,7 @@ pub(crate) async fn handle_fastcgi(
     //
     let mut normalized_headers = [httparse::EMPTY_HEADER; 80];
     let mut res = httparse::Response::new(&mut normalized_headers);
-    let headers_len = res.parse(fcgi_stdout.as_slice())?.unwrap();
+    let headers_len = res.parse(fcgi_stdout.as_slice()).unwrap().unwrap();
     let response_headers = res.headers;
     debug!("Response headers ready to normalize");
     let mut headers_normalized: HashMap<HeaderName, HeaderValue> = response_headers
@@ -173,7 +177,7 @@ pub(crate) async fn handle_fastcgi(
     // the real HTTP Status line and the "Status" header (what a whoopsie it would be anyway...).
     // See: https://tools.ietf.org/html/rfc3875#section-6.3.3
     //
-    let response_status_header = headers_normalized.remove(&HeaderName::from_static("status"));
+    let response_status_header = headers_normalized.remove("status");
 
     let status_code: u16 = if let Some(status_header) = response_status_header {
         use std::str::FromStr;
@@ -200,7 +204,7 @@ pub(crate) async fn handle_fastcgi(
 
     trace!("Finish response");
 
-    anyhow::Result::Ok(response)
+    Ok(response)
 }
 
 fn get_header_value<'a>(headers: &'a HeaderMap<HeaderValue>, header_name: &str, empty_header: &'a HeaderValue) -> &'a str {

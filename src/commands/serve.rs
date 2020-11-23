@@ -83,6 +83,8 @@ fn serve_foreground(args: &ArgMatches) {
     info!("PHP entrypoint file: {}", &script_filename);
 
     proxy_server::start(
+        true,               // FIXME: make this a command-line option
+        true,               // FIXME: make this a command-line option
         port,
         php_server.port(),
         document_root,

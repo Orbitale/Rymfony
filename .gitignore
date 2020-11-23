@@ -1,4 +1,6 @@
 /target
+certs/*
+!certs/generate_certificates.sh
 .fpm.pid
 .pid
 _local_logs.txt

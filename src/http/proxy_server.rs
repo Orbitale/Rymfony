@@ -1,96 +1,144 @@
-use std::convert::Infallible;
+use crate::http::fastcgi_handler::handle_fastcgi;
+
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 use console::style;
-use hyper::server::conn::AddrStream;
-use hyper::service::make_service_fn;
-use hyper::service::service_fn;
 use hyper::Body;
 use hyper::Request;
-use hyper::Response;
-use hyper::Server;
 use hyper_staticfile::Static;
 
-use crate::http::fastcgi_handler::handle_fastcgi;
+use warp::Filter;
+use warp::method;
+use warp::http::Response;
+use http::Method;
+use http::HeaderMap;
+use warp::filters::path::FullPath;
+use warp::filters::header::headers_cloned;
+use std::collections::HashMap;
+use hyper::body::Bytes;
+use std::convert::Infallible;
+
+use crate::config::certificates::get_cert_path;
 
 #[tokio::main]
 pub(crate) async fn start(
+    use_tls: bool,
+    forward_http_to_https: bool,
     http_port: u16,
     php_port: u16,
     document_root: String,
     php_entrypoint_file: String,
 ) {
-    let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], http_port));
-    let static_files_server = Static::new(Path::new(&document_root));
-
+    let http_port = http_port.clone();
+    let php_port = php_port.clone();
     let document_root = document_root.clone();
     let php_entrypoint_file = php_entrypoint_file.clone();
 
-    let make_service = make_service_fn(move |socket: &AddrStream| {
-        let remote_addr = socket.remote_addr();
-        let document_root = document_root.clone();
-        let php_entrypoint_file = php_entrypoint_file.clone();
-        let static_files_server = static_files_server.clone();
-        async move {
-            Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                let document_root = document_root.clone();
-                let php_entrypoint_file = php_entrypoint_file.clone();
-                let static_files_server = static_files_server.clone();
-                async move {
-                    let request_uri = req.uri();
-                    let request_path = request_uri.path();
+    let mut routes = warp::any()
+        .and(warp::addr::remote())
+        .and(method())
+        .and(warp::path::full())
+        .and(warp::query::<HashMap<String, String>>())
+        .and(headers_cloned())
+        .and(warp::body::bytes())
+        .and_then(move |
+            remote_addr: Option<SocketAddr>,
+            method: Method,
+            request_path: FullPath,
+            query: HashMap<String, String>,
+            headers: HeaderMap,
+            body: Bytes
+        | {
+            let http_port = http_port.clone();
+            let php_port = php_port.clone();
+            let document_root = document_root.clone();
+            let php_entrypoint_file = php_entrypoint_file.clone();
+            let method = method.clone();
 
-                    let http_version = crate::http::version::as_str(req.version());
+            async move {
+                let query_string: String = query.iter()
+                    .map(|(key, value)| {
+                        format!("{}={}", key, value)
+                    })
+                    .collect::<Vec<String>>()
+                    .join("&")
+                    ;
 
-                    let render_static = get_render_static_path(&document_root, &request_path);
-                    let render_static = !request_path.contains(".php")
-                        && render_static != ""
-                        && request_path != ""
-                        && request_path != "/";
+                let request_path = request_path.as_str();
+                let mut request_uri = request_path.to_string();
 
-                    info!(
-                        "{} {} {}{}",
-                        http_version,
-                        style(req.method()).yellow(),
-                        style(request_uri).cyan(),
-                        if render_static { " (static)" } else { "" }
-                    );
-
-                    if render_static {
-                        return serve_static(req, static_files_server.clone()).await;
-                    }
-
-                    trace!("Forwarding to FastCGI");
-
-                    return handle_fastcgi(
-                        document_root.clone(),
-                        php_entrypoint_file.clone(),
-                        remote_addr.clone(),
-                        req,
-                        http_port,
-                        php_port,
-                    )
-                    .await;
+                if query_string.len() > 0 {
+                    request_uri.push_str("?");
+                    request_uri.push_str(&query_string);
                 }
-            }))
-        }
-    });
 
-    let http_server = Server::bind(&addr).serve(make_service);
+                let mut req = http::Request::builder()
+                    .method(&method)
+                    .uri(&request_uri)
+                    .body(Body::from(body))
+                    .unwrap();
+                { *req.headers_mut() = headers; }
 
-    info!(
-        "Server listening to {}",
-        style(format!("http://{}", addr)).cyan()
-    );
+                let render_static = get_render_static_path(&document_root, &request_path);
+                let render_static = !request_path.contains(".php")
+                    && render_static != ""
+                    && request_path != ""
+                    && request_path != "/";
 
-    http_server.await.unwrap();
+                info!(
+                    "{} {}{}",
+                    style(method.as_str()).yellow(),
+                    style(&request_uri).cyan(),
+                    if render_static { " (static)" } else { "" }
+                );
+
+                let response =
+                    if render_static {
+                        serve_static(req, Static::new(Path::new(&document_root))).await
+                    } else {
+                        trace!("Forwarding to FastCGI");
+
+                        let remote_addr = remote_addr.unwrap();
+
+                        handle_fastcgi(
+                            &document_root,
+                            &php_entrypoint_file,
+                            remote_addr,
+                            req,
+                            &http_port,
+                            &php_port,
+                        )
+                            .await
+                    }
+                    ;
+
+                response
+            }
+        })
+    ;
+
+    if use_tls {
+        let (cert_path, key_path) = get_cert_path()
+            .expect("Could not generate TLS certificate");
+
+        warp::serve(routes)
+            .tls()
+            .cert_path(cert_path)
+            .key_path(key_path)
+            .run(([127, 0, 0, 1], http_port)).await
+
+    } else {
+        warp::serve(routes)
+            .run(([127, 0, 0, 1], http_port)).await
+    };
 }
 
 async fn serve_static(
     req: Request<Body>,
     static_files_server: Static,
-) -> anyhow::Result<Response<Body>> {
+) -> Result<Response<Body>, Infallible> {
     let static_files_server = static_files_server.clone();
     let response_future = static_files_server.serve(req);
 

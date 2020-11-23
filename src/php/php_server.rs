@@ -76,3 +76,9 @@ pub(crate) fn start() -> PhpServer {
 
     php_server
 }
+
+pub(crate) fn healthcheck(port: u16) -> u16 {
+    println!("Checking port {}", &port);
+
+    0
+}
