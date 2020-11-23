@@ -36,7 +36,7 @@ pub(crate) async fn start(
     let document_root = document_root.clone();
     let php_entrypoint_file = php_entrypoint_file.clone();
 
-    let mut routes = warp::any()
+    let routes = warp::any()
         .and(warp::addr::remote())
         .and(method())
         .and(warp::path::full())
@@ -109,6 +109,7 @@ pub(crate) async fn start(
                             req,
                             &http_port,
                             &php_port,
+                            use_tls
                         )
                             .await
                     }

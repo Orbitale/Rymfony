@@ -22,6 +22,7 @@ pub(crate) async fn handle_fastcgi(
     req: Request<Body>,
     http_port: &u16,
     php_port: &u16,
+    use_tls: bool,
 ) -> Result<Response<Body>, Infallible> {
     let document_root = String::from(document_root);
     let php_entrypoint_file = String::from(php_entrypoint_file);
@@ -94,6 +95,11 @@ pub(crate) async fn handle_fastcgi(
 
         fcgi_headers_normalized.push((header_name, value.to_str().unwrap()));
     }
+
+    if use_tls {
+        fcgi_headers_normalized.push(("HTTPS".to_string(), "On"));
+    }
+
     fcgi_params.extend(fcgi_headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
 
     let request_body_bytes = hyper::body::to_bytes(request_body).await.unwrap();
