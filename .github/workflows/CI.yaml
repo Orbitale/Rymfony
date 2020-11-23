@@ -1,10 +1,10 @@
 
-name: Build
+name: CI
 
 on:
     push:
         branches:
-            - main
+            - '*'
 
 jobs:
     build:
@@ -49,10 +49,12 @@ jobs:
                 cargo build --release --all-targets
 
             - name: List releases
+              if: ${{ github.ref == 'refs/heads/main' }}
               run: |
                   ls -lah ./target/release/ || echo ""
 
             - name: Send releases
+              if: ${{ github.ref == 'refs/heads/main' }}
               run: |
                   scp ./target/release/rymfony piers:${{ secrets.TARGET_PATH }}/rymfony.${{ matrix.os }}
 
