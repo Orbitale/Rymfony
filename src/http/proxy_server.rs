@@ -57,11 +57,6 @@ pub(crate) async fn start(
             let php_entrypoint_file = php_entrypoint_file.clone();
             let method = method.clone();
 
-            let mut req_headers = headers.clone();
-            if forward_http_to_https {
-                req_headers.insert("X-Forwarded-Proto", "https".parse().unwrap());
-            }
-
             async move {
                 let query_string: String = query.iter()
                     .map(|(key, value)| {
@@ -84,7 +79,7 @@ pub(crate) async fn start(
                     .uri(&request_uri)
                     .body(Body::from(body))
                     .unwrap();
-                { *req.headers_mut() = req_headers; }
+                { *req.headers_mut() = headers; }
 
                 let render_static = get_render_static_path(&document_root, &request_path);
                 let render_static = !request_path.contains(".php")
@@ -114,6 +109,7 @@ pub(crate) async fn start(
                             req,
                             &http_port,
                             &php_port,
+                            use_tls
                         )
                             .await
                     }
