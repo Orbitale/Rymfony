@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::path::PathBuf;
 
+use futures::future;
 use console::style;
 use hyper::Body;
 use hyper::Request;
@@ -13,6 +14,7 @@ use warp::Filter;
 use warp::method;
 use warp::http::Response;
 use http::Method;
+use http::Uri;
 use http::HeaderMap;
 use warp::filters::path::FullPath;
 use warp::filters::header::headers_cloned;
@@ -123,15 +125,37 @@ pub(crate) async fn start(
         let (cert_path, key_path) = get_cert_path()
             .expect("Could not generate TLS certificate");
 
-        warp::serve(routes)
+        let redirect_host = format!("127.0.0.1:{}", http_port.clone());
+
+        let redirect_url = Uri::builder()
+            .scheme("http")
+            .authority(redirect_host.as_str())
+            .path_and_query("/")
+            .build()
+            .unwrap();
+
+        let http_redirection_routes = warp::path("http")
+            .map(move || {
+                let redirect_url = redirect_url.clone();
+                println!("Redirect HTTP to HTTPS");
+                warp::redirect(redirect_url)
+            })
+        ;
+
+        let http_server = warp::serve(http_redirection_routes)
+            .run(([127, 0, 0, 1], http_port.clone()));
+
+        let https_server = warp::serve(routes)
             .tls()
             .cert_path(cert_path)
             .key_path(key_path)
-            .run(([127, 0, 0, 1], http_port)).await
+            .run(([127, 0, 0, 1], http_port));
 
+        future::join(http_server, https_server).await;
     } else {
         warp::serve(routes)
-            .run(([127, 0, 0, 1], http_port)).await
+            .run(([127, 0, 0, 1], http_port))
+            .await;
     };
 }
 
