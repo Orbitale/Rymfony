@@ -108,9 +108,11 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.");
     }
 
-    // let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-    // fpm_config_file.write_all(config.as_bytes())
-    //     .expect("Could not write to php-fpm config file.");
+    if !fpm_config_file_path.exists() {
+        let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
+        fpm_config_file.write_all(config.as_bytes())
+             .expect("Could not write to php-fpm config file.");
+    }
 
     let cwd = env::current_dir().unwrap();
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
