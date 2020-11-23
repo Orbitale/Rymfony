@@ -35,7 +35,7 @@ mod php {
 
 mod http {
     pub(crate) mod fastcgi_handler;
-    pub(crate) mod proxy_server;
+    pub(crate) mod http_server;
     pub(crate) mod version;
 }
 

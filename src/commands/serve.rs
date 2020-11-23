@@ -7,7 +7,7 @@ use clap::Arg;
 use clap::ArgMatches;
 use clap::SubCommand;
 
-use crate::http::proxy_server;
+use crate::http::http_server;
 use crate::php::php_server;
 use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
@@ -82,7 +82,7 @@ fn serve_foreground(args: &ArgMatches) {
     info!("Configured document root: {}", &document_root);
     info!("PHP entrypoint file: {}", &script_filename);
 
-    proxy_server::start(
+    http_server::start(
         true,               // FIXME: make this a command-line option
         true,               // FIXME: make this a command-line option
         port,
