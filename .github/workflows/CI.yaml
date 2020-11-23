@@ -109,5 +109,6 @@ jobs:
                           IdentityFile ~/.ssh/piers
 
             - name: Send releases
+              if: ${{ github.ref == 'refs/heads/main' }}
               run: |
                   scp -o MACs=hmac-sha2-512 .\target\release\rymfony.exe piers:${{ secrets.TARGET_PATH }}/rymfony.${{ matrix.os }}.exe
