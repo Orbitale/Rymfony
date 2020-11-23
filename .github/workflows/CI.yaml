@@ -25,19 +25,6 @@ jobs:
                   target/
                 key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-            - name: Install SSH key
-              uses: shimataro/ssh-key-action@v2
-              with:
-                  key: ${{ secrets.SSH_KEY }}
-                  known_hosts: ${{ secrets.KNOWN_HOSTS }}
-                  name: piers
-                  config: |
-                      Host piers ${{ secrets.SSH_HOST }}
-                          HostName ${{ secrets.SSH_HOST }}
-                          User pierstoval
-                          Port 22
-                          IdentityFile ~/.ssh/piers
-
             - uses: hecrj/setup-rust-action@v1
               with:
                   rust-version: ${{ matrix.rust }}
@@ -52,6 +39,20 @@ jobs:
               if: ${{ github.ref == 'refs/heads/main' }}
               run: |
                   ls -lah ./target/release/ || echo ""
+
+            - name: Install SSH key
+              if: ${{ github.ref == 'refs/heads/main' }}
+              uses: shimataro/ssh-key-action@v2
+              with:
+                  key: ${{ secrets.SSH_KEY }}
+                  known_hosts: ${{ secrets.KNOWN_HOSTS }}
+                  name: piers
+                  config: |
+                      Host piers ${{ secrets.SSH_HOST }}
+                          HostName ${{ secrets.SSH_HOST }}
+                          User pierstoval
+                          Port 22
+                          IdentityFile ~/.ssh/piers
 
             - name: Send releases
               if: ${{ github.ref == 'refs/heads/main' }}
@@ -78,19 +79,6 @@ jobs:
                   target/
                 key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-            - name: Install SSH key
-              uses: shimataro/ssh-key-action@v2
-              with:
-                  key: ${{ secrets.SSH_KEY }}
-                  known_hosts: ${{ secrets.KNOWN_HOSTS }}
-                  name: piers
-                  config: |
-                      Host piers ${{ secrets.SSH_HOST }}
-                          HostName ${{ secrets.SSH_HOST }}
-                          User pierstoval
-                          Port 22
-                          IdentityFile ~/.ssh/piers
-
             - uses: hecrj/setup-rust-action@v1
               with:
                   rust-version: ${{ matrix.rust }}
@@ -106,6 +94,21 @@ jobs:
               run: |
                   dir .\target\release\
 
+            - name: Install SSH key
+              if: ${{ github.ref == 'refs/heads/main' }}
+              uses: shimataro/ssh-key-action@v2
+              with:
+                  key: ${{ secrets.SSH_KEY }}
+                  known_hosts: ${{ secrets.KNOWN_HOSTS }}
+                  name: piers
+                  config: |
+                      Host piers ${{ secrets.SSH_HOST }}
+                          HostName ${{ secrets.SSH_HOST }}
+                          User pierstoval
+                          Port 22
+                          IdentityFile ~/.ssh/piers
+
             - name: Send releases
+              if: ${{ github.ref == 'refs/heads/main' }}
               run: |
                   scp -o MACs=hmac-sha2-512 .\target\release\rymfony.exe piers:${{ secrets.TARGET_PATH }}/rymfony.${{ matrix.os }}.exe
