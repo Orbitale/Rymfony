@@ -94,7 +94,7 @@ pub(crate) async fn start(
                     if render_static { " (static)" } else { "" }
                 );
 
-                let response =
+                let mut response =
                     if render_static {
                         serve_static(req, Static::new(Path::new(&document_root))).await
                     } else {
@@ -114,6 +114,7 @@ pub(crate) async fn start(
                             .await
                     }
                     ;
+                response.as_mut().unwrap().headers_mut().append("server", "rymfony".parse().unwrap());
 
                 response
             }
