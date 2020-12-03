@@ -114,7 +114,7 @@ pub(crate) async fn start(
                             .await
                     }
                     ;
-                response.as_mut().unwrap().headers_mut().append("server", "rymfony".parse().unwrap());
+                response.as_mut().unwrap().headers_mut().append("server", "Rymfony".parse().unwrap());
 
                 response
             }
