@@ -46,9 +46,17 @@ pub(crate) fn get_cert_path() -> CertResult<(PathBuf, PathBuf)>
     save_ca_cert(&ca_cert, &ca_privkey)?;
 
     cert_file.write_all(&certificate.to_pem()?)?;
+    cert_file.write(&ca_cert.to_pem()?)?;
     key_file.write_all(&private_key.private_key_to_pem_pkcs8()?)?;
 
     return Ok((certificate_path, key_path));
+}
+
+pub(crate) fn get_ca_cert_path() -> CertResult<(PathBuf, PathBuf)>
+{
+    let certificate_path = home_dir().unwrap().join(".rymfony").join("ca_tls_cert.pem");
+    let key_path = home_dir().unwrap().join(".rymfony").join("ca_tls_key.pem");
+    Ok((certificate_path, key_path))
 }
 
 fn save_ca_cert(
@@ -56,8 +64,7 @@ fn save_ca_cert(
     ca_privkey: &PKeyRef<Private>,
 ) -> Result<(), Box<dyn std::error::Error>>
 {
-    let certificate_path = home_dir().unwrap().join(".rymfony").join("ca_tls_cert.pem");
-    let key_path = home_dir().unwrap().join(".rymfony").join("ca_tls_key.pem");
+    let (certificate_path, key_path) = get_ca_cert_path()?;
 
     let mut cert_file = if certificate_path.exists() {
         File::open(&certificate_path)
@@ -84,6 +91,7 @@ fn generate_ca_key_pair() -> Result<(X509, PKey<Private>), ErrorStack> {
     let mut x509_name = X509NameBuilder::new()?;
     x509_name.append_entry_by_text("C", "FR")?;
     x509_name.append_entry_by_text("O", "Orbitale.io")?;
+    x509_name.append_entry_by_text("OU", "Orbitale.io localhost")?;
     x509_name.append_entry_by_text("CN", "Orbitale CA (dev)")?;
     let x509_name = x509_name.build();
 
@@ -108,7 +116,7 @@ fn generate_ca_key_pair() -> Result<(X509, PKey<Private>), ErrorStack> {
         KeyUsage::new()
             .critical()
             .key_cert_sign()
-            .crl_sign()
+            // .crl_sign()
             .build()?,
     )?;
 
@@ -128,8 +136,8 @@ fn generate_request(privkey: &PKey<Private>) -> Result<X509Req, ErrorStack> {
 
     let mut x509_name = X509NameBuilder::new()?;
     x509_name.append_entry_by_text("C", "FR")?;
-    x509_name.append_entry_by_text("O", "Orbitale.io")?;
-    x509_name.append_entry_by_text("CN", "Orbitale CA (dev)")?;
+    x509_name.append_entry_by_text("O", "Orbitale.io cert (dev)")?;
+    x509_name.append_entry_by_text("OU", "Orbitale localhost (dev)")?;
     let x509_name = x509_name.build();
     req_builder.set_subject_name(&x509_name)?;
 
@@ -163,12 +171,11 @@ fn generate_ca_signed_cert(
     let not_after = Asn1Time::days_from_now(365)?;
     cert_builder.set_not_after(&not_after)?;
 
-    cert_builder.append_extension(BasicConstraints::new().build()?)?;
+    cert_builder.append_extension(BasicConstraints::new().critical().build()?)?;
 
     cert_builder.append_extension(
         KeyUsage::new()
             .critical()
-            .non_repudiation()
             .digital_signature()
             .key_encipherment()
             .build()?,
