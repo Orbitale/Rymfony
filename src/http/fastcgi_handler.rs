@@ -168,8 +168,6 @@ pub(crate) async fn handle_fastcgi(
             )
         })
         .collect();
-    headers_normalized.insert(HeaderName::from_bytes("server".as_bytes()).unwrap(), HeaderValue::from_str("rymfony").unwrap());
-    
     debug!("Response headers are now normalized");
     let (_, body) = fcgi_stdout.split_at(headers_len);
 
@@ -205,10 +203,12 @@ pub(crate) async fn handle_fastcgi(
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.extend(headers_normalized);
 
-    let response = response_builder
+    let mut response = response_builder
         .status(status_code)
         .body(response_body)
         .unwrap();
+    
+    response.headers_mut().insert("server", "Rymfony".parse().unwrap());
 
     trace!("Finish response");
 
