@@ -14,6 +14,7 @@ mod config {
 mod commands {
     pub(crate) mod new_symfony;
     pub(crate) mod ca_install;
+    pub(crate) mod ca_uninstall;
     pub(crate) mod php_list;
     pub(crate) mod serve;
     pub(crate) mod stop;
@@ -66,6 +67,7 @@ fn main() {
     let commands = vec![
         crate::commands::php_list::command_config(),
         crate::commands::ca_install::command_config(),
+        crate::commands::ca_uninstall::command_config(),
         crate::commands::serve::command_config(),
         crate::commands::stop::command_config(),
         crate::commands::new_symfony::command_config(),
@@ -116,6 +118,9 @@ https://github.com/Orbitale/Rymfony
         }
         Some("server:ca:install") => {
             crate::commands::ca_install::ca_install(matches.subcommand_matches("server:ca:install").unwrap())
+        }
+        Some("server:ca:uninstall") => {
+            crate::commands::ca_uninstall::ca_uninstall(matches.subcommand_matches("server:ca:uninstall").unwrap())
         }
         Some("stop") => crate::commands::stop::stop(),
         Some("new") => {

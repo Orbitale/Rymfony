@@ -1,10 +1,12 @@
-use std::fs::copy;
 use std::fs::File;
+use std::fs::read_to_string;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
+
+use openssl::x509::X509;
 
 use clap::App;
 use clap::Arg;
@@ -16,83 +18,84 @@ use runas::Command as SudoCommand;
 use crate::config::certificates;
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("server:ca:install")
-        .name("server:ca:install")
-        .alias("ca:install")
-        .about("Create and install a local Certificate Authority for serving HTTPS")
+    SubCommand::with_name("server:ca:uninstall")
+        .name("server:ca:uninstall")
+        .alias("ca:uninstall")
+        .about("Uninstall the local Certificate Authority")
 }
 
-pub(crate) fn ca_install(args: &ArgMatches) {
+pub(crate) fn ca_uninstall(args: &ArgMatches) {
     let (certificate_path, key_path) = certificates::get_ca_cert_path().unwrap();
 
     if !certificate_path.exists() {
-        certificates::get_cert_path().unwrap();
-    }
-    if !certificate_path.exists() {
-        panic!("Unable to generate Certificate Authority at : {}", &certificate_path.to_str().unwrap());
+        panic!("Unable to uninstall Certificate Authority on your system : no CA certificate generated.");
     }
 
     if cfg!(target_os = "windows") {
-        window_ca_install(&certificate_path);
+        window_ca_uninstall(&certificate_path);
     } else if cfg!(target_os = "linux") {
-        linux_debian_based_ca_install(&certificate_path);
+        linux_debian_based_ca_uninstall(&certificate_path);
     } else if cfg!(target_os = "macos") {
-        macos_ca_install(&certificate_path);
+        macos_ca_uninstall(&certificate_path);
     } else {
         panic!("Unable to install Certificate Authority on your system.")
     }
 }
 
-fn linux_debian_based_ca_install(certificate_path: &PathBuf) {
+fn linux_debian_based_ca_uninstall(certificate_path: &PathBuf) {
     let debian_based_cert_path = PathBuf::from("/usr/local/share/ca-certificates/");
 
     if !debian_based_cert_path.exists() {
-        error!("Could not find Certificate Authority directory on your system.");
+        info!("Could not find Certificate Authority directory on your system.");
         return;
     }
 
     let dest_path = debian_based_cert_path.join("rymfony_CA_cert.crt");
 
-    let status = SudoCommand::new("cp")
-        .arg(&certificate_path.to_str().unwrap())
+    let status = SudoCommand::new("rm")
         .arg(&dest_path.to_str().unwrap())
         .status()
         .unwrap();
 
-    trace!("Copy result status {}", status);
+    trace!("Remove result status {}", status);
 
     let statusupdate = SudoCommand::new("update-ca-certificates")
+        .arg("--fresh")
         .status()
         .unwrap();
 
     trace!("Update CERT result status {}", statusupdate);
 }
 
-fn macos_ca_install(certificate_path: &PathBuf) {
+fn macos_ca_uninstall(certificate_path: &PathBuf) {
     let status = SudoCommand::new("security")
-        .arg("add-trusted-cert")
+        .arg("remove-trusted-cert")
         .arg("-d")
-        .arg("-r")
-        .arg("trustRoot")
-        .arg("-k")
-        .arg("/Library/Keychains/System.keychain")
         .arg(&certificate_path.to_str().unwrap())
         .gui(false)
         .status()
         .unwrap();
 
-    info!("Copy result status {}", status);
+    trace!("Copy result status {}", status);
 }
 
-fn window_ca_install(certificate_path: &PathBuf) {
+fn window_ca_uninstall(certificate_path: &PathBuf) {
+
+    let content = read_to_string(certificate_path).unwrap();
+    let certif = X509::from_pem(content.as_bytes()).unwrap();
+
+    let serial = certif.serial_number().to_bn().unwrap();
+
+    let hex = serial.to_hex_str().unwrap();
+    trace!("Attempt to remove {}", hex.to_string());
+
     let status = SudoCommand::new("certutil")
-        .arg("-addstore")
-        .arg("-f")
+        .arg("-delstore")
         .arg("ROOT")
-        .arg(&certificate_path.to_str().unwrap())
+        .arg(hex.to_string())
         .gui(true)
         .status()
         .unwrap();
 
-    info!("Copy result status {}", status);
+    trace!("Copy result status {}", status);
 }
