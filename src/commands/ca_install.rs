@@ -53,8 +53,6 @@ fn ubuntu_ca_install(certificate_path: &PathBuf) {
 
     let dest_path = ubuntu_cert_path.join("rymfony_CA_cert.crt");
 
-    // copy(&certificates_path.to_str().unwrap(), &dest_path.to_str().unwrap()).expect(&format!("Unable to write on destination file {}", &dest_path.to_str().unwrap()));
-
     let status = SudoCommand::new("cp")
         .arg(&certificate_path.to_str().unwrap())
         .arg(&dest_path.to_str().unwrap())
