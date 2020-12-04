@@ -18,6 +18,7 @@ use crate::config::certificates;
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("server:ca:install")
         .name("server:ca:install")
+        .alias("ca:install")
         .about("Create and install a local Certificate Authority for serving HTTPS")
 }
 
@@ -38,18 +39,15 @@ pub(crate) fn ca_install(args: &ArgMatches) {
     } else if cfg!(target_os = "macos") {
         macos_ca_install(&certificate_path);
     } else {
-        panic!("Unable to install on your system")
+        panic!("Unable to install Certificate Authority on your system.")
     }
-
-
-    // writeln!("End Of Work");
 }
 
 fn ubuntu_ca_install(certificate_path: &PathBuf) {
     let ubuntu_cert_path = PathBuf::from("/usr/local/share/ca-certificates/");
 
     if !ubuntu_cert_path.exists() {
-        info!("Not Ubuntu");
+        info!("Could not find Certificate Authority directory on your system.");
         return;
     }
 

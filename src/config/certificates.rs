@@ -116,7 +116,6 @@ fn generate_ca_key_pair() -> Result<(X509, PKey<Private>), ErrorStack> {
         KeyUsage::new()
             .critical()
             .key_cert_sign()
-            // .crl_sign()
             .build()?,
     )?;
 
