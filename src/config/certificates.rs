@@ -1,21 +1,23 @@
-use openssl::rsa::Rsa;
-use std::path::PathBuf;
-use dirs::home_dir;
 use std::fs::File;
+use std::fs::metadata;
+use std::fs::read_to_string;
 use std::io::Write;
-use openssl::pkey::{PKey, PKeyRef};
-use openssl::pkey::Private;
-use openssl::x509::{X509NameBuilder, X509ReqBuilder, X509Ref, X509Req};
-use openssl::x509::X509;
-use openssl::error::ErrorStack;
+use std::path::PathBuf;
+
+use dirs::home_dir;
+use openssl::asn1::Asn1Time;
 use openssl::bn::BigNum;
 use openssl::bn::MsbOption;
-use openssl::asn1::Asn1Time;
-use openssl::x509::extension::{KeyUsage, ExtendedKeyUsage, AuthorityKeyIdentifier, SubjectAlternativeName};
+use openssl::error::ErrorStack;
+use openssl::hash::MessageDigest;
+use openssl::pkey::{PKey, PKeyRef};
+use openssl::pkey::Private;
+use openssl::rsa::Rsa;
+use openssl::x509::{X509NameBuilder, X509Ref, X509Req, X509ReqBuilder};
+use openssl::x509::extension::{AuthorityKeyIdentifier, ExtendedKeyUsage, KeyUsage, SubjectAlternativeName};
 use openssl::x509::extension::BasicConstraints;
 use openssl::x509::extension::SubjectKeyIdentifier;
-use openssl::hash::MessageDigest;
-use openssl::conf::ConfRef;
+use openssl::x509::X509;
 
 type CertResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -24,26 +26,28 @@ pub(crate) fn get_cert_path() -> CertResult<(PathBuf, PathBuf)>
     let certificate_path = home_dir().unwrap().join(".rymfony").join("tls_cert.pem");
     let key_path = home_dir().unwrap().join(".rymfony").join("tls_key.pem");
 
-    if certificate_path.exists() && key_path.exists() {
+    let certificate_is_not_empty = file_is_not_empty(&certificate_path);
+    let key_is_not_empty = file_is_not_empty(&key_path);
+
+    if certificate_is_not_empty && key_is_not_empty {
         return Ok((certificate_path, key_path));
     }
 
-    let mut cert_file = if certificate_path.exists() {
+    let mut cert_file = if certificate_is_not_empty {
         File::open(&certificate_path)
     } else {
         File::create(&certificate_path)
     }?;
 
-    let mut key_file = if key_path.exists() {
+    let mut key_file = if key_is_not_empty {
         File::open(&key_path)
     } else {
         File::create(&key_path)
     }?;
 
-    let (ca_cert, ca_privkey) = generate_ca_key_pair()?;
-    let (certificate, private_key) = generate_ca_signed_cert(&ca_cert, &ca_privkey)?;
+    let (ca_cert, ca_privkey) = load_or_generate_ca_cert()?;
 
-    save_ca_cert(&ca_cert, &ca_privkey)?;
+    let (certificate, private_key) = generate_ca_signed_cert(&ca_cert, &ca_privkey)?;
 
     cert_file.write_all(&certificate.to_pem()?)?;
     cert_file.write(&ca_cert.to_pem()?)?;
@@ -59,29 +63,42 @@ pub(crate) fn get_ca_cert_path() -> CertResult<(PathBuf, PathBuf)>
     Ok((certificate_path, key_path))
 }
 
-fn save_ca_cert(
-    ca_cert: &X509Ref,
-    ca_privkey: &PKeyRef<Private>,
-) -> Result<(), Box<dyn std::error::Error>>
-{
-    let (certificate_path, key_path) = get_ca_cert_path()?;
+fn load_or_generate_ca_cert() -> CertResult<(X509, PKey<Private>)> {
+    let (ca_path, ca_key_path) = get_ca_cert_path()?;
 
-    let mut cert_file = if certificate_path.exists() {
-        File::open(&certificate_path)
+    if file_is_not_empty(&ca_path) && file_is_not_empty(&ca_key_path) {
+        let (ca_cert, ca_privkey) = load_ca_cert(&ca_path, &ca_key_path)?;
+        return Ok((ca_cert, ca_privkey));
+    }
+
+    let (ca_cert, ca_privkey) = generate_ca_key_pair()?;
+
+    let mut cert_file = if file_is_not_empty(&ca_path) {
+        File::open(&ca_path)
     } else {
-        File::create(&certificate_path)
+        File::create(&ca_path)
     }?;
 
-    let mut key_file = if key_path.exists() {
-        File::open(&key_path)
+    let mut key_file = if file_is_not_empty(&ca_key_path) {
+        File::open(&ca_key_path)
     } else {
-        File::create(&key_path)
+        File::create(&ca_key_path)
     }?;
 
     cert_file.write_all(&ca_cert.to_pem()?)?;
     key_file.write_all(&ca_privkey.private_key_to_pem_pkcs8()?)?;
 
-    Ok(())
+    Ok((ca_cert, ca_privkey))
+}
+
+fn load_ca_cert(certificate_path: &PathBuf, key_path: &PathBuf) -> Result<(X509, PKey<Private>), ErrorStack> {
+    let content = read_to_string(certificate_path).unwrap();
+    let certif = X509::from_pem(content.as_bytes()).unwrap();
+
+    let content_key = read_to_string(key_path).unwrap();
+    let pkey = PKey::private_key_from_pem(content_key.as_bytes()).unwrap();
+
+    Ok((certif, pkey))
 }
 
 fn generate_ca_key_pair() -> Result<(X509, PKey<Private>), ErrorStack> {
@@ -204,4 +221,8 @@ fn generate_ca_signed_cert(
     let cert = cert_builder.build();
 
     Ok((cert, privkey))
+}
+
+fn file_is_not_empty(path: &PathBuf) -> bool {
+    path.exists() && metadata(&path.to_str().unwrap()).unwrap().len() > 0
 }

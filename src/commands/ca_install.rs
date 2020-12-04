@@ -1,16 +1,8 @@
-use std::fs::copy;
-use std::fs::File;
-use std::io::Read;
-use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
 
 use clap::App;
-use clap::Arg;
 use clap::ArgMatches;
 use clap::SubCommand;
-use dirs;
 use runas::Command as SudoCommand;
 
 use crate::config::certificates;
@@ -22,8 +14,8 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
         .about("Create and install a local Certificate Authority for serving HTTPS")
 }
 
-pub(crate) fn ca_install(args: &ArgMatches) {
-    let (certificate_path, key_path) = certificates::get_ca_cert_path().unwrap();
+pub(crate) fn ca_install(_args: &ArgMatches) {
+    let (certificate_path, _key_path) = certificates::get_ca_cert_path().unwrap();
 
     if !certificate_path.exists() {
         certificates::get_cert_path().unwrap();

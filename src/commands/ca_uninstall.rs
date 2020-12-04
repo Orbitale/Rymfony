@@ -1,18 +1,11 @@
-use std::fs::File;
 use std::fs::read_to_string;
-use std::io::Read;
-use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
 
 use openssl::x509::X509;
 
 use clap::App;
-use clap::Arg;
 use clap::ArgMatches;
 use clap::SubCommand;
-use dirs;
 use runas::Command as SudoCommand;
 
 use crate::config::certificates;
@@ -24,8 +17,8 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
         .about("Uninstall the local Certificate Authority")
 }
 
-pub(crate) fn ca_uninstall(args: &ArgMatches) {
-    let (certificate_path, key_path) = certificates::get_ca_cert_path().unwrap();
+pub(crate) fn ca_uninstall(_args: &ArgMatches) {
+    let (certificate_path, _key_path) = certificates::get_ca_cert_path().unwrap();
 
     if !certificate_path.exists() {
         panic!("Unable to uninstall Certificate Authority on your system : no CA certificate generated.");
@@ -42,7 +35,7 @@ pub(crate) fn ca_uninstall(args: &ArgMatches) {
     }
 }
 
-fn linux_debian_based_ca_uninstall(certificate_path: &PathBuf) {
+fn linux_debian_based_ca_uninstall(_certificate_path: &PathBuf) {
     let debian_based_cert_path = PathBuf::from("/usr/local/share/ca-certificates/");
 
     if !debian_based_cert_path.exists() {
