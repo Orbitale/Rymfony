@@ -59,13 +59,13 @@ fn ubuntu_ca_install(certificate_path: &PathBuf) {
         .status()
         .unwrap();
 
-    info!("Copy result status {}", status);
+    trace!("Copy result status {}", status);
 
     let statusupdate = SudoCommand::new("update-ca-certificates")
         .status()
         .unwrap();
 
-    info!("Update CERT result status {}", statusupdate);
+    trace!("Update CERT result status {}", statusupdate);
 }
 
 fn macos_ca_install(certificate_path: &PathBuf) {
