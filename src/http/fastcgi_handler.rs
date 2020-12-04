@@ -207,8 +207,6 @@ pub(crate) async fn handle_fastcgi(
         .status(status_code)
         .body(response_body)
         .unwrap();
-    
-    response.headers_mut().insert("server", "Rymfony".parse().unwrap());
 
     trace!("Finish response");
 

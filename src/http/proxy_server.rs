@@ -30,6 +30,7 @@ pub(crate) async fn start(
     php_port: u16,
     document_root: String,
     php_entrypoint_file: String,
+    add_server_sign: bool,
 ) {
     let http_port = http_port.clone();
     let php_port = php_port.clone();
@@ -114,7 +115,9 @@ pub(crate) async fn start(
                             .await
                     }
                     ;
-                response.as_mut().unwrap().headers_mut().append("server", "Rymfony".parse().unwrap());
+                if add_server_sign {
+                    response.as_mut().unwrap().headers_mut().append("server", "Rymfony".parse().unwrap());
+                }
 
                 response
             }

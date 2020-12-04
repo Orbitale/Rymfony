@@ -1,21 +1,21 @@
+use std::env;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 use std::process::Command;
 
 use clap::App;
 use clap::Arg;
 use clap::ArgMatches;
 use clap::SubCommand;
+use log::info;
 
 use crate::http::proxy_server;
 use crate::php::php_server;
 use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
-use crate::utils::network::parse_default_port;
 use crate::utils::network::find_available_port;
-use log::info;
-use std::env;
-use std::path::PathBuf;
+use crate::utils::network::parse_default_port;
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -48,6 +48,22 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
                 .long("passthru")
                 .help("The PHP script all requests will be passed to")
                 .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("no-tls")
+                .long("no-tls")
+                .help("Disable TLS. Use HTTP only."),
+        )
+        .arg(
+            Arg::with_name("allow-http")
+                .long("allow-http")
+                .help("Do not redirect HTTP request to HTTPS"),
+        )
+        .arg(
+            Arg::with_name("expose-server-header")
+                .short("s")
+                .long("expose-server-header")
+                .help("Add server header into all response"),
         )
 }
 
@@ -83,12 +99,13 @@ fn serve_foreground(args: &ArgMatches) {
     info!("PHP entrypoint file: {}", &script_filename);
 
     proxy_server::start(
-        true,               // FIXME: make this a command-line option
-        true,               // FIXME: make this a command-line option
+        !args.is_present("no-tls"),
+        !args.is_present("allow-http"),
         port,
         php_server.port(),
         document_root,
         script_filename,
+        args.is_present("expose-server-header"),
     );
 
     unreachable!();
@@ -97,10 +114,30 @@ fn serve_foreground(args: &ArgMatches) {
 fn serve_background(args: &ArgMatches) {
     let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
 
-    let subprocess = Command::new(current_process_name::get().as_str())
-        .arg("serve")
+    let mut cmd = Command::new(current_process_name::get().as_str());
+        cmd.arg("serve")
         .arg("--port")
-        .arg(port.to_string())
+        .arg(port.to_string());
+
+    if args.is_present("no-tls") {
+        cmd.arg("--no-tls");
+    }
+    if args.is_present("allow-http") {
+        cmd.arg("--allow-http");
+    }
+    if args.is_present("expose-server-header") {
+        cmd.arg("--expose-server-header");
+    }
+    if args.is_present("document-root") {
+        cmd.arg("--document-root")
+            .arg(args.value_of("document-root").unwrap_or("").to_string());
+    }
+    if args.is_present("passthru") {
+        cmd.arg("--passthru")
+            .arg(args.value_of("passthru").unwrap_or("index.php").to_string());
+    }
+
+    let subprocess = cmd
         .spawn()
         .expect("Failed to start server as a background process");
 
