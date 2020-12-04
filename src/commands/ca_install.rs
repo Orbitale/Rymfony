@@ -35,7 +35,7 @@ pub(crate) fn ca_install(args: &ArgMatches) {
     if cfg!(target_os = "windows") {
         window_ca_install(&certificate_path);
     } else if cfg!(target_os = "linux") {
-        ubuntu_ca_install(&certificate_path);
+        linux_debian_based_ca_install(&certificate_path);
     } else if cfg!(target_os = "macos") {
         macos_ca_install(&certificate_path);
     } else {
@@ -43,7 +43,7 @@ pub(crate) fn ca_install(args: &ArgMatches) {
     }
 }
 
-fn ubuntu_ca_install(certificate_path: &PathBuf) {
+fn linux_debian_based_ca_install(certificate_path: &PathBuf) {
     let ubuntu_cert_path = PathBuf::from("/usr/local/share/ca-certificates/");
 
     if !ubuntu_cert_path.exists() {
