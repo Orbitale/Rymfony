@@ -1,16 +1,30 @@
-use clap::App;
+use clap::{App, Arg, ArgMatches};
 use clap::SubCommand;
 use prettytable::format;
 use prettytable::Table;
 
 use crate::php;
-use crate::config::config::save_binaries_to_config;
+use crate::config::config::{save_binaries_to_config, clear_binaries_list};
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("php:list").about("List all available PHP executables")
+        .arg(
+            Arg::with_name("refresh")
+                .short("r")
+                .long("refresh")
+                .help("Refresh the PHP list cache"),
+        )
 }
 
-pub(crate) fn php_list() {
+pub(crate) fn php_list(args: &ArgMatches) {
+
+    if args.is_present("refresh") {
+        match clear_binaries_list() {
+            Ok(_) => info!("Cache cleared"),
+            Err(e) => error!("Error on clear cache : {}", e)
+        }
+    }
+
     let binaries = php::binaries::all();
 
     save_binaries_to_config(&binaries);

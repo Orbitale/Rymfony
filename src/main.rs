@@ -119,7 +119,7 @@ https://github.com/Orbitale/Rymfony
         Some("new:symfony") => crate::commands::new_symfony::new_symfony(
             matches.subcommand_matches("new:symfony").unwrap(),
         ),
-        Some("php:list") => crate::commands::php_list::php_list(),
+        Some("php:list") => crate::commands::php_list::php_list(matches.subcommand_matches("php:list").unwrap()),
         _ => {
             // If no subcommand is specified,
             // re-run the program with "--help"
