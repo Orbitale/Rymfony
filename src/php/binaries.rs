@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
+use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
@@ -21,6 +22,54 @@ pub(crate) fn current() -> String {
         if _binary.system() {
             return _binary.preferred_sapi().to_string();
         }
+    }
+
+    "php".to_string()
+}
+
+
+pub(crate) fn get_project_version() -> String {
+    let _binaries = all();
+
+    let project_php_version_file_path = env::current_dir().unwrap().join(".php-version");
+
+    let mut php_version = if project_php_version_file_path.exists() {
+        read_to_string(project_php_version_file_path).unwrap()
+    } else { String::from("") };
+
+    php_version = php_version.trim().to_string();
+
+    if php_version != "" {
+        trace!(".php-version defined {}", php_version);
+    }
+
+    let mut system = String::from("");
+    let mut user_selected = String::from("");
+    let mut user_selected_version = String::from("");
+
+    for (_version, _binary) in _binaries {
+        trace!("Work for {}, current php selected version {}", _version.version(), user_selected_version);
+
+        if php_version != "" && _version.version().starts_with(&php_version) {
+            trace!("Version matching");
+            if user_selected_version.eq("") || user_selected_version.as_str() < _version.version() {
+                user_selected_version = String::from(_version.version());
+                user_selected = _binary.preferred_sapi().to_string();
+                trace!("New PHP version selected {}", user_selected_version);
+            }
+        }
+        if _binary.system() {
+            system = _binary.preferred_sapi().to_string();
+        }
+    }
+
+    if user_selected.ne("") {
+        trace!("User selected version {}", user_selected_version);
+        return user_selected;
+    }
+    if system.ne("") {
+        trace!("System version selected");
+        return system;
     }
 
     "php".to_string()
@@ -85,7 +134,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
         // Canonicalize on Windows leaves the "\\?" prefix on canonicalized paths.
         // Let's not use it, they should be absolute anyway on Windows, so they're usable.
         #[cfg(not(target_family = "windows"))]
-        let binary: PathBuf = binary.canonicalize().unwrap();
+            let binary: PathBuf = binary.canonicalize().unwrap();
 
         binaries_paths.push(binary.to_str().unwrap().parse().unwrap());
     }
@@ -166,7 +215,7 @@ fn get_binary_metadata(binary: &str) -> Result<(PhpVersion, PhpServerSapi), ()> 
 
 fn merge_binaries(
     into: &mut HashMap<PhpVersion, PhpBinary>,
-    from: HashMap<PhpVersion, PhpBinary>
+    from: HashMap<PhpVersion, PhpBinary>,
 ) {
     for (version, mut binary) in from {
         // this needs to be fixed, but for now we assume that the first ever found version is
