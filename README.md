@@ -230,7 +230,7 @@ To do (order of priority, done first):
         - 🟩 Store a list of all PHP binaries in `~/.rymfony/php_versions.json`
         - 🟥 Deserialize the `php-versions.json` config file if it exists when using `binaries::all()` or `binaries::current()` to make the command faster
         - 🟥 Add an option to the `php:list` command such as `--refresh` that will make another lookup and save the `~/.rymfony/php-versions.json` file again 😄
-        - 🟥 Implement a way to retrieve the current PHP version based on a local `.php-version` file
+        - 🟩 Implement a way to retrieve the current PHP version based on a local `.php-version` file
     - 🟥 Allow passing environment variables to PHP via an `-e|--env` option.
     - 🟥 Allow passing a custom option to specify which method the user wants to use to start PHP (like `--use-fpm` or `--use-native`, something like that).
     - 🟥 (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
