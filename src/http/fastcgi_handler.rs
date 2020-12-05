@@ -203,7 +203,7 @@ pub(crate) async fn handle_fastcgi(
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.extend(headers_normalized);
 
-    let response = response_builder
+    let mut response = response_builder
         .status(status_code)
         .body(response_body)
         .unwrap();

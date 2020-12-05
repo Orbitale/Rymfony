@@ -30,6 +30,7 @@ pub(crate) async fn start(
     php_port: u16,
     document_root: String,
     php_entrypoint_file: String,
+    add_server_sign: bool,
 ) {
     let http_port = http_port.clone();
     let php_port = php_port.clone();
@@ -94,7 +95,7 @@ pub(crate) async fn start(
                     if render_static { " (static)" } else { "" }
                 );
 
-                let response =
+                let mut response =
                     if render_static {
                         serve_static(req, Static::new(Path::new(&document_root))).await
                     } else {
@@ -114,6 +115,9 @@ pub(crate) async fn start(
                             .await
                     }
                     ;
+                if add_server_sign {
+                    response.as_mut().unwrap().headers_mut().append("server", "Rymfony".parse().unwrap());
+                }
 
                 response
             }
