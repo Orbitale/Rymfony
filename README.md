@@ -94,7 +94,7 @@ This command allows you to run a web server, in foreground or background, and yo
 
 ```
 $ rymfony serve --help
-rymfony-server:start 
+rymfony-server:start
 Runs an HTTP server
 
 USAGE:
@@ -112,7 +112,6 @@ OPTIONS:
         --document-root <document-root>    Project's document root
         --passthru <passthru>              The PHP script all requests will be passed to
         --port <port>                      The TCP port to listen to [default: 8000]
-
 ```
 
 ### `rymfony stop`
