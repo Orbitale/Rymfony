@@ -95,7 +95,13 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
     for path in binaries_paths.iter() {
-        let (version, sapi) = get_binary_metadata(&path);
+        let binary = get_binary_metadata(&path);
+
+        if binary.is_err() {
+            continue;
+        }
+
+        let (version, sapi) = binary.unwrap();
 
         if binaries.contains_key(&version) {
             let current = &mut binaries.get_mut(&version).unwrap();
@@ -121,12 +127,19 @@ fn glob_from_path(path: &str) -> String {
     }
 }
 
-fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
-    let process = Command::new(binary)
+fn get_binary_metadata(binary: &str) -> Result<(PhpVersion, PhpServerSapi), ()> {
+    let process_result = Command::new(binary)
         .arg("--version")
         .stdout(Stdio::piped())
-        .spawn()
-        .unwrap();
+        .spawn();
+
+    if process_result.is_err() {
+        debug!("Path \"{}\" was detected, but is not a valid PHP binary.", &binary);
+
+        return Err(());
+    }
+
+    let process = process_result.unwrap();
 
     let output = process.wait_with_output().unwrap();
     let stdout = output.stdout;
@@ -145,10 +158,10 @@ fn get_binary_metadata(binary: &str) -> (PhpVersion, PhpServerSapi) {
     let version = &capts[1];
     let sapi = &capts[2];
 
-    (
+    Ok((
         PhpVersion::from_str(version),
         PhpServerSapi::from_str(&sapi),
-    )
+    ))
 }
 
 fn merge_binaries(
