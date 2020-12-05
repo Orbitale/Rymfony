@@ -105,7 +105,7 @@ FLAGS:
     -d, --daemon                  Run the server in the background
     -s, --expose-server-header    Add server header into all response
     -h, --help                    Prints help information
-        --no-tls                  Disable TLS
+        --no-tls                  Disable TLS. Use HTTP only.
     -V, --version                 Prints version information
 
 OPTIONS:
