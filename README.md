@@ -94,21 +94,25 @@ This command allows you to run a web server, in foreground or background, and yo
 
 ```
 $ rymfony serve --help
-rymfony-server:start
+rymfony-server:start 
 Runs an HTTP server
 
 USAGE:
     rymfony server:start [FLAGS] [OPTIONS]
 
 FLAGS:
-    -d, --daemon     Run the server in the background
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+        --allow-http              Do not redirect HTTP request to HTTPS
+    -d, --daemon                  Run the server in the background
+    -s, --expose-server-header    Add server header into all response
+    -h, --help                    Prints help information
+        --no-tls                  Disable TLS
+    -V, --version                 Prints version information
 
 OPTIONS:
         --document-root <document-root>    Project's document root
         --passthru <passthru>              The PHP script all requests will be passed to
         --port <port>                      The TCP port to listen to [default: 8000]
+
 ```
 
 ### `rymfony stop`
