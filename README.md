@@ -101,9 +101,12 @@ USAGE:
     rymfony server:start [FLAGS] [OPTIONS]
 
 FLAGS:
-    -d, --daemon     Run the server in the background
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+        --allow-http              Do not redirect HTTP request to HTTPS
+    -d, --daemon                  Run the server in the background
+    -s, --expose-server-header    Add server header into all response
+    -h, --help                    Prints help information
+        --no-tls                  Disable TLS. Use HTTP only.
+    -V, --version                 Prints version information
 
 OPTIONS:
         --document-root <document-root>    Project's document root
