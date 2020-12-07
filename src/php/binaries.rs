@@ -14,19 +14,6 @@ use crate::php::structs::PhpBinary;
 use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
 
-pub(crate) fn current() -> String {
-    let _binaries = all();
-
-    for (_version, _binary) in _binaries {
-        // TODO: check for a better solution to choose current PHP version
-        if _binary.system() {
-            return _binary.preferred_sapi().to_string();
-        }
-    }
-
-    "php".to_string()
-}
-
 pub(crate) fn get_project_version() -> String {
     let _binaries = all();
 
