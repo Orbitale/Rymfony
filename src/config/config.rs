@@ -12,7 +12,7 @@ struct ConfigError(String);
 
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "There is an error: {}", self.0)
+        write!(f, "An error occured: {}", self.0)
     }
 }
 

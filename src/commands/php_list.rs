@@ -20,8 +20,8 @@ pub(crate) fn php_list(args: &ArgMatches) {
 
     if args.is_present("refresh") {
         match clear_binaries_list() {
-            Ok(_) => info!("Cache cleared"),
-            Err(e) => error!("Error on clear cache : {}", e)
+            Ok(_) => info!("Binary cache successfully cleared!"),
+            Err(e) => error!("Could not clear binaries cache: {}", e)
         }
     }
 
