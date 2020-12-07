@@ -27,7 +27,6 @@ pub(crate) fn current() -> String {
     "php".to_string()
 }
 
-
 pub(crate) fn get_project_version() -> String {
     let _binaries = all();
 
@@ -40,7 +39,7 @@ pub(crate) fn get_project_version() -> String {
     php_version = php_version.trim().to_string();
 
     if php_version != "" {
-        trace!(".php-version defined {}", php_version);
+        debug!("PHP version set to {} from \".php-version\" file.", php_version);
     }
 
     let mut system = String::from("");
@@ -48,14 +47,11 @@ pub(crate) fn get_project_version() -> String {
     let mut user_selected_version = String::from("");
 
     for (_version, _binary) in _binaries {
-        trace!("Work for {}, current php selected version {}", _version.version(), user_selected_version);
 
         if php_version != "" && _version.version().starts_with(&php_version) {
-            trace!("Version matching");
             if user_selected_version.eq("") || user_selected_version.as_str() < _version.version() {
                 user_selected_version = String::from(_version.version());
                 user_selected = _binary.preferred_sapi().to_string();
-                trace!("New PHP version selected {}", user_selected_version);
             }
         }
         if _binary.system() {
@@ -134,7 +130,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
         // Canonicalize on Windows leaves the "\\?" prefix on canonicalized paths.
         // Let's not use it, they should be absolute anyway on Windows, so they're usable.
         #[cfg(not(target_family = "windows"))]
-            let binary: PathBuf = binary.canonicalize().unwrap();
+        let binary: PathBuf = binary.canonicalize().unwrap();
 
         binaries_paths.push(binary.to_str().unwrap().parse().unwrap());
     }
