@@ -4,7 +4,9 @@ use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 use serde::Serializer;
 use serde::Serialize;
-use serde::Deserialize;
+use serde::Deserialize as SerdeDeserialize;
+use serde::de::{Deserialize, Deserializer, Visitor, Error};
+use std::fmt;
 
 #[derive(Debug)]
 pub(crate) enum PhpServerSapi {
@@ -56,7 +58,7 @@ impl Display for PhpServerSapi {
 //
 //
 
-#[derive(Hash, Eq, PartialEq, Debug, Deserialize)]
+#[derive(Hash, Eq, PartialEq, Debug)]
 pub(crate) struct PhpVersion {
     _version: String,
 }
@@ -80,6 +82,12 @@ impl PhpVersion {
         }
     }
 
+    pub(crate) fn new() -> PhpVersion {
+        PhpVersion {
+            _version: "".to_string(),
+        }
+    }
+
     pub(crate) fn from_str(version: &str) -> PhpVersion {
         PhpVersion::from_string(version.to_string())
     }
@@ -96,6 +104,32 @@ impl Serialize for PhpVersion {
     }
 }
 
+impl<'de> Deserialize<'de> for PhpVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+        D: Deserializer<'de> {
+        deserializer.deserialize_str(PhpVersionVisitor)
+    }
+}
+
+struct PhpVersionVisitor;
+
+impl<'de> Visitor<'de> for PhpVersionVisitor {
+
+    type Value = PhpVersion;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a string")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: Error,
+    {
+        Ok(PhpVersion::from_str(value))
+    }
+
+}
+
 //
 //
 //
@@ -106,13 +140,14 @@ impl Serialize for PhpVersion {
 //
 
 
-#[derive(Hash, Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Hash, Eq, PartialEq, Debug, Serialize, SerdeDeserialize)]
 pub(crate) struct PhpBinary {
     cli: String,
     fpm: String,
     cgi: String,
     system: bool,
     #[serde(skip_serializing)]
+    #[serde(default="PhpVersion::new")]
     _version: PhpVersion,
 }
 

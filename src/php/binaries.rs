@@ -12,6 +12,7 @@ use regex::Regex;
 use crate::php::structs::PhpBinary;
 use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
+use crate::config::config::load_binaries_from_config;
 
 pub(crate) fn current() -> String {
     let _binaries = all();
@@ -27,6 +28,14 @@ pub(crate) fn current() -> String {
 }
 
 pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
+    let load_infos = load_binaries_from_config();
+    return match load_infos {
+        Ok(data) => data,
+        Err(_) => get_all(),
+    }
+}
+
+fn get_all() -> HashMap<PhpVersion, PhpBinary> {
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
     binaries_from_env(&mut binaries);

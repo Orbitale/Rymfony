@@ -231,7 +231,7 @@ To do (order of priority, done first):
             - 💡 Please [suggest](https://github.com/Pierstoval/rymfony/issues/new) more places where PHP could be present!
         - 🟩 Flag the current path-based `php` script to check its version and mark it as "System" (just like in Symfony CLI)
         - 🟩 Store a list of all PHP binaries in `~/.rymfony/php_versions.json`
-        - 🟥 Deserialize the `php-versions.json` config file if it exists when using `binaries::all()` or `binaries::current()` to make the command faster
+        - 🟩 Deserialize the `php-versions.json` config file if it exists when using `binaries::all()` or `binaries::current()` to make the command faster
         - 🟥 Add an option to the `php:list` command such as `--refresh` that will make another lookup and save the `~/.rymfony/php-versions.json` file again 😄
         - 🟥 Implement a way to retrieve the current PHP version based on a local `.php-version` file
     - 🟥 Allow passing environment variables to PHP via an `-e|--env` option.
