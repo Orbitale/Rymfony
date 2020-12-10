@@ -414,6 +414,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "failure"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d32e9bd16cc02eae7db7ef620b392808b89f6a5e16bb3497d159c6b92a0f4f86"
+dependencies = [
+ "backtrace",
+]
+
+[[package]]
 name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1474,6 +1483,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "runas"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a620b0994a180cdfa25c0439e6d58c0628272571501880d626ffff58e96a0799"
+dependencies = [
+ "cc",
+ "which 3.1.1",
+]
+
+[[package]]
 name = "rust-argon2"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1526,13 +1545,14 @@ dependencies = [
  "pretty_env_logger",
  "prettytable-rs",
  "regex",
+ "runas",
  "serde",
  "serde_json",
  "tokio 0.2.23",
  "tokio-native-tls",
  "users",
  "warp",
- "which",
+ "which 4.0.2",
  "wsl",
 ]
 
@@ -2223,6 +2243,16 @@ checksum = "ab146130f5f790d45f82aeeb09e55a256573373ec64409fc19a6fb82fb1032ae"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "which"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d011071ae14a2f6671d0b74080ae0cd8ebf3a6f8c9589a2cd45f23126fe29724"
+dependencies = [
+ "failure",
+ "libc",
 ]
 
 [[package]]

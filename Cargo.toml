@@ -32,6 +32,7 @@ tokio-native-tls = "0.2"
 which = "4.0"
 warp = { version = "0.2", features = ["tls"]}
 wsl="0.1"
+runas = "0.2.1"
 
 [target.'cfg(not(target_family = "windows"))'.dependencies]
 users = "0.10"
