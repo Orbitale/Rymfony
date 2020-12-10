@@ -11,7 +11,6 @@ use hyper::HeaderMap;
 use hyper::Response;
 use regex::Captures;
 use regex::Regex;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::convert::Infallible;
 use warp::host::Authority;
