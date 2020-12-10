@@ -252,7 +252,7 @@ To do (order of priority, done first):
     - 🟥 Allow passing a custom option to specify which method the user wants to use to start PHP (like `--use-fpm` or `--use-native`, something like that).
     - 🟥 (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
     - PHP Server
-        - 🟥 Don't rewrite the `fpm-conf.ini` configuration file each time a server is launched.
+        - 🟩 Don't rewrite the `fpm-conf.ini` configuration file each time a server is launched.
         - 🟥 Find a way to differenciate servers configurations, in case multiple servers are started
 - Going way further
     - 🟥 (utopia) Detect whether the project uses Docker Compose

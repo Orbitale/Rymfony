@@ -15,6 +15,8 @@ use std::process::Child;
 
 #[cfg(not(target_family = "windows"))]
 use wsl::is_wsl;
+use sha2::Digest;
+use std::fs::create_dir;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
@@ -98,11 +100,22 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
 
     let home = env::var("HOME").unwrap_or(String::from(""));
 
-    let fpm_config_file_path;
-
+    let mut fpm_config_file_path;
+    let cwd = env::current_dir().unwrap();
     if home != "" {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(&cwd.to_str().unwrap().as_bytes());
+        let hash = hasher.finalize();
+
         fpm_config_file_path = PathBuf::from(home.as_str())
             .join(".rymfony")
+            .join(format!("{:x}", hash));
+
+        if !fpm_config_file_path.is_dir() {
+            create_dir(&fpm_config_file_path).expect(format!("Unable to make directory for project {}", fpm_config_file_path.to_str().unwrap()).as_str());
+        }
+
+        fpm_config_file_path = fpm_config_file_path
             .join("fpm-conf.ini");
     } else {
         panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.");
@@ -114,7 +127,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
              .expect("Could not write to php-fpm config file.");
     }
 
-    let cwd = env::current_dir().unwrap();
+
     let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
 
     let mut command = Command::new(php_bin);
