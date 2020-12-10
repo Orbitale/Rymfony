@@ -30,7 +30,7 @@ impl PhpServer {
 }
 
 pub(crate) fn start() -> PhpServer {
-    let php_bin = binaries::current();
+    let php_bin = binaries::get_project_version();
 
     let (php_server, mut process) =
         if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {

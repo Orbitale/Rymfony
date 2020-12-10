@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
+use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
@@ -14,14 +15,45 @@ use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
 use crate::config::config::load_binaries_from_config;
 
-pub(crate) fn current() -> String {
+pub(crate) fn get_project_version() -> String {
     let _binaries = all();
 
+    let project_php_version_file_path = env::current_dir().unwrap().join(".php-version");
+
+    let mut php_version = if project_php_version_file_path.exists() {
+        read_to_string(project_php_version_file_path).unwrap()
+    } else { String::from("") };
+
+    php_version = php_version.trim().to_string();
+
+    if php_version != "" {
+        debug!("PHP version set to {} from \".php-version\" file.", php_version);
+    }
+
+    let mut system = String::from("");
+    let mut user_selected = String::from("");
+    let mut user_selected_version = String::from("");
+
     for (_version, _binary) in _binaries {
-        // TODO: check for a better solution to choose current PHP version
-        if _binary.system() {
-            return _binary.preferred_sapi().to_string();
+
+        if php_version != "" && _version.version().starts_with(&php_version) {
+            if user_selected_version.eq("") || user_selected_version.as_str() < _version.version() {
+                user_selected_version = String::from(_version.version());
+                user_selected = _binary.preferred_sapi().to_string();
+            }
         }
+        if _binary.system() {
+            system = _binary.preferred_sapi().to_string();
+        }
+    }
+
+    if user_selected.ne("") {
+        trace!("User selected version {}", user_selected_version);
+        return user_selected;
+    }
+    if system.ne("") {
+        trace!("System version selected");
+        return system;
     }
 
     "php".to_string()
@@ -175,7 +207,7 @@ fn get_binary_metadata(binary: &str) -> Result<(PhpVersion, PhpServerSapi), ()> 
 
 fn merge_binaries(
     into: &mut HashMap<PhpVersion, PhpBinary>,
-    from: HashMap<PhpVersion, PhpBinary>
+    from: HashMap<PhpVersion, PhpBinary>,
 ) {
     for (version, mut binary) in from {
         // this needs to be fixed, but for now we assume that the first ever found version is
