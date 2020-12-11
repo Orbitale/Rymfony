@@ -169,6 +169,7 @@ Windows 10:
 ```
 
 macOS Catalina (using Homebrew): 
+
 ```
 $ rymfony php:list
 ┌─────────┬───────────────────────────────────────────────┬──────────────────────────────────────────┬───────────────────────────────────────────────────┬────────┐
@@ -181,12 +182,18 @@ $ rymfony php:list
 └─────────┴───────────────────────────────────────────────┴──────────────────────────────────────────┴───────────────────────────────────────────────────┴────────┘
 ```
 
-To search PHP in a custom folder, define the environment variable `RYMFONY_PATH`:
+*ℹ Note:* To search for PHP executables in a custom folder, you can define the `RYMFONY_PATH` environment variable.
 
-On *nix system use the colon `:` path separator. Ex: `export RYMFONY_PATH=/home/php/php-dev:/var/local/php-dev` 
+On *nix systems, you must use the colon `:` path separator.<br>
+On Windows systeme use the semi-colon `;` path separator.
 
-On Windows systeme use the semi-colon `;` path separator.  Ex: `set RYMFONY_PATH=c:\php7.4;d:\php8.0;d:\php7.3`
+```
+# *nix
+$ export RYMFONY_PATH=/home/php/php-dev:/var/local/php-dev
 
+# Windows
+> set RYMFONY_PATH=c:\php7.4;d:\php8.0;d:\php7.3
+```
 
 ## Roadmap
 

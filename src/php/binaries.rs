@@ -8,6 +8,8 @@ use std::process::Stdio;
 use std::str;
 
 use glob::glob;
+use glob::GlobError;
+use is_executable::is_executable;
 use regex::Regex;
 
 use crate::php::structs::PhpBinary;
@@ -99,6 +101,7 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
         .collect::<Vec<&str>>();
 
     for dir in path_dirs {
+        trace!("Checking path for binaries: {}", &dir);
         merge_binaries(binaries, binaries_from_dir(PathBuf::from(dir)));
     }
 }
@@ -120,31 +123,54 @@ fn binaries_from_rymfony_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
 }
 
 fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
+    // This matches executables like "php", "php74", "php7.4", "php-fpm", "php7.4-cgi" or "php-fpm74"
     let binaries_regex = if cfg!(target_family = "windows") {
         // On Windows, we mostly have "php" and "php-cgi"
-        Regex::new(r"php(\d+(\.\d+))?(-cgi)?\.exe$").unwrap()
+        Regex::new(r"php(\d+(\.\d+)*)?(-cgi)?\.(exe|bat|cmd)$").unwrap()
     } else {
         // This will probably need to be updated for other platforms.
-        // This matches "php", "php7.4", "php-fpm", "php7.4-fpm" and "php-fpm7.4"
-        Regex::new(r"php(\d+(\.\d+))?([_-]?fpm|[_-]?cgi)?(\d+(\.\d+))?$").unwrap()
+        Regex::new(r"php(\d+(\.\d+)*)?([_-]?fpm|[_-]?cgi)?(\d+(\.\d+)*)?$").unwrap()
     };
 
     let mut binaries_paths: Vec<String> = Vec::new();
 
-    let path_glob = glob_from_path(path.display().to_string().as_str());
+    let mut path = path.display().to_string();
+    if path.ends_with('/') { path.pop(); }
+    if path.ends_with('\\') { path.pop(); }
 
-    for entry in glob(&path_glob).expect("Failed to read glob pattern") {
+    let entries: Vec<Result<PathBuf, GlobError>> = if cfg!(target_family = "windows") {
+        let glob_path_exe = format!("{}/php*.exe", path);
+        let glob_path_cmd = format!("{}/php*.cmd", path);
+        let glob_path_bat = format!("{}/php*.bat", path);
+        glob(&glob_path_exe.as_str()).unwrap()
+            .chain(glob(&glob_path_cmd.as_str()).unwrap())
+            .chain(glob(&glob_path_bat.as_str()).unwrap())
+            .collect()
+    } else {
+        let glob_path = format!("{}/php*", path);
+        glob(&glob_path.as_str()).unwrap().collect()
+    };
+
+    for entry in entries {
         let binary: PathBuf = entry.unwrap();
         if binary.is_dir() {
             // This means that we have a "php"-like dir.
             // For recursive search, insert a "*" glob character in the "path" variable beforehand.
-            continue;
-        }
-        if !binaries_regex.is_match(binary.to_str().unwrap()) {
+            trace!("Found path {}, but it is a directory.", &binary.to_str().unwrap());
             continue;
         }
 
-        // Canonicalize on Windows leaves the "\\?" prefix on canonicalized paths.
+        if !binaries_regex.is_match(binary.to_str().unwrap()) {
+            trace!("Path {} does not match.", &binary.to_str().unwrap());
+            continue;
+        }
+
+        if cfg!(not(target_family = "windows")) && !is_executable(&binary) {
+            warn!("Path \"{}\" matches, but it is not executable.", &binary.to_str().unwrap());
+            continue;
+        }
+
+        // Canonicalize on Windows leaves the "\\?" prefix on canonicalized paths, which causes issues.
         // Let's not use it, they should be absolute anyway on Windows, so they're usable.
         #[cfg(not(target_family = "windows"))]
         let binary: PathBuf = binary.canonicalize().unwrap();
@@ -179,14 +205,6 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
     }
 
     binaries
-}
-
-fn glob_from_path(path: &str) -> String {
-    if cfg!(target_family = "windows") {
-        format!("{}/php*.exe", path)
-    } else {
-        format!("{}/php*", path)
-    }
 }
 
 fn get_binary_metadata(binary: &str) -> Result<(PhpVersion, PhpServerSapi), ()> {
@@ -231,8 +249,9 @@ fn merge_binaries(
     from: HashMap<PhpVersion, PhpBinary>,
 ) {
     for (version, mut binary) in from {
+        // FIXME
         // this needs to be fixed, but for now we assume that the first ever found version is
-        // the one that is first in PATH and therefor the "system" binary
+        // the one that is first in PATH and therefore the "system" binary
         &binary.set_system(if into.len() == 0 { true } else { false });
 
         if into.contains_key(&version) {
