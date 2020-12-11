@@ -181,6 +181,13 @@ $ rymfony php:list
 └─────────┴───────────────────────────────────────────────┴──────────────────────────────────────────┴───────────────────────────────────────────────────┴────────┘
 ```
 
+To search PHP in a custom folder, define the environment variable `RYMFONY_PATH`:
+
+On *nix system use the colon `:` path separator. Ex: `export RYMFONY_PATH=/home/php/php-dev:/var/local/php-dev` 
+
+On Windows systeme use the semi-colon `;` path separator.  Ex: `set RYMFONY_PATH=c:\php7.4;d:\php8.0;d:\php7.3`
+
+
 ## Roadmap
 
 **If you want to contribute to any of these points, feel free to do it!**

@@ -71,6 +71,7 @@ fn get_all() -> HashMap<PhpVersion, PhpBinary> {
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
     binaries_from_env(&mut binaries);
+    binaries_from_rymfony_env(&mut binaries);
 
     merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
     merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
@@ -78,11 +79,31 @@ fn get_all() -> HashMap<PhpVersion, PhpBinary> {
     merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")));
     merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/php*/bin")));
 
+    if cfg!(target_family = "windows") {
+        merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("c:\\php")));
+    }
+
     binaries
 }
 
 fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
     let path_string = env::var_os("PATH").unwrap();
+    let path_dirs = path_string
+        .to_str()
+        .unwrap()
+        .split(if cfg!(target_family = "windows") {
+            ";"
+        } else {
+            ":"
+        })
+        .collect::<Vec<&str>>();
+
+    for dir in path_dirs {
+        merge_binaries(binaries, binaries_from_dir(PathBuf::from(dir)));
+    }
+}
+fn binaries_from_rymfony_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
+    let path_string = env::var_os("RYMFONY_PATH").unwrap_or(std::ffi::OsString::from(""));
     let path_dirs = path_string
         .to_str()
         .unwrap()
