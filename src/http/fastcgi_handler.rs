@@ -14,10 +14,12 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::convert::Infallible;
+use warp::host::Authority;
 
 pub(crate) async fn handle_fastcgi(
     document_root: &str,
     php_entrypoint_file: &str,
+    hostname: Authority,
     remote_addr: SocketAddr,
     req: Request<Body>,
     http_port: &u16,
@@ -28,13 +30,14 @@ pub(crate) async fn handle_fastcgi(
     let php_entrypoint_file = String::from(php_entrypoint_file);
 
     let remote_addr = remote_addr.ip().to_string();
-    let uri = req.uri();
+    let uri = req.uri().clone();
     let request_uri = uri.to_string();
     let query_string = uri.query().unwrap_or("").to_string();
     let request_uri_without_query = request_uri.replace(format!("?{}", query_string).as_str(), "");
     let request_headers = req.headers().clone();
     let method = req.method().to_string();
     let (parts, request_body) = req.into_parts();
+    let hostname = hostname.as_str();
 
     let http_version = crate::http::version::as_str(parts.version);
 
@@ -78,11 +81,15 @@ pub(crate) async fn handle_fastcgi(
     fcgi_params.insert("REQUEST_URI", request_uri.as_str());
     fcgi_params.insert("SCRIPT_FILENAME", script_filename.as_str());
     fcgi_params.insert("SCRIPT_NAME", script_name.as_str());
-    // fcgi_params.insert("SERVER_ADDR", "127.0.0.1"); // Doesn't seem to be mandatory...
-    fcgi_params.insert("SERVER_NAME", "127.0.0.1");
+    fcgi_params.insert("SERVER_NAME", &hostname);
+    fcgi_params.insert("HTTP_HOST", &hostname);
     fcgi_params.insert("SERVER_PORT", http_port_str.as_str());
     fcgi_params.insert("SERVER_PROTOCOL", http_version);
     fcgi_params.insert("SERVER_SOFTWARE", "Rymfony v0.1.0");
+
+    if use_tls {
+        fcgi_params.insert("HTTPS", "On");
+    }
 
     //
     // Send all Request HTTP headers to FastCGI,
@@ -96,9 +103,6 @@ pub(crate) async fn handle_fastcgi(
         fcgi_headers_normalized.push((header_name, value.to_str().unwrap()));
     }
 
-    if use_tls {
-        fcgi_headers_normalized.push(("HTTPS".to_string(), "On"));
-    }
 
     fcgi_params.extend(fcgi_headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
 
@@ -203,7 +207,7 @@ pub(crate) async fn handle_fastcgi(
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.extend(headers_normalized);
 
-    let mut response = response_builder
+    let response = response_builder
         .status(status_code)
         .body(response_body)
         .unwrap();

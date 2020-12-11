@@ -92,7 +92,10 @@ fn serve_foreground(args: &ArgMatches) {
 
     let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
 
-    let document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
+    let mut document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
+    if document_root.ends_with('/') { document_root.pop(); }
+    if document_root.ends_with('\\') { document_root.pop(); }
+    document_root.push_str(if cfg!(target_family = "windows") { "\\" } else { "/" });
     let script_filename = args.value_of("passthru").unwrap_or("index.php").to_string();
 
     info!("Configured document root: {}", &document_root);

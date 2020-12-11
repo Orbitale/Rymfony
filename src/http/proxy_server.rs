@@ -12,6 +12,7 @@ use hyper_staticfile::Static;
 use warp::Filter;
 use warp::method;
 use warp::http::Response;
+use warp::host::Authority;
 use http::Method;
 use http::HeaderMap;
 use warp::filters::path::FullPath;
@@ -39,6 +40,7 @@ pub(crate) async fn start(
 
     let routes = warp::any()
         .and(warp::addr::remote())
+        .and(warp::filters::host::optional())
         .and(method())
         .and(warp::path::full())
         .and(warp::query::<HashMap<String, String>>())
@@ -46,6 +48,7 @@ pub(crate) async fn start(
         .and(warp::body::bytes())
         .and_then(move |
             remote_addr: Option<SocketAddr>,
+            host: Option<Authority>,
             method: Method,
             request_path: FullPath,
             query: HashMap<String, String>,
@@ -106,6 +109,7 @@ pub(crate) async fn start(
                         handle_fastcgi(
                             &document_root,
                             &php_entrypoint_file,
+                            host.unwrap(),
                             remote_addr,
                             req,
                             &http_port,
