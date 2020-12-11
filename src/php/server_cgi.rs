@@ -3,16 +3,15 @@ use crate::php::structs::PhpServerSapi;
 use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
-use dirs::home_dir;
 use std::fs::File;
+use crate::utils::project_folder::get_rymfony_project_directory;
 
 const CGI_DEFAULT_PORT: u16 = 65535;
 
 pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let mut command = Command::new(php_bin);
 
-    let error_log_file = home_dir().unwrap()
-        .join(".rymfony")
+    let error_log_file = get_rymfony_project_directory().unwrap()
         .join("php-cgi.log")
     ;
 

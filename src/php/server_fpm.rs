@@ -1,5 +1,5 @@
 #[cfg(not(target_family = "windows"))]
-use std::{env, fs::File, io::prelude::*, process::Command, path::PathBuf};
+use std::{fs::File, io::prelude::*, process::Command};
 
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
@@ -15,8 +15,8 @@ use std::process::Child;
 
 #[cfg(not(target_family = "windows"))]
 use wsl::is_wsl;
-use sha2::Digest;
-use std::fs::create_dir;
+
+use crate::utils::project_folder::get_rymfony_project_directory;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
@@ -98,28 +98,11 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
         .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
-    let home = env::var("HOME").unwrap_or(String::from(""));
-
-    let mut fpm_config_file_path;
-    let cwd = env::current_dir().unwrap();
-    if home != "" {
-        let mut hasher = sha2::Sha256::new();
-        hasher.update(&cwd.to_str().unwrap().as_bytes());
-        let hash = hasher.finalize();
-
-        fpm_config_file_path = PathBuf::from(home.as_str())
-            .join(".rymfony")
-            .join(format!("{:x}", hash));
-
-        if !fpm_config_file_path.is_dir() {
-            create_dir(&fpm_config_file_path).expect(format!("Unable to make directory for project {}", fpm_config_file_path.to_str().unwrap()).as_str());
-        }
-
-        fpm_config_file_path = fpm_config_file_path
-            .join("fpm-conf.ini");
-    } else {
-        panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.");
-    }
+    let rymfony_project_path =  match get_rymfony_project_directory() {
+        Ok(e) => e,
+        _ => panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.")
+    };
+    let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
 
     if !fpm_config_file_path.exists() {
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
@@ -128,7 +111,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     }
 
 
-    let pid_filename = format!("{}/.fpm.pid", cwd.to_str().unwrap());
+    let pid_filename = format!("{}/.fpm.pid", rymfony_project_path.to_str().unwrap());
 
     let mut command = Command::new(php_bin);
     command

@@ -16,6 +16,7 @@ use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
 use crate::utils::network::find_available_port;
 use crate::utils::network::parse_default_port;
+use crate::utils::project_folder::get_rymfony_project_directory;
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -145,7 +146,9 @@ fn serve_background(args: &ArgMatches) {
         .expect("Failed to start server as a background process");
 
     let pid = subprocess.id();
-    let mut file = File::create(".pid").expect("Cannot create PID file");
+    let project_folder = get_rymfony_project_directory().expect("Unable to get Rymfony folder for this project");
+
+    let mut file = File::create(project_folder.join(".pid")).expect("Cannot create PID file");
     file.write_all(pid.to_string().as_ref())
         .expect("Cannot write to PID file");
 

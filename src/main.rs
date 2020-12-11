@@ -24,6 +24,7 @@ mod utils {
     pub(crate) mod current_process_name;
     pub(crate) mod network;
     pub(crate) mod stop_process;
+    pub(crate) mod project_folder;
 }
 
 mod php {
