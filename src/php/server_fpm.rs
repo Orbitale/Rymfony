@@ -17,6 +17,8 @@ use std::process::Child;
 use wsl::is_wsl;
 
 use crate::utils::project_folder::get_rymfony_project_directory;
+use std::fs::read_to_string;
+use regex::Regex;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
@@ -86,7 +88,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let gid = get_current_gid();
     let gid_str = gid.to_string();
 
-    let port = find_available_port(FPM_DEFAULT_PORT);
+    let mut port = find_available_port(FPM_DEFAULT_PORT);
 
     // TODO systemd support should be detected dynamically on Linux
     let systemd_support = !cfg!(target_os = "macos") && !is_wsl();
@@ -108,6 +110,22 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
         fpm_config_file.write_all(config.as_bytes())
              .expect("Could not write to php-fpm config file.");
+    } else {
+        // Read the file and search the port
+        let content = read_to_string(&fpm_config_file_path).unwrap();
+        let re = Regex::new(r"listen[ ]?=[ ]?(?:(?:127\.0\.0\.1|localhost):)?(\d{1,5})").unwrap();
+        let caps = re.captures(content.as_str()).unwrap();
+        let port_txt = caps.get(1).map_or("0", |m| m.as_str());
+        let port_num :u16 = port_txt.parse().unwrap();
+        //Check if the port is available
+        if port_num == 0 {
+            panic!("Unable to read the port from existing configuration. Retry with \"--rewrite-config\" flag");
+        }
+        let port_checked = find_available_port(port_num);
+        if port_num != port_checked {
+            panic!("The port {} is already used. Retry with \"--rewrite-config\" flag", port_num)
+        }
+        port = port_checked;
     }
 
 
