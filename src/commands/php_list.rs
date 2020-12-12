@@ -7,7 +7,9 @@ use crate::php;
 use crate::config::config::{save_binaries_to_config, clear_binaries_list};
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("php:list").about("List all available PHP executables")
+    SubCommand::with_name("php:list").about("List all available PHP executables.
+
+If you have PHP installed on custom folder, export the path into RYMFONY_PATH envonment variable before run \"rymfony php:list --refresh\"")
         .arg(
             Arg::with_name("refresh")
                 .short("r")
@@ -26,6 +28,11 @@ pub(crate) fn php_list(args: &ArgMatches) {
     }
 
     let binaries = php::binaries::all();
+
+    if binaries.len() == 0 {
+        error!("No PHP installation found. To provide your specific PHP installation path, export the path into RYMFONY_PATH envonment variable before run \"rymfony php:list --refresh\"");
+        return;
+    }
 
     save_binaries_to_config(&binaries);
 
