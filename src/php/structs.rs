@@ -1,12 +1,13 @@
-use regex::Regex;
+use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
-use serde::Serializer;
-use serde::Serialize;
+
+use regex::Regex;
+use serde::de::{Deserialize, Deserializer, Error, Visitor};
 use serde::Deserialize as SerdeDeserialize;
-use serde::de::{Deserialize, Deserializer, Visitor, Error};
-use std::fmt;
+use serde::Serialize;
+use serde::Serializer;
 
 #[derive(Debug)]
 pub(crate) enum PhpServerSapi {
@@ -95,7 +96,7 @@ impl PhpVersion {
     pub(crate) fn version(&self) -> &str {
         self._version.as_str()
     }
-    }
+}
 
 impl Serialize for PhpVersion {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
@@ -114,7 +115,6 @@ impl<'de> Deserialize<'de> for PhpVersion {
 struct PhpVersionVisitor;
 
 impl<'de> Visitor<'de> for PhpVersionVisitor {
-
     type Value = PhpVersion;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -127,7 +127,6 @@ impl<'de> Visitor<'de> for PhpVersionVisitor {
     {
         Ok(PhpVersion::from_str(value))
     }
-
 }
 
 //
@@ -147,7 +146,7 @@ pub(crate) struct PhpBinary {
     cgi: String,
     system: bool,
     #[serde(skip_serializing)]
-    #[serde(default="PhpVersion::new")]
+    #[serde(default = "PhpVersion::new")]
     _version: PhpVersion,
 }
 
@@ -226,7 +225,7 @@ impl PhpBinary {
             }
             PhpServerSapi::Unknown => {
                 panic!("Unknown sapi \"{}\" at path \"{}\"", &sapi, &path);
-            },
+            }
         }
     }
 
@@ -238,4 +237,55 @@ impl PhpBinary {
             PhpServerSapi::Unknown => String::from(""),
         }
     }
+}
+
+
+//
+//
+//
+//
+//
+//
+//
+//
+
+
+#[derive(Hash, Eq, PartialEq, Debug, Serialize, SerdeDeserialize)]
+pub(crate) struct ProcessInfo {
+    pid: i32,
+    port: u16,
+    scheme: String,
+    name: String,
+    command: String,
+    args: Vec<String>,
+}
+
+impl Display for ProcessInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "pid: {}, port: {}, scheme: {}, name: {}, command: {}, args: {}", self.pid, self.port, self.scheme, self.name, self.command, self.args.join(" "))
+    }
+}
+
+impl ProcessInfo {
+    pub(crate) fn new(pid: i32, port: u16, scheme: String, name: String, command: String, args: Vec<String>) -> ProcessInfo {
+        ProcessInfo {
+            pid,
+            port,
+            scheme: scheme.clone(),
+            name: name.clone(),
+            command: command.clone(),
+            args: args.clone(),
+        }
+    }
+    pub(crate) fn pid(&self) -> i32 {
+        self.pid
+    }
+    pub(crate) fn port(&self) -> u16 {
+        self.port
+    }
+
+    pub(crate) fn scheme(&self) ->String{
+        self.scheme.clone()
+    }
+
 }

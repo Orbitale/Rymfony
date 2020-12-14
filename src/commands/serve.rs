@@ -1,5 +1,5 @@
 use std::env;
-use std::fs::File;
+use std::fs::{File, read_to_string};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
@@ -9,10 +9,11 @@ use clap::Arg;
 use clap::ArgMatches;
 use clap::SubCommand;
 use log::info;
+use sysinfo::{get_current_pid, SystemExt, ProcessExt};
 
 use crate::http::proxy_server;
 use crate::php::php_server;
-use crate::php::structs::PhpServerSapi;
+use crate::php::structs::{PhpServerSapi, ProcessInfo};
 use crate::utils::current_process_name;
 use crate::utils::network::find_available_port;
 use crate::utils::network::parse_default_port;
@@ -77,6 +78,31 @@ pub(crate) fn serve(args: &ArgMatches) {
 }
 
 fn serve_foreground(args: &ArgMatches) {
+    let path = get_rymfony_project_directory().unwrap();
+    let rymfony_pid_file = path.join("rymfony.pid");
+    debug!("Search PID FILE {}", rymfony_pid_file.to_str().unwrap());
+    if rymfony_pid_file.exists() {
+        //Check if process is rymfony and exit if true.
+        debug!("Information file {} found", rymfony_pid_file.to_str().unwrap());
+
+        let infos: ProcessInfo = serde_json::from_str(read_to_string(&rymfony_pid_file).unwrap().as_str()).expect("Unable to unserialize data");
+
+        let mut system = sysinfo::System::new_all();
+        system.refresh_all();
+        let mut found = false;
+        for (pid, proc_) in system.get_processes() {
+            if pid == &infos.pid() && proc_.exe().to_str().unwrap().ends_with("rymfony") {
+                found = true;
+            }
+        }
+
+        if found {
+            println!("The server is already running and listen on {}://127.0.0.1:{}", infos.scheme(), infos.port());
+            return;
+        }
+
+    }
+
     info!("Starting PHP...");
 
     let php_server = php_server::start();
@@ -92,6 +118,20 @@ fn serve_foreground(args: &ArgMatches) {
     info!("Starting HTTP server...");
 
     let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
+    let pid = get_current_pid().unwrap();
+    let args_str: Vec<String> = Vec::new();
+    let scheme = if args.is_present("no-tls") {
+        "http".to_string()
+    } else { "https".to_string() };
+    let pid_info = ProcessInfo::new(pid, port, scheme, "Web Server".to_string(), current_process_name::get(), args_str);
+
+    //Serialize
+    let serialized = serde_json::to_string_pretty(&pid_info).unwrap();
+    let mut versions_file = File::create(&rymfony_pid_file).unwrap();
+
+    versions_file.write_all(serialized.as_bytes())
+        .expect("Could not write Process informations to JSON file.");
+
 
     let mut document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
     if document_root.ends_with('/') { document_root.pop(); }
@@ -119,7 +159,7 @@ fn serve_background(args: &ArgMatches) {
     let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
 
     let mut cmd = Command::new(current_process_name::get().as_str());
-        cmd.arg("serve")
+    cmd.arg("serve")
         .arg("--port")
         .arg(port.to_string());
 

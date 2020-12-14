@@ -129,7 +129,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     }
 
 
-    let pid_filename = format!("{}/.fpm.pid", rymfony_project_path.to_str().unwrap());
+    let pid_filename = format!("{}/fpm.pid", rymfony_project_path.to_str().unwrap());
 
     let mut command = Command::new(php_bin);
     command
