@@ -1,24 +1,22 @@
 #[cfg(not(target_family = "windows"))]
 use std::{fs::File, io::prelude::*, process::Command};
-
-#[cfg(not(target_family = "windows"))]
-use users::{get_current_gid, get_current_uid};
-
-use crate::php::php_server::PhpServer;
-#[cfg(not(target_family = "windows"))]
-use crate::{php::structs::PhpServerSapi};
-#[cfg(not(target_family = "windows"))]
-use crate::utils::network::find_available_port;
+use std::fs::read_to_string;
+use std::process::Child;
 #[cfg(not(target_family = "windows"))]
 use std::process::Stdio;
-use std::process::Child;
 
+use regex::Regex;
+#[cfg(not(target_family = "windows"))]
+use users::{get_current_gid, get_current_uid};
 #[cfg(not(target_family = "windows"))]
 use wsl::is_wsl;
 
-use crate::utils::project_folder::get_rymfony_project_directory;
-use std::fs::read_to_string;
-use regex::Regex;
+#[cfg(not(target_family = "windows"))]
+use crate::{php::structs::PhpServerSapi};
+use crate::php::php_server::PhpServer;
+#[cfg(not(target_family = "windows"))]
+use crate::utils::network::find_available_port;
+use crate::utils::project_folder::{get_fpm_sock, get_rymfony_project_directory};
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
@@ -48,8 +46,11 @@ daemonize = no
 ;user = {{ uid }}
 ;group = {{ gid }}
 
-listen = 127.0.0.1:{{ port }}
-listen.allowed_clients = 127.0.0.1
+;listen = 127.0.0.1:{{ port }}
+;listen.allowed_clients = 127.0.0.1
+; Don't touch this line unless you know what you are doing
+listen = {{ socket }}
+
 
 pm = dynamic
 pm.max_children = 5
@@ -82,55 +83,43 @@ pub(crate) fn start(_php_bin: String) -> (PhpServer, Child) {
 pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     info!("Using php-fpm");
 
-    let uid = get_current_uid();
-    let uid_str = uid.to_string();
-
-    let gid = get_current_gid();
-    let gid_str = gid.to_string();
-
-    let mut port = find_available_port(FPM_DEFAULT_PORT);
-
-    // TODO systemd support should be detected dynamically on Linux
-    let systemd_support = !cfg!(target_os = "macos") && !is_wsl();
-
-    let config = FPM_DEFAULT_CONFIG
-        .replace("{{ uid }}", uid_str.as_str())
-        .replace("{{ gid }}", gid_str.as_str())
-        .replace("{{ port }}", &port.to_string())
-        .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
-        .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
-
-    let rymfony_project_path =  match get_rymfony_project_directory() {
+    let rymfony_project_path = match get_rymfony_project_directory() {
         Ok(e) => e,
         _ => panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.")
     };
+
     let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
 
     if !fpm_config_file_path.exists() {
+        let uid = get_current_uid();
+        let uid_str = uid.to_string();
+
+        let gid = get_current_gid();
+        let gid_str = gid.to_string();
+
+        // let mut port = find_available_port(FPM_DEFAULT_PORT);
+
+        // TODO systemd support should be detected dynamically on Linux
+        let systemd_support = !cfg!(target_os = "macos") && !is_wsl();
+
+        let sock_path = get_fpm_sock().unwrap();
+
+
+        let config = FPM_DEFAULT_CONFIG
+            .replace("{{ uid }}", uid_str.as_str())
+            .replace("{{ gid }}", gid_str.as_str())
+            .replace("{{ socket }}", sock_path.to_str().unwrap())
+            // .replace("{{ port }}", &port.to_string())
+            .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
+            .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
+
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
         fpm_config_file.write_all(config.as_bytes())
-             .expect("Could not write to php-fpm config file.");
-    } else {
-        // Read the file and search the port
-        let content = read_to_string(&fpm_config_file_path).unwrap();
-        let re = Regex::new(r"listen[ ]?=[ ]?(?:(?:127\.0\.0\.1|localhost):)?(\d{1,5})").unwrap();
-        let caps = re.captures(content.as_str()).unwrap();
-        let port_txt = caps.get(1).map_or("0", |m| m.as_str());
-        let port_num :u16 = port_txt.parse().unwrap();
-        //Check if the port is available
-        if port_num == 0 {
-            panic!("Unable to read the port from existing configuration. Retry with \"--rewrite-config\" flag");
-        }
-        let port_checked = find_available_port(port_num);
-        if port_num != port_checked {
-            panic!("The port {} is already used. Retry with \"--rewrite-config\" flag", port_num)
-        }
-        port = port_checked;
+            .expect("Could not write to php-fpm config file.");
     }
 
-
     let pid_filename = format!("{}/fpm.pid", rymfony_project_path.to_str().unwrap());
-
+    let port = 0;
     let mut command = Command::new(php_bin);
     command
         .stdout(Stdio::inherit())

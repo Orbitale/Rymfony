@@ -147,6 +147,7 @@ fn serve_foreground(args: &ArgMatches) {
         !args.is_present("allow-http"),
         port,
         php_server.port(),
+        php_server.sapi(),
         document_root,
         script_filename,
         args.is_present("expose-server-header"),

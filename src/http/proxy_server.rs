@@ -22,6 +22,7 @@ use hyper::body::Bytes;
 use std::convert::Infallible;
 
 use crate::config::certificates::get_cert_path;
+use crate::php::structs::PhpServerSapi;
 
 #[tokio::main]
 pub(crate) async fn start(
@@ -29,6 +30,7 @@ pub(crate) async fn start(
     forward_http_to_https: bool,
     http_port: u16,
     php_port: u16,
+    sapi: &PhpServerSapi,
     document_root: String,
     php_entrypoint_file: String,
     add_server_sign: bool,
@@ -114,6 +116,7 @@ pub(crate) async fn start(
                             req,
                             &http_port,
                             &php_port,
+                            sapi,
                             use_tls
                         )
                             .await

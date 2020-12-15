@@ -1,20 +1,29 @@
+use std::collections::HashMap;
+use std::convert::Infallible;
+use std::error::Error;
+use std::io;
 use std::net::SocketAddr;
 use std::net::TcpStream;
+#[cfg(not(target_family = "windows"))]
+use std::os::unix::net::{UnixListener, UnixStream};
+use std::path::PathBuf;
 
 use fastcgi_client::Client;
 use fastcgi_client::Params;
 use http::Request;
+use hyper::Body;
 use hyper::header::HeaderName;
 use hyper::header::HeaderValue;
-use hyper::Body;
 use hyper::HeaderMap;
 use hyper::Response;
 use regex::Captures;
 use regex::Regex;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::convert::Infallible;
 use warp::host::Authority;
+
+use crate::php::structs::PhpServerSapi;
+use crate::utils::project_folder::get_fpm_sock;
+use tokio::io::BufStream;
+use std::io::{Read, Write};
 
 pub(crate) async fn handle_fastcgi(
     document_root: &str,
@@ -24,6 +33,7 @@ pub(crate) async fn handle_fastcgi(
     req: Request<Body>,
     http_port: &u16,
     php_port: &u16,
+    sapi: &PhpServerSapi,
     use_tls: bool,
 ) -> Result<Response<Body>, Infallible> {
     let document_root = String::from(document_root);
@@ -40,15 +50,60 @@ pub(crate) async fn handle_fastcgi(
     let hostname = hostname.as_str();
 
     let http_version = crate::http::version::as_str(parts.version);
+    //
+    // let socket = get_fpm_sock().unwrap();
+    // let s2 = UnixStream::connect(socket.to_str().unwrap());
+    // let s1 = TcpStream::connect(("127.0.0.1", *php_port));
+    // {
+    //     Ok(t) => t,
+    //     Err(e) => {
+    //         return Ok(error_as_response(e, 503));
+    //     }
+    // };
+    //
+    // let stream = match sapi {
+    //     PhpServerSapi::FPM => {
+    //         let socket = get_fpm_sock().unwrap();
+    //         match UnixStream::connect(socket.to_str().unwrap()) {
+    //             Ok(t) => t,
+    //             Err(e) => {
+    //                 return Ok(error_as_response(e, 503));
+    //             }
+    //         }
+    //     }
+    //     _ => {
+    //
+    //     }
+    // };
+    // let stream = get_steam(sapi, php_port).unwrap();
 
-    let stream = match TcpStream::connect(("127.0.0.1", *php_port)) {
-        Ok(t) => t,
-        Err(e) => {
-            return Ok(error_as_response(e, 503));
-        }
+
+    let mut client = match *sapi {
+        PhpServerSapi::FPM => {
+            let socket = get_fpm_sock().unwrap();
+            let sock = match UnixStream::connect(socket.to_str().unwrap()) {
+                Ok(t) => t,
+                Err(e) => {
+                    return Ok(error_as_response(e, 503));
+                }
+            };
+
+            Client::new(sock, false)
+        },
+        _ => {
+            let stream = match TcpStream::connect(("127.0.0.1", *php_port)) {
+                Ok(t) => t,
+                Err(e) => {
+                    return Ok(error_as_response(e, 503));
+                }
+            };
+            Client::new(stream, false)
+        },
     };
 
-    let mut client = Client::new(stream, false);
+    // let stream = get_steam(sapi, php_port).unwrap();
+
+    // let mut client = Client::new(stream, false);
 
     let http_port_str = http_port.to_string();
     let php_port_str = php_port.to_string();
@@ -121,7 +176,7 @@ pub(crate) async fn handle_fastcgi(
                 fcgi_output.get_stdout().unwrap_or_default(),
                 fcgi_output.get_stderr().unwrap_or_default()
             )
-        },
+        }
         Err(e) => {
             error!("FastCGI returned an error. It was displayed as a 502 to the end user.");
             return Ok(error_as_response(e, 502));
@@ -272,7 +327,7 @@ fn filter_pathinfo(path_info: String) -> String {
 }
 
 fn error_as_response<T>(error: T, status_code: u16) -> Response<Body>
-where T: std::fmt::Display {
+    where T: std::fmt::Display {
     let mut response_builder = Response::builder();
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.append("Content-Type", "text/html".parse().unwrap());
@@ -309,3 +364,27 @@ where T: std::fmt::Display {
 
     response
 }
+
+
+// <S: Read + Write + Send + Sync> Client<BufStream<S>>
+
+//
+// fn get_steam<T: Read + Write + Send + Sync>(sapi: &PhpServerSapi, port: &u16) -> io::Result<T> {
+//     match sapi {
+//         PhpServerSapi::FPM => unix_sock(),
+//         _ => tcp_sock(port),
+//     }
+// }
+// #[cfg(not(target_family = "windows"))]
+// fn unix_sock() -> io::Result<std::os::unix::net::UnixStream> {
+//     let socket = get_fpm_sock().unwrap();
+//     std::os::unix::net::UnixStream::connect(socket.to_str().unwrap())
+// }
+// #[cfg(target_family = "windows")]
+// fn unix_sock() {
+//     unimplemented!()
+// }
+//
+// fn tcp_sock(php_port: &u16) -> io::Result<TcpStream> {
+//     TcpStream::connect(("127.0.0.1", *php_port))
+// }

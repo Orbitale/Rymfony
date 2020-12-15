@@ -44,3 +44,8 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
 
     Err(Box::new(ProjectFolderError("Cannot find the \"HOME\" directory".into())))
 }
+
+pub(crate) fn get_fpm_sock() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let rymfony_project_folder = get_rymfony_project_directory()?;
+    Ok(rymfony_project_folder.join("fpm.sock"))
+}
