@@ -3,6 +3,7 @@
 target/debug/rymfony serve -d --no-tls >/dev/null 2>&1
 sleep 3
 timeout -k 9 3s target/debug/rymfony serve --no-tls 2>&1
+--CLEAN--
 target/debug/rymfony stop >/dev/null 2>&1
 --EXPECT--
 The server is already running and listen on http://127.0.0.1:8000
