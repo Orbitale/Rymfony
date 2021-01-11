@@ -67,10 +67,10 @@ pub(crate) fn start() -> PhpServer {
         info!("Stopping PHP process... ");
 
         #[cfg(not(target_os = "windows"))]
-            {
-                let pid = process.id();
-                stop_process::stop(pid.to_string().as_ref()); // Stop fpm children
-            }
+        {
+            let pid = process.id();
+            stop_process::stop(pid.to_string().as_ref()); // Stop fpm children
+        }
 
         match process.kill() {
             Ok(_) => info!("PHP process stopped."),

@@ -85,7 +85,7 @@ fn serve_foreground(args: &ArgMatches) {
         //Check if process is rymfony and exit if true.
         debug!("Information file {} found", rymfony_pid_file.to_str().unwrap());
 
-        let infos: ProcessInfo = serde_json::from_str(read_to_string(&rymfony_pid_file).unwrap().as_str()).expect("Unable to unserialize data");
+        let infos: ProcessInfo = serde_json::from_str(read_to_string(&rymfony_pid_file).unwrap().as_str()).expect("Unable to retrieve data from server's config file.");
 
         let mut system = sysinfo::System::new_all();
         system.refresh_all();
@@ -98,7 +98,7 @@ fn serve_foreground(args: &ArgMatches) {
         }
 
         if found {
-            println!("The server is already running and listen on {}://127.0.0.1:{}", infos.scheme(), infos.port());
+            info!("The server is already running and listen on {}://127.0.0.1:{}", infos.scheme(), infos.port());
             return;
         }
 
@@ -131,7 +131,7 @@ fn serve_foreground(args: &ArgMatches) {
     let mut versions_file = File::create(&rymfony_pid_file).unwrap();
 
     versions_file.write_all(serialized.as_bytes())
-        .expect("Could not write Process informations to JSON file.");
+        .expect("Could not write the server's process information to config file.");
 
 
     let mut document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
