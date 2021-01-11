@@ -1,53 +1,11 @@
 --RUN-ON-WINDOWS--
 
---TEST--@echo off
+--TEST--
+@echo off
 curl -ki "https://127.0.0.1:8000/toto?custom_query=string_value#some_fragment" -X POST -d "[true]" -H "X-Some: Val" -H "Cookie: SomeCookie=some_value" -H "Content-Type: application/json"
 
 --EXPECTED-EXIT-CODE--
 0
 
---EXPECTF--\s*
-HTTP/2 200
-content-length: 1282
-content-type: text/plain;charset=UTF-8
-x-some-random-header: some-random-value
-date: \w+, \d+ \w+ \d{4} \d{1,2}:\d{1,2}:\d{1,2} .*$
-
-Hey! It works!
-\{
-    "Date": "[^"]+",
-    "Server parameters": \{
-        "CONTENT_LENGTH": "6",
-        "CONTENT_TYPE": "application/json",
-        "DOCUMENT_ROOT": "[^"]+",
-        "DOCUMENT_URI": "/toto",
-        "GATEWAY_INTERFACE": "FastCGI/1\.0",
-        "HTTPS": "On",
-        "ORIG_PATH_INFO": "__",
-        "PATH_INFO": "/toto\?custom_query=string_value",
-        "QUERY_STRING": "custom_query=string_value",
-        "REMOTE_ADDR": "127\.0\.0\.1",
-        "REMOTE_HOST": "__",
-        "REMOTE_PORT": "65535",
-        "REQUEST_METHOD": "POST",
-        "REQUEST_URI": "/toto\?custom_query=string_value",
-        "SCRIPT_FILENAME": "[^"]+",
-        "SCRIPT_NAME": "/index\.php",
-        "SERVER_ADDR": "__",
-        "SERVER_ADMIN": "__",
-        "SERVER_NAME": "127\.0\.0\.1:8000",
-        "SERVER_PORT": "8000",
-        "SERVER_PROTOCOL": "HTTP/1\.1",
-        "SERVER_SOFTWARE": "Rymfony v[0-9\.]+"
-    \},
-    "Request headers": \{
-        "HTTP_ACCEPT": "\*/\*",
-        "HTTP_CONTENT_LENGTH": "6",
-        "HTTP_CONTENT_TYPE": "application/json",
-        "HTTP_COOKIE": "SomeCookie=some_value",
-        "HTTP_HOST": "127\.0\.0\.1:8000",
-        "HTTP_USER_AGENT": "curl/[^"]+",
-        "HTTP_X_SOME": "Val"
-    \},
-    "Request body": "\[true\]"
-\}
+--EXPECTF--
+HTTP/2 200[\s\r\n]*(content-length: 1282|content-type: text/plain;charset=UTF-8|x-some-random-header: some-random-value)[\s\r\n]*(content-length: 1282|content-type: text/plain;charset=UTF-8|x-some-random-header: some-random-value)[\s\r\n]*(content-length: 1282|content-type: text/plain;charset=UTF-8|x-some-random-header: some-random-value)[\s\r\n]*date: \w+, \d+ \w+ \d{4} \d{1,2}:\d{1,2}:\d{1,2} .*$[\s\r\n]*[\s\r\n]*Hey! It works![\s\r\n]*\{[\s\r\n]*    "Date": "[^"]+",[\s\r\n]*    "Server parameters": \{[\s\r\n]*        "CONTENT_LENGTH": "6",[\s\r\n]*        "CONTENT_TYPE": "application/json",[\s\r\n]*        "DOCUMENT_ROOT": "[^"]+",[\s\r\n]*        "DOCUMENT_URI": "/toto",[\s\r\n]*        "GATEWAY_INTERFACE": "FastCGI/1\.0",[\s\r\n]*        "HTTPS": "On",[\s\r\n]*        "ORIG_PATH_INFO": "__",[\s\r\n]*        "PATH_INFO": "/toto\?custom_query=string_value",[\s\r\n]*        "QUERY_STRING": "custom_query=string_value",[\s\r\n]*        "REMOTE_ADDR": "127\.0\.0\.1",[\s\r\n]*        "REMOTE_HOST": "__",[\s\r\n]*        "REMOTE_PORT": "65535",[\s\r\n]*        "REQUEST_METHOD": "POST",[\s\r\n]*        "REQUEST_URI": "/toto\?custom_query=string_value",[\s\r\n]*        "SCRIPT_FILENAME": "[^"]+",[\s\r\n]*        "SCRIPT_NAME": "/index\.php",[\s\r\n]*        "SERVER_ADDR": "__",[\s\r\n]*        "SERVER_ADMIN": "__",[\s\r\n]*        "SERVER_NAME": "127\.0\.0\.1:8000",[\s\r\n]*        "SERVER_PORT": "8000",[\s\r\n]*        "SERVER_PROTOCOL": "HTTP/1\.1",[\s\r\n]*        "SERVER_SOFTWARE": "Rymfony v[0-9\.]+"[\s\r\n]*    \},[\s\r\n]*    "Request headers": \{[\s\r\n]*        "HTTP_ACCEPT": "\*/\*",[\s\r\n]*        "HTTP_CONTENT_LENGTH": "6",[\s\r\n]*        "HTTP_CONTENT_TYPE": "application/json",[\s\r\n]*        "HTTP_COOKIE": "SomeCookie=some_value",[\s\r\n]*        "HTTP_HOST": "127\.0\.0\.1:8000",[\s\r\n]*        "HTTP_USER_AGENT": "curl/[^"]+",[\s\r\n]*        "HTTP_X_SOME": "Val"[\s\r\n]*    \},[\s\r\n]*    "Request body": "\[true\]"[\s\r\n]*\}
