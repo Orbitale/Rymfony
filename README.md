@@ -13,45 +13,52 @@ The binary is built on every push to the `main` branch, if the binary can be bui
 
 This allows you to test the latest version right away!
 
-Here are the links to download them:
+Here are the links on [nightly.link](https://nightly.link) to download them:
 
-* Ubuntu: [rymfony.ubuntu-latest](https://files.pierstoval.com/rymfony/rymfony.ubuntu-latest?download)
-* Windows: [rymfony.windows-latest.exe](https://files.pierstoval.com/rymfony/rymfony.windows-latest.exe?download)
-* MacOS: [rymfony.macOS-latest](https://files.pierstoval.com/rymfony/rymfony.macOS-latest?download)
+| OS | Link |
+| --- | --- |
+| Ubuntu | [![nightly.ubuntu-latest](https://img.shields.io/badge/Ubuntu%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/nightly.ubuntu-latest.zip) |
+| Windows | [![nightly.windows-latest](https://img.shields.io/badge/Windows%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/nightly.windows-latest.zip) |
+| MacOS | [![nightly.macOS-latest](https://img.shields.io/badge/MacOS%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/nightly.macOS-latest.zip) |
 
-If you need more architectures and OSes, feel free to check the [build.yaml](./.github/workflows/build.yaml) Github Action and contribute for more!
+Unzip the file and put the `rymfony` executable file in your `PATH`, and you're set!
+
+If you need more architectures and OSes, feel free to check the [CI.yaml](.github/workflows/CI.yaml) Github Action and contribute for more!
 
 #### Download on Linux
 
 ```
-sudo curl -sSL https://files.pierstoval.com/rymfony/rymfony.ubuntu-latest?download -o /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony 
-```
-
-#### Download on MacOS
-
-```
-sudo curl -sSL https://files.pierstoval.com/rymfony/rymfony.macOS-latest?download -o /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony 
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/nightly.ubuntu-latest.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony.ubuntu-latest /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony
 ```
 
 #### Download on Windows
 
 With `cmd` (`curl` is needed):
 ```
-curl -sSL https://files.pierstoval.com/rymfony/rymfony.windows-latest.exe?download -o rymfony.exe 
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/nightly.windows-latest.zip -o rymfony.zip && powershell -command "Expand-Archive -Force rymfony.zip ." && rm rymfony.zip && mv rymfony.windows-latest.exe rymfony.exe
 ```
 
 With Powershell:
 ```
-Invoke-WebRequest https://files.pierstoval.com/rymfony/rymfony.windows-latest.exe?download -OutFile rymfony.exe
+Invoke-WebRequest https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/nightly.windows-latest.zip -OutFile rymfony.zip && Expand-Archive -Force rymfony.zip . && rm rymfony.zip && mv rymfony.windows-latest.exe rymfony.exe
 ```
 
 Then, add the `rymfony.exe` executable somewhere in your PATH.
 
+#### Download on MacOS
+
+```
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/nightly.macOS-latest.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony.macOS-latest /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony
+```
+
 ### Manual build
 
-Make sure you have installed the Rust language and its package manager Cargo on your machine, and run `cargo build --release`.
-
-The binary will be stored in `./target/release/rymfony`, and you can use it.
+* First, install Rust following the [Official guide](https://www.rust-lang.org/tools/install).
+* Clone the repository on your machine with this command:<br>
+  `git clone git@github.com:Orbitale/Rymfony.git`.
+* Then, run `cargo build --release`.
+* Done!<br>
+  The binary will be stored in `./target/release/rymfony` (with `.exe` extension on Windows), you can use it directly!
 
 ## Usage
 
@@ -77,11 +84,13 @@ FLAGS:
     -v, --verbose    Set the verbosity level. -v for debug, -vv for trace, -vvv to trace executed modules
 
 SUBCOMMANDS:
-    help            Prints this message or the help of the given subcommand(s)
-    new:symfony     Create a new Symfony project
-    php:list        List all available PHP executables
-    server:start    Runs an HTTP server
-    stop            Stops a potentially running HTTP server
+    help                   Prints this message or the help of the given subcommand(s)
+    new:symfony            Create a new Symfony project
+    php:list               List all available PHP executables.
+    server:ca:install      Create and install a local Certificate Authority for serving HTTPS
+    server:ca:uninstall    Uninstall the local Certificate Authority
+    server:start           Runs an HTTP server
+    stop                   Stops a potentially running HTTP server
 ```
 
 **Note:** For any command, you can use the `-h|--help` flag to display its details too. If you are familiar with the Symfony console component it is very much similar.
