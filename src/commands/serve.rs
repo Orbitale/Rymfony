@@ -93,6 +93,7 @@ fn serve_foreground(args: &ArgMatches) {
         for (pid, proc_) in system.get_processes() {
             if pid == &infos.pid() && proc_.exe().to_str().unwrap().ends_with("rymfony") {
                 found = true;
+                break;
             }
         }
 
