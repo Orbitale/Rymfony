@@ -1,0 +1,56 @@
+--RUN-ON-UNIX--
+--SETUP--
+target/debug/rymfony stop >/dev/null 2>&1
+--TEST--
+target/debug/rymfony serve -d --no-tls >$WORKING_DIR/server.log 2>&1
+sleep 2
+curl --request POST \
+  --url http://127.0.0.1:8000/api/project \
+  --header 'Accept: application/json' \
+  --header 'User-Agent: test runner' \
+  --header 'Authorization: Bearer 6yVnP0Nf6FP025Dby56sxjU' \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --data field1=value1 \
+  --data filed2=value2
+
+cat $WORKING_DIR/server.log
+--CLEAN--
+target/debug/rymfony stop >/dev/null 2>&1
+--EXPECTF--
+Hey! It works!
+\{
+    "Date": "[0-9 :-]+",
+    "Server parameters": \{
+        "CONTENT_LENGTH": "27",
+        "CONTENT_TYPE": "application/x-www-form-urlencoded",
+        "DOCUMENT_ROOT": "[a-zA-Z0-9\._ /-]+",
+        "DOCUMENT_URI": "/api/project",
+        "GATEWAY_INTERFACE": "FastCGI/1\.0",
+        "HTTPS": "__",
+        "ORIG_PATH_INFO": "__",
+        "PATH_INFO": "/api/project",
+        "QUERY_STRING": "",
+        "REMOTE_ADDR": "127\.0\.0\.1",
+        "REMOTE_HOST": "__",
+        "REMOTE_PORT": "[0-9]+",
+        "REQUEST_METHOD": "POST",
+        "REQUEST_URI": "/api/project",
+        "SCRIPT_FILENAME": "[a-zA-Z0-9\._ /-]+/index\.php",
+        "SCRIPT_NAME": "/index\.php",
+        "SERVER_ADDR": "__",
+        "SERVER_ADMIN": "__",
+        "SERVER_NAME": "127\.0\.0\.1:[0-9]{4}",
+        "SERVER_PORT": "[0-9]{4}",
+        "SERVER_PROTOCOL": "HTTP/1\.1",
+        "SERVER_SOFTWARE": "Rymfony v[0-9\.]+"
+    \},
+    "Request headers": \{
+        "HTTP_ACCEPT": "application/json",
+        "HTTP_AUTHORIZATION": "Bearer 6yVnP0Nf6FP025Dby56sxjU",
+        "HTTP_CONTENT_LENGTH": "27",
+        "HTTP_CONTENT_TYPE": "application/x-www-form-urlencoded",
+        "HTTP_HOST": "127\.0\.0\.1:[0-9]{4}",
+        "HTTP_USER_AGENT": "test runner"
+    \},
+    "Request body": "field1=value1&filed2=value2"
+\}.*INFO > POST /api/project.*
