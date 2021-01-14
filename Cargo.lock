@@ -1566,6 +1566,7 @@ dependencies = [
  "serde_json",
  "tokio 0.2.24",
  "tokio-native-tls",
+ "urldecode",
  "users",
  "warp",
  "which 4.0.2",
@@ -2095,6 +2096,12 @@ dependencies = [
  "matches",
  "percent-encoding",
 ]
+
+[[package]]
+name = "urldecode"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "070c2eb79ba268848a73885f94a83b86d9e6441c5d5b10727d5f8989db2c8edc"
 
 [[package]]
 name = "urlencoding"

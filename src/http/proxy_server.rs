@@ -158,20 +158,18 @@ async fn serve_static(
 
 fn get_render_static_path(document_root: &str, request_path: &str) -> String {
     let directory_separators: &[_] = &['/', '\\'];
-    let request_path = request_path.trim_start_matches(directory_separators);
+    let request_path = urldecode::decode(request_path.trim_start_matches(directory_separators).to_string());
     let document_root = document_root.trim_end_matches(directory_separators);
-
     let static_doc_root = PathBuf::from(&document_root);
-
-    let docroot_path = PathBuf::from(&static_doc_root).join(request_path);
+    let docroot_path = PathBuf::from(&static_doc_root).join(&request_path);
 
     let docroot_public_path = PathBuf::from(&static_doc_root)
         .join("public")
-        .join(request_path);
+        .join(&request_path);
 
     let docroot_web_path = PathBuf::from(&static_doc_root)
         .join("web")
-        .join(request_path);
+        .join(&request_path);
 
     let mut render_static: &str = "";
 
