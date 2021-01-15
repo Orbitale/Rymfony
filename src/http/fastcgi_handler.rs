@@ -176,8 +176,7 @@ pub(crate) async fn handle_fastcgi(
     let (_, body) = fcgi_stdout.split_at(headers_len);
 
     // ... However, it seems I can't just put bytes in the body, and that only String is possible...
-    let body = String::from_utf8(body.to_vec()).unwrap();
-    let response_body = Body::from(body);
+    let response_body = Body::from(body.to_vec());
 
     //
     // CGI's RFC says that the "Status" response header
