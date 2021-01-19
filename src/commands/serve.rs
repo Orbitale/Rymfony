@@ -84,11 +84,15 @@ fn serve_foreground(args: &ArgMatches) {
     if document_root.ends_with('\\') { document_root.pop(); }
     document_root.push_str(if cfg!(target_family = "windows") { "\\" } else { "/" });
     let doc_root_path = PathBuf::from(document_root.as_str());
-    let scripts = vec!["index.php", "app_dev.php", "app.php"];
+    let common_scripts_names = vec![
+        "index.php",
+        "app_dev.php",
+        "app.php",
+    ];
     let script_filename = if args.is_present("passthru") {
         args.value_of("passthru").unwrap_or("index.php").to_string()
     } else {
-        for script in scripts {
+        for script in common_scripts_names {
             let php_entrypoint_path = doc_root_path.join(script);
             if php_entrypoint_path.is_file() {
                 script.to_string();
