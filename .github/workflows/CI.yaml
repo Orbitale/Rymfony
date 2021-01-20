@@ -33,7 +33,7 @@ jobs:
               run: |
                 mkdir -p target/artifacts/
                 export _BUILDOS="${{ matrix.os }}"
-                echo "${_BUILDOS/-latest/}-${GITHUB_SHA::8}-nightly" > build_type.txt
+                echo "${_BUILDOS/-latest/}-${GITHUB_SHA::8}-`date "+%Y-%m-%d--%H-%M-%S"`-nightly" > build_type.txt
                 cargo build --release --all-targets
                 mv ./target/release/rymfony ./target/artifacts/rymfony.${{ matrix.os }}
 
@@ -71,7 +71,8 @@ jobs:
                 mkdir .\target\artifacts\
                 $_BUILDOS="${{ matrix.os }}" -replace '-latest',''
                 $GITHUB_SHA=$env:GITHUB_SHA.substring(0,8)
-                echo $_BUILDOS-$GITHUB_SHA-nightly > build_type.txt
+                $_DATE = Get-Date -Format "yyyy-MM-dd--HH-mm-ss"
+                echo $_BUILDOS-$GITHUB_SHA-$_DATE-nightly > build_type.txt
                 cargo build --release --all-targets
                 move .\target\release\rymfony.exe .\target\artifacts\rymfony.${{ matrix.os }}.exe
 
