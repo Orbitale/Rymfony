@@ -95,6 +95,11 @@ fn serve_foreground(args: &ArgMatches) {
         for script in common_scripts_names {
             let php_entrypoint_path = doc_root_path.join(script);
             if php_entrypoint_path.is_file() {
+                if script == "app_dev.php" {
+                    warn!("Entrypoint was automaticaly resolved to \"app_dev.php\".");
+                    warn!("If you are using Rymfony on productions servers,");
+                    warn!("the best practice is to remove this file when deploying, and us \"app.php\" instead.");
+                }
                 script.to_string();
             }
         }
