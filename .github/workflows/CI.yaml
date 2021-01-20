@@ -68,7 +68,7 @@ jobs:
 
             - name: Build
               run: |
-                mkdir .\target\artifacts\
+                (test-path .\target\artifacts\) ? $null : (mkdir .\target\artifacts\)
                 $_BUILDOS="${{ matrix.os }}" -replace '-latest',''
                 $GITHUB_SHA=$env:GITHUB_SHA.substring(0,8)
                 $_DATE = Get-Date -Format "yyyy-MM-dd--HH-mm-ss"
