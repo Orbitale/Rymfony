@@ -158,7 +158,7 @@ pub(crate) async fn handle_fastcgi(
     let headers_len = res.parse(fcgi_stdout.as_slice()).unwrap().unwrap();
     let response_headers = res.headers;
     debug!("Response headers ready to normalize");
-    let mut headers_normalized: HashMap<HeaderName, HeaderValue> = response_headers
+    let mut headers_normalized: HeaderMap = response_headers
         .iter()
         .map(|header| {
             let header_name = header.name.as_bytes();
