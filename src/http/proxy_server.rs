@@ -1,27 +1,25 @@
-use crate::http::fastcgi_handler::handle_fastcgi;
-
+use std::collections::HashMap;
+use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::path::PathBuf;
 
 use console::style;
+use http::HeaderMap;
+use http::Method;
 use hyper::Body;
 use hyper::Request;
 use hyper_staticfile::Static;
-
 use warp::Filter;
-use warp::method;
-use warp::http::Response;
-use warp::host::Authority;
-use http::Method;
-use http::HeaderMap;
-use warp::filters::path::FullPath;
 use warp::filters::header::headers_cloned;
-use std::collections::HashMap;
-use hyper::body::Bytes;
-use std::convert::Infallible;
+use warp::filters::path::FullPath;
+use warp::host::Authority;
+use warp::http::Response;
+use warp::hyper::body::Bytes;
+use warp::method;
 
 use crate::config::certificates::get_cert_path;
+use crate::http::fastcgi_handler::handle_fastcgi;
 
 #[tokio::main]
 pub(crate) async fn start(
@@ -46,15 +44,13 @@ pub(crate) async fn start(
         .and(warp::query::<HashMap<String, String>>())
         .and(headers_cloned())
         .and(warp::body::bytes())
-        .and_then(move |
-            remote_addr: Option<SocketAddr>,
-            host: Option<Authority>,
-            method: Method,
-            request_path: FullPath,
-            query: HashMap<String, String>,
-            headers: HeaderMap,
-            body: Bytes
-        | {
+        .and_then(move |remote_addr: Option<SocketAddr>,
+                        host: Option<Authority>,
+                        method: Method,
+                        request_path: FullPath,
+                        query: HashMap<String, String>,
+                        headers: HeaderMap,
+                        body: Bytes| {
             let http_port = http_port.clone();
             let php_port = php_port.clone();
             let document_root = document_root.clone();
@@ -81,7 +77,7 @@ pub(crate) async fn start(
                 let mut req = http::Request::builder()
                     .method(&method)
                     .uri(&request_uri)
-                    .body(Body::from(body))
+                    .body(Body::from(body.to_vec()))
                     .unwrap();
                 { *req.headers_mut() = headers; }
 
@@ -114,7 +110,7 @@ pub(crate) async fn start(
                             req,
                             &http_port,
                             &php_port,
-                            use_tls
+                            use_tls,
                         )
                             .await
                     }
@@ -126,7 +122,7 @@ pub(crate) async fn start(
                 response
             }
         })
-    ;
+        ;
 
     if use_tls {
         let (cert_path, key_path) = get_cert_path()
@@ -137,7 +133,6 @@ pub(crate) async fn start(
             .cert_path(cert_path)
             .key_path(key_path)
             .run(([127, 0, 0, 1], http_port)).await
-
     } else {
         warp::serve(routes)
             .run(([127, 0, 0, 1], http_port)).await
