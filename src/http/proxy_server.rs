@@ -83,7 +83,25 @@ pub(crate) async fn start(
                     .uri(&request_uri)
                     .body(Body::from(body))
                     .unwrap();
-                { *req.headers_mut() = headers; }
+
+                let mut cookies_value = "".to_string();
+                let mut h = headers.clone();
+                if headers.contains_key("cookie") {
+                    let cookies = headers.get_all("cookie");
+                    for cookie in cookies {
+                        if cookies_value.len() == 0 {
+                            cookies_value = cookie.to_str().unwrap().to_string();
+                            continue;
+                        }
+                        cookies_value = format!("{}; {}", cookies_value, cookie.to_str().unwrap());
+                    }
+
+                    h.remove("cookie");
+                    h.insert("cookie", cookies_value.parse().unwrap());
+
+                }
+
+                { *req.headers_mut() = h; }
 
                 let render_static = get_render_static_path(&document_root, &request_path);
                 let render_static = !request_path.contains(".php")
