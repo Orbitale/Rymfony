@@ -44,13 +44,15 @@ pub(crate) async fn start(
         .and(warp::query::<HashMap<String, String>>())
         .and(headers_cloned())
         .and(warp::body::bytes())
-        .and_then(move |remote_addr: Option<SocketAddr>,
-                        host: Option<Authority>,
-                        method: Method,
-                        request_path: FullPath,
-                        query: HashMap<String, String>,
-                        headers: HeaderMap,
-                        body: Bytes| {
+        .and_then(move |
+            remote_addr: Option<SocketAddr>,
+            host: Option<Authority>,
+            method: Method,
+            request_path: FullPath,
+            query: HashMap<String, String>,
+            headers: HeaderMap,
+            body: Bytes
+        | {
             let http_port = http_port.clone();
             let php_port = php_port.clone();
             let document_root = document_root.clone();
