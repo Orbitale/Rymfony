@@ -38,7 +38,7 @@ pub(crate) fn start() -> PhpServer {
 
     if !phpbin_path.is_executable() {
         error!("PHP Binary not found or not executable: {}", php_bin.as_str());
-        info!("You can execute \"rymfony php:list --refresh\" to update binaries paths cache");
+        error!("You can execute \"rymfony php:list --refresh\" to update binaries paths cache.");
         panic!("Unable to start the required PHP binary");
     }
 
