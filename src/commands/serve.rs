@@ -89,8 +89,9 @@ fn serve_foreground(args: &ArgMatches) {
         "app_dev.php",
         "app.php",
     ];
-    let script_filename = if args.is_present("passthru") {
-        args.value_of("passthru").unwrap_or("index.php").to_string()
+    let mut script_filename = "index.php".to_string();
+    if args.is_present("passthru") {
+        script_filename = args.value_of("passthru").unwrap_or("index.php").to_string()
     } else {
         for script in common_scripts_names {
             let php_entrypoint_path = doc_root_path.join(script);
@@ -100,10 +101,10 @@ fn serve_foreground(args: &ArgMatches) {
                     warn!("If you are using Rymfony on productions servers,");
                     warn!("the best practice is to remove this file when deploying, and us \"app.php\" instead.");
                 }
-                script.to_string();
+                script_filename = script.to_string();
+                break;
             }
         }
-        "index.php".to_string()
     };
 
     let php_entrypoint_path = doc_root_path.join(script_filename.as_str());
