@@ -9,6 +9,8 @@ use crate::utils::stop_process;
 use std::process;
 use std::thread;
 use std::time;
+use std::path::PathBuf;
+use is_executable::IsExecutable;
 
 pub(crate) struct PhpServer {
     port: u16,
@@ -31,6 +33,14 @@ impl PhpServer {
 
 pub(crate) fn start() -> PhpServer {
     let php_bin = binaries::get_project_version();
+
+    let phpbin_path = PathBuf::from(php_bin.as_str());
+
+    if !phpbin_path.is_executable() {
+        error!("PHP Binary not found or not executable: {}", php_bin.as_str());
+        error!("You can execute \"rymfony php:list --refresh\" to update binaries paths cache.");
+        panic!("Unable to start the required PHP binary");
+    }
 
     let (php_server, mut process) =
         if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
