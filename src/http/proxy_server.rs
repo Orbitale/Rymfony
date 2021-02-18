@@ -115,7 +115,7 @@ pub(crate) async fn start(
                 );
 
                 let mut response =
-                    if render_static {
+                    if render_static || php_port == 0 {
                         serve_static(req, Static::new(Path::new(&document_root))).await
                     } else {
                         trace!("Forwarding to FastCGI");

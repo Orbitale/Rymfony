@@ -12,6 +12,7 @@ use log::info;
 
 use crate::http::proxy_server;
 use crate::php::php_server;
+use crate::php::php_server::PhpServer;
 use crate::php::structs::PhpServerSapi;
 use crate::utils::current_process_name;
 use crate::utils::network::find_available_port;
@@ -76,9 +77,46 @@ pub(crate) fn serve(args: &ArgMatches) {
 }
 
 fn serve_foreground(args: &ArgMatches) {
-    info!("Starting PHP...");
+    let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
 
-    let php_server = php_server::start();
+    let mut document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
+    if document_root.ends_with('/') { document_root.pop(); }
+    if document_root.ends_with('\\') { document_root.pop(); }
+    document_root.push_str(if cfg!(target_family = "windows") { "\\" } else { "/" });
+    let doc_root_path = PathBuf::from(document_root.as_str());
+    let common_scripts_names = vec![
+        "index.php",
+        "app_dev.php",
+        "app.php",
+    ];
+    let mut script_filename = "index.php".to_string();
+    if args.is_present("passthru") {
+        script_filename = args.value_of("passthru").unwrap_or("index.php").to_string()
+    } else {
+        for script in common_scripts_names {
+            let php_entrypoint_path = doc_root_path.join(script);
+            if php_entrypoint_path.is_file() {
+                if script == "app_dev.php" {
+                    warn!("Entrypoint was automaticaly resolved to \"app_dev.php\".");
+                    warn!("If you are using Rymfony on productions servers,");
+                    warn!("the best practice is to remove this file when deploying, and us \"app.php\" instead.");
+                }
+                script_filename = script.to_string();
+                break;
+            }
+        }
+    };
+
+    let php_entrypoint_path = doc_root_path.join(script_filename.as_str());
+    let php_server = if !php_entrypoint_path.is_file() {
+        warn!("No PHP entrypoint file");
+        PhpServer::new(0, PhpServerSapi::Unknown)
+    } else {
+        info!("Starting PHP...");
+
+        php_server::start()
+    };
+
 
     let sapi = match php_server.sapi() {
         PhpServerSapi::FPM => "FPM",
@@ -86,20 +124,16 @@ fn serve_foreground(args: &ArgMatches) {
         PhpServerSapi::CGI => "CGI",
         PhpServerSapi::Unknown => "?",
     };
-    info!("PHP started with module {}", sapi);
+    if sapi == "?" {
+        info!("Skip PHP start");
+    } else {
+        info!("PHP started with module {}", sapi);
+        info!("PHP entrypoint file: {}", &script_filename);
+    }
 
     info!("Starting HTTP server...");
 
-    let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
-
-    let mut document_root = get_document_root(args.value_of("document-root").unwrap_or("").to_string());
-    if document_root.ends_with('/') { document_root.pop(); }
-    if document_root.ends_with('\\') { document_root.pop(); }
-    document_root.push_str(if cfg!(target_family = "windows") { "\\" } else { "/" });
-    let script_filename = args.value_of("passthru").unwrap_or("index.php").to_string();
-
     info!("Configured document root: {}", &document_root);
-    info!("PHP entrypoint file: {}", &script_filename);
 
     proxy_server::start(
         !args.is_present("no-tls"),
@@ -118,7 +152,7 @@ fn serve_background(args: &ArgMatches) {
     let port = find_available_port(parse_default_port(args.value_of("port").unwrap_or(DEFAULT_PORT), DEFAULT_PORT));
 
     let mut cmd = Command::new(current_process_name::get().as_str());
-        cmd.arg("serve")
+    cmd.arg("serve")
         .arg("--port")
         .arg(port.to_string());
 
