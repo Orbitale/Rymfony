@@ -9,9 +9,9 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0"
 clap = "2.33"
-console = "0.11"
+console = "0.14"
 ctrlc = { version = "3.1", features = ["termination"] }
-dirs = "1.0"
+dirs = "3.0"
 env_logger = "0.8"
 fastcgi-client = "0.5"
 glob = "0.3"
@@ -19,27 +19,27 @@ http = "0.2"
 httparse = "1.3"
 hyper = "0.14"
 hyper-staticfile = "0.6"
-is_executable = "0.1"
+is_executable = "1.0"
 log = "0.4"
 openssl = { version = "0.10", features = ["vendored"] }
 openssl-sys = "0.9"
 pretty_env_logger = "0.4"
 prettytable-rs = "0.8"
-regex = "1.3"
+regex = "1.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.2", features = ["full"] }
 tokio-native-tls = "0.3"
 urldecode = "0.1"
 which = "4.0"
 warp = { version = "0.3", features = ["tls"]}
 wsl="0.1"
-runas = "0.2.1"
-sha2 = "0.9.2"
-sysinfo = "0.15.3"
+runas = "0.2"
+sha2 = "0.9"
+sysinfo = "0.16"
 
 [target.'cfg(not(target_family = "windows"))'.dependencies]
-users = "0.10"
+users = "0.11"
 
 [profile.release]
 opt-level = 'z' # Optimize for size.

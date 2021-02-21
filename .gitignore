@@ -5,3 +5,4 @@ certs/*
 .pid
 _local_logs.txt
 /tests/workdir/
+server.log
