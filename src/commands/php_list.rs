@@ -1,10 +1,13 @@
-use clap::{App, Arg, ArgMatches};
+use clap::App;
+use clap::Arg;
+use clap::ArgMatches;
 use clap::SubCommand;
 use prettytable::format;
 use prettytable::Table;
 
+use crate::config::config::clear_binaries_list;
+use crate::config::config::save_binaries_to_config;
 use crate::php;
-use crate::config::config::{save_binaries_to_config, clear_binaries_list};
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
     SubCommand::with_name("php:list").about("List all available PHP executables.
@@ -24,11 +27,10 @@ $ RYMFONY_PATH=\"/var/php80/bin\" rymfony php:list --refresh
 }
 
 pub(crate) fn php_list(args: &ArgMatches) {
-
     if args.is_present("refresh") {
         match clear_binaries_list() {
             Ok(_) => info!("Binaries cache successfully cleared!"),
-            Err(e) => error!("Could not clear binaries cache: {}", e)
+            Err(e) => error!("Could not clear binaries cache: {}", e),
         }
     }
 
@@ -64,7 +66,7 @@ pub(crate) fn php_list(args: &ArgMatches) {
     table.set_titles(row!["Version", "PHP CLI", "PHP FPM", "PHP CGI", "System"]);
 
     let mut ordered_binaries: Vec<_> = binaries.into_iter().collect();
-    ordered_binaries.sort_by(|x,y| x.0.version().cmp(y.0.version()));
+    ordered_binaries.sort_by(|x, y| x.0.version().cmp(y.0.version()));
 
     for (php_version, php_binary) in ordered_binaries {
         let system = if php_binary.system() { "*" } else { "" };

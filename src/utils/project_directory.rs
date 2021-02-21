@@ -1,7 +1,8 @@
-use std::{env, path::PathBuf};
+use std::env;
 use std::error::Error;
 use std::fmt;
 use std::fs::create_dir;
+use std::path::PathBuf;
 use std::result::Result;
 
 use dirs::home_dir;
@@ -22,8 +23,6 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
     let home = home_dir().unwrap().display().to_string();
     let homestr = home.as_str();
 
-
-
     if homestr != "" {
         let cwd = env::current_dir().unwrap();
 
@@ -36,11 +35,19 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
             .join(format!("{:x}", hash));
 
         if !rymfony_project_path.is_dir() {
-            create_dir(&rymfony_project_path).expect(format!("Unable to make directory for project {}", rymfony_project_path.to_str().unwrap()).as_str());
+            create_dir(&rymfony_project_path).expect(
+                format!(
+                    "Unable to make directory for project {}",
+                    rymfony_project_path.to_str().unwrap()
+                )
+                .as_str(),
+            );
         }
 
         return Ok(rymfony_project_path);
     }
 
-    Err(Box::new(ProjectDirectoryError("Cannot find the \"HOME\" directory".into())))
+    Err(Box::new(ProjectDirectoryError(
+        "Cannot find the \"HOME\" directory".into(),
+    )))
 }

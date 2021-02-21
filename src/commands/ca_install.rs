@@ -21,7 +21,10 @@ pub(crate) fn ca_install(_args: &ArgMatches) {
         certificates::get_cert_path().unwrap();
     }
     if !certificate_path.exists() {
-        panic!("Unable to generate Certificate Authority at : {}", &certificate_path.to_str().unwrap());
+        panic!(
+            "Unable to generate Certificate Authority at : {}",
+            &certificate_path.to_str().unwrap()
+        );
     }
 
     if cfg!(target_os = "windows") {
@@ -53,9 +56,7 @@ fn linux_debian_based_ca_install(certificate_path: &PathBuf) {
 
     trace!("Copy result status {}", status);
 
-    let statusupdate = SudoCommand::new("update-ca-certificates")
-        .status()
-        .unwrap();
+    let statusupdate = SudoCommand::new("update-ca-certificates").status().unwrap();
 
     trace!("Update CERT result status {}", statusupdate);
 }

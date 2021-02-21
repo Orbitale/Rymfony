@@ -4,7 +4,10 @@ use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
 use regex::Regex;
-use serde::de::{Deserialize, Deserializer, Error, Visitor};
+use serde::de::Deserialize;
+use serde::de::Deserializer;
+use serde::de::Error;
+use serde::de::Visitor;
 use serde::Deserialize as SerdeDeserialize;
 use serde::Serialize;
 use serde::Serializer;
@@ -31,11 +34,7 @@ impl PhpServerSapi {
     }
 
     pub(crate) fn all() -> Vec<PhpServerSapi> {
-        vec![
-            PhpServerSapi::FPM,
-            PhpServerSapi::CLI,
-            PhpServerSapi::CGI,
-        ]
+        vec![PhpServerSapi::FPM, PhpServerSapi::CLI, PhpServerSapi::CGI]
     }
 }
 
@@ -67,7 +66,7 @@ pub(crate) struct PhpVersion {
 impl PhpVersion {
     pub(crate) fn clone(&self) -> PhpVersion {
         PhpVersion {
-            _version: self._version.clone()
+            _version: self._version.clone(),
         }
     }
 
@@ -99,15 +98,19 @@ impl PhpVersion {
 }
 
 impl Serialize for PhpVersion {
-    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where
-        S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_str(&self._version.as_str())
     }
 }
 
 impl<'de> Deserialize<'de> for PhpVersion {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-        D: Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         deserializer.deserialize_str(PhpVersionVisitor)
     }
 }
@@ -122,8 +125,8 @@ impl<'de> Visitor<'de> for PhpVersionVisitor {
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: Error,
+    where
+        E: Error,
     {
         Ok(PhpVersion::from_str(value))
     }
@@ -137,7 +140,6 @@ impl<'de> Visitor<'de> for PhpVersionVisitor {
 //
 //
 //
-
 
 #[derive(Hash, Eq, PartialEq, Debug, Serialize, SerdeDeserialize)]
 pub(crate) struct PhpBinary {
@@ -208,7 +210,10 @@ impl PhpBinary {
         } else if self.cli != "" {
             return self.cli.clone();
         } else {
-            panic!("Cannot detect preferred sapi for PHP \"{}\"", self._version.version());
+            panic!(
+                "Cannot detect preferred sapi for PHP \"{}\"",
+                self._version.version()
+            );
         }
     }
 
@@ -239,7 +244,6 @@ impl PhpBinary {
     }
 }
 
-
 //
 //
 //
@@ -248,7 +252,6 @@ impl PhpBinary {
 //
 //
 //
-
 
 #[derive(Hash, Eq, PartialEq, Debug, Serialize, SerdeDeserialize)]
 pub(crate) struct ServerInfo {
@@ -262,12 +265,28 @@ pub(crate) struct ServerInfo {
 
 impl Display for ServerInfo {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "pid: {}, port: {}, scheme: {}, name: {}, command: {}, args: {}", self.pid, self.port, self.scheme, self.name, self.command, self.args.join(" "))
+        write!(
+            f,
+            "pid: {}, port: {}, scheme: {}, name: {}, command: {}, args: {}",
+            self.pid,
+            self.port,
+            self.scheme,
+            self.name,
+            self.command,
+            self.args.join(" ")
+        )
     }
 }
 
 impl ServerInfo {
-    pub(crate) fn new(pid: i32, port: u16, scheme: String, name: String, command: String, args: Vec<String>) -> ServerInfo {
+    pub(crate) fn new(
+        pid: i32,
+        port: u16,
+        scheme: String,
+        name: String,
+        command: String,
+        args: Vec<String>,
+    ) -> ServerInfo {
         ServerInfo {
             pid,
             port,
@@ -284,8 +303,7 @@ impl ServerInfo {
         self.port
     }
 
-    pub(crate) fn scheme(&self) ->String{
+    pub(crate) fn scheme(&self) -> String {
         self.scheme.clone()
     }
-
 }

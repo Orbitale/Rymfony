@@ -11,8 +11,8 @@ use hyper::HeaderMap;
 use hyper::Response;
 use regex::Captures;
 use regex::Regex;
-use std::path::PathBuf;
 use std::convert::Infallible;
+use std::path::PathBuf;
 use warp::host::Authority;
 
 pub(crate) async fn handle_fastcgi(
@@ -68,8 +68,14 @@ pub(crate) async fn handle_fastcgi(
     //
     let mut fcgi_params = Params::with_predefine();
     let empty_header = &HeaderValue::from_str("").unwrap();
-    fcgi_params.insert("CONTENT_LENGTH", get_header_value(&request_headers, "Content-Length", &empty_header));
-    fcgi_params.insert("CONTENT_TYPE", get_header_value(&request_headers, "Content-Type", &empty_header));
+    fcgi_params.insert(
+        "CONTENT_LENGTH",
+        get_header_value(&request_headers, "Content-Length", &empty_header),
+    );
+    fcgi_params.insert(
+        "CONTENT_TYPE",
+        get_header_value(&request_headers, "Content-Type", &empty_header),
+    );
     fcgi_params.insert("DOCUMENT_ROOT", &document_root);
     fcgi_params.insert("DOCUMENT_URI", request_uri_without_query.as_str());
     fcgi_params.insert("PATH_INFO", pathinfo.as_str());
@@ -102,8 +108,11 @@ pub(crate) async fn handle_fastcgi(
         fcgi_headers_normalized.push((header_name, value.to_str().unwrap()));
     }
 
-
-    fcgi_params.extend(fcgi_headers_normalized.iter().map(|(k, s)| (k.as_str(), *s)));
+    fcgi_params.extend(
+        fcgi_headers_normalized
+            .iter()
+            .map(|(k, s)| (k.as_str(), *s)),
+    );
 
     let request_body_bytes = hyper::body::to_bytes(request_body).await.unwrap();
     let mut fcgi_request_body = &mut std::io::Cursor::new(request_body_bytes);
@@ -115,12 +124,10 @@ pub(crate) async fn handle_fastcgi(
 
     // Retrieve request output
     let (raw_fcgi_stdout, fcgi_stderr) = match fcgi_output {
-        Ok(fcgi_output) => {
-            (
-                fcgi_output.get_stdout().unwrap_or_default(),
-                fcgi_output.get_stderr().unwrap_or_default()
-            )
-        },
+        Ok(fcgi_output) => (
+            fcgi_output.get_stdout().unwrap_or_default(),
+            fcgi_output.get_stderr().unwrap_or_default(),
+        ),
         Err(e) => {
             error!("FastCGI returned an error. It was displayed as a 502 to the end user.");
             return Ok(error_as_response(e, 502));
@@ -128,8 +135,14 @@ pub(crate) async fn handle_fastcgi(
     };
 
     if raw_fcgi_stdout.len() == 0 {
-        error!("FastCGI returned an empty Response:\n{}", std::str::from_utf8(&fcgi_stderr).unwrap());
-        return Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
+        error!(
+            "FastCGI returned an empty Response:\n{}",
+            std::str::from_utf8(&fcgi_stderr).unwrap()
+        );
+        return Ok(error_as_response(
+            std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(),
+            502,
+        ));
     }
 
     //
@@ -144,8 +157,14 @@ pub(crate) async fn handle_fastcgi(
     trace!("Received FastCGI response.");
 
     if fcgi_stderr.len() > 0 {
-        error!("FastCGI returned an error:\n{}", std::str::from_utf8(&fcgi_stderr).unwrap());
-        return Ok(error_as_response(std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(), 502));
+        error!(
+            "FastCGI returned an error:\n{}",
+            std::str::from_utf8(&fcgi_stderr).unwrap()
+        );
+        return Ok(error_as_response(
+            std::str::from_utf8(fcgi_stderr.as_slice()).unwrap(),
+            502,
+        ));
     }
 
     //
@@ -163,7 +182,11 @@ pub(crate) async fn handle_fastcgi(
             let header_name = header.name.as_bytes();
             let header_value = std::str::from_utf8(header.value).unwrap();
 
-            debug!("Normalized headers: \"{}: {}\"", std::str::from_utf8(&header_name).unwrap(), &header_value);
+            debug!(
+                "Normalized headers: \"{}: {}\"",
+                std::str::from_utf8(&header_name).unwrap(),
+                &header_value
+            );
 
             (
                 HeaderName::from_bytes(header_name).unwrap(),
@@ -189,7 +212,12 @@ pub(crate) async fn handle_fastcgi(
 
     let status_code: u16 = if let Some(status_header) = response_status_header {
         use std::str::FromStr;
-        let status_code_as_string = &status_header.to_str().unwrap().chars().take(3).collect::<String>();
+        let status_code_as_string = &status_header
+            .to_str()
+            .unwrap()
+            .chars()
+            .take(3)
+            .collect::<String>();
         let status_code = http::StatusCode::from_str(status_code_as_string).unwrap();
         status_code.as_u16()
     } else {
@@ -215,7 +243,11 @@ pub(crate) async fn handle_fastcgi(
     Ok(response)
 }
 
-fn get_header_value<'a>(headers: &'a HeaderMap<HeaderValue>, header_name: &str, empty_header: &'a HeaderValue) -> &'a str {
+fn get_header_value<'a>(
+    headers: &'a HeaderMap<HeaderValue>,
+    header_name: &str,
+    empty_header: &'a HeaderValue,
+) -> &'a str {
     headers
         .get(header_name)
         .unwrap_or(empty_header)
@@ -270,12 +302,15 @@ fn filter_pathinfo(path_info: String) -> String {
 }
 
 fn error_as_response<T>(error: T, status_code: u16) -> Response<Body>
-where T: std::fmt::Display {
+where
+    T: std::fmt::Display,
+{
     let mut response_builder = Response::builder();
     let response_headers = response_builder.headers_mut().unwrap();
     response_headers.append("Content-Type", "text/html".parse().unwrap());
 
-    let body_str = format!(r###"
+    let body_str = format!(
+        r###"
         <!DOCTYPE html>
         <html>
             <head>
@@ -296,7 +331,9 @@ where T: std::fmt::Display {
                 </div>
             </body>
         </html>
-    "###, &status_code, &error);
+    "###,
+        &status_code, &error
+    );
 
     let response = response_builder
         .status(status_code)

@@ -1,20 +1,22 @@
-#[macro_use] extern crate prettytable;
-#[macro_use] extern crate log;
-extern crate regex;
-extern crate pretty_env_logger;
-extern crate env_logger;
+#[macro_use]
+extern crate prettytable;
+#[macro_use]
+extern crate log;
 extern crate ctrlc;
+extern crate env_logger;
 extern crate httparse;
+extern crate pretty_env_logger;
+extern crate regex;
 
 mod config {
-    pub(crate) mod config;
     pub(crate) mod certificates;
+    pub(crate) mod config;
 }
 
 mod commands {
-    pub(crate) mod new_symfony;
     pub(crate) mod ca_install;
     pub(crate) mod ca_uninstall;
+    pub(crate) mod new_symfony;
     pub(crate) mod php_list;
     pub(crate) mod serve;
     pub(crate) mod stop;
@@ -23,8 +25,8 @@ mod commands {
 mod utils {
     pub(crate) mod current_process_name;
     pub(crate) mod network;
-    pub(crate) mod stop_process;
     pub(crate) mod project_directory;
+    pub(crate) mod stop_process;
 }
 
 mod php {
@@ -45,17 +47,17 @@ mod http {
 use clap::App;
 use clap::Arg;
 use dirs::home_dir;
-use std::fs;
-use std::fmt;
-use std::io::Write;
-use std::process::Command;
-use utils::current_process_name;
+use log::Level;
 use pretty_env_logger::env_logger::fmt::Color;
 use pretty_env_logger::env_logger::fmt::Style;
 use pretty_env_logger::env_logger::fmt::StyledValue;
+use std::fmt;
+use std::fs;
+use std::io::Write;
+use std::process::Command;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
-use log::Level;
+use utils::current_process_name;
 
 const RYMFONY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -117,12 +119,12 @@ https://github.com/Orbitale/Rymfony
         Some("server:start") => {
             crate::commands::serve::serve(matches.subcommand_matches("server:start").unwrap())
         }
-        Some("server:ca:install") => {
-            crate::commands::ca_install::ca_install(matches.subcommand_matches("server:ca:install").unwrap())
-        }
-        Some("server:ca:uninstall") => {
-            crate::commands::ca_uninstall::ca_uninstall(matches.subcommand_matches("server:ca:uninstall").unwrap())
-        }
+        Some("server:ca:install") => crate::commands::ca_install::ca_install(
+            matches.subcommand_matches("server:ca:install").unwrap(),
+        ),
+        Some("server:ca:uninstall") => crate::commands::ca_uninstall::ca_uninstall(
+            matches.subcommand_matches("server:ca:uninstall").unwrap(),
+        ),
         Some("stop") => crate::commands::stop::stop(),
         Some("new") => {
             crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new").unwrap())
@@ -130,7 +132,9 @@ https://github.com/Orbitale/Rymfony
         Some("new:symfony") => crate::commands::new_symfony::new_symfony(
             matches.subcommand_matches("new:symfony").unwrap(),
         ),
-        Some("php:list") => crate::commands::php_list::php_list(matches.subcommand_matches("php:list").unwrap()),
+        Some("php:list") => {
+            crate::commands::php_list::php_list(matches.subcommand_matches("php:list").unwrap())
+        }
         _ => {
             // If no subcommand is specified,
             // re-run the program with "--help"
@@ -147,7 +151,6 @@ https://github.com/Orbitale/Rymfony
 }
 
 fn set_verbosity_value(value: usize, is_quiet: bool) {
-
     let level = std::env::var("RYMFONY_LOG").unwrap_or(String::from("INFO"));
     let mut level = level.as_str();
 
@@ -157,9 +160,9 @@ fn set_verbosity_value(value: usize, is_quiet: bool) {
         level = "OFF";
     } else {
         match value {
-            1 => level = "DEBUG", // -v
+            1 => level = "DEBUG",           // -v
             v if v >= 2 => level = "TRACE", // -vv
-            _ => {},
+            _ => {}
         }
     }
 
@@ -189,14 +192,7 @@ fn set_verbosity_value(value: usize, is_quiet: bool) {
 
             let time = f.timestamp_millis();
 
-            writeln!(
-                f,
-                " {} {}{} > {}",
-                time,
-                level,
-                target,
-                record.args(),
-            )
+            writeln!(f, " {} {}{} > {}", time, level, target, record.args(),)
         })
         .try_init()
         .unwrap();
@@ -211,7 +207,7 @@ struct Padded<T> {
 
 impl<T: fmt::Display> fmt::Display for Padded<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{: <width$}", self.value, width=self.width)
+        write!(f, "{: <width$}", self.value, width = self.width)
     }
 }
 

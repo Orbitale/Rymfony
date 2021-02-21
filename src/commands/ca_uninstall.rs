@@ -73,7 +73,6 @@ fn macos_ca_uninstall(certificate_path: &PathBuf) {
 }
 
 fn window_ca_uninstall(certificate_path: &PathBuf) {
-
     let content = read_to_string(certificate_path).unwrap();
     let certif = X509::from_pem(content.as_bytes()).unwrap();
 

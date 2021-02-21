@@ -1,6 +1,6 @@
-use std::fs::File;
 use std::fs::metadata;
 use std::fs::read_to_string;
+use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -10,19 +10,25 @@ use openssl::bn::BigNum;
 use openssl::bn::MsbOption;
 use openssl::error::ErrorStack;
 use openssl::hash::MessageDigest;
-use openssl::pkey::{PKey, PKeyRef};
+use openssl::pkey::PKey;
+use openssl::pkey::PKeyRef;
 use openssl::pkey::Private;
 use openssl::rsa::Rsa;
-use openssl::x509::{X509NameBuilder, X509Ref, X509Req, X509ReqBuilder};
-use openssl::x509::extension::{AuthorityKeyIdentifier, ExtendedKeyUsage, KeyUsage, SubjectAlternativeName};
+use openssl::x509::extension::AuthorityKeyIdentifier;
 use openssl::x509::extension::BasicConstraints;
+use openssl::x509::extension::ExtendedKeyUsage;
+use openssl::x509::extension::KeyUsage;
+use openssl::x509::extension::SubjectAlternativeName;
 use openssl::x509::extension::SubjectKeyIdentifier;
+use openssl::x509::X509NameBuilder;
+use openssl::x509::X509Ref;
+use openssl::x509::X509Req;
+use openssl::x509::X509ReqBuilder;
 use openssl::x509::X509;
 
 type CertResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub(crate) fn get_cert_path() -> CertResult<(PathBuf, PathBuf)>
-{
+pub(crate) fn get_cert_path() -> CertResult<(PathBuf, PathBuf)> {
     let certificate_path = home_dir().unwrap().join(".rymfony").join("tls_cert.pem");
     let key_path = home_dir().unwrap().join(".rymfony").join("tls_key.pem");
 
@@ -56,8 +62,7 @@ pub(crate) fn get_cert_path() -> CertResult<(PathBuf, PathBuf)>
     return Ok((certificate_path, key_path));
 }
 
-pub(crate) fn get_ca_cert_path() -> CertResult<(PathBuf, PathBuf)>
-{
+pub(crate) fn get_ca_cert_path() -> CertResult<(PathBuf, PathBuf)> {
     let certificate_path = home_dir().unwrap().join(".rymfony").join("ca_tls_cert.pem");
     let key_path = home_dir().unwrap().join(".rymfony").join("ca_tls_key.pem");
     Ok((certificate_path, key_path))
@@ -91,7 +96,10 @@ fn load_or_generate_ca_cert() -> CertResult<(X509, PKey<Private>)> {
     Ok((ca_cert, ca_privkey))
 }
 
-fn load_ca_cert(certificate_path: &PathBuf, key_path: &PathBuf) -> Result<(X509, PKey<Private>), ErrorStack> {
+fn load_ca_cert(
+    certificate_path: &PathBuf,
+    key_path: &PathBuf,
+) -> Result<(X509, PKey<Private>), ErrorStack> {
     let content = read_to_string(certificate_path).unwrap();
     let certif = X509::from_pem(content.as_bytes()).unwrap();
 
@@ -129,12 +137,7 @@ fn generate_ca_key_pair() -> Result<(X509, PKey<Private>), ErrorStack> {
     cert_builder.set_not_after(&not_after)?;
 
     cert_builder.append_extension(BasicConstraints::new().critical().ca().build()?)?;
-    cert_builder.append_extension(
-        KeyUsage::new()
-            .critical()
-            .key_cert_sign()
-            .build()?,
-    )?;
+    cert_builder.append_extension(KeyUsage::new().critical().key_cert_sign().build()?)?;
 
     let subject_key_identifier =
         SubjectKeyIdentifier::new().build(&cert_builder.x509v3_context(None, None))?;
@@ -196,9 +199,7 @@ fn generate_ca_signed_cert(
             .key_encipherment()
             .build()?,
     )?;
-    cert_builder.append_extension(
-        ExtendedKeyUsage::new().server_auth().build()?,
-    )?;
+    cert_builder.append_extension(ExtendedKeyUsage::new().server_auth().build()?)?;
 
     let subject_key_identifier =
         SubjectKeyIdentifier::new().build(&cert_builder.x509v3_context(Some(ca_cert), None))?;

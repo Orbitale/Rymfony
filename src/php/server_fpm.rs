@@ -1,5 +1,5 @@
 #[cfg(not(target_family = "windows"))]
-use std::{fs::File, io::prelude::*, process::Command};
+use regex::{Regex, RegexBuilder};
 #[cfg(not(target_family = "windows"))]
 use std::error::Error;
 #[cfg(not(target_family = "windows"))]
@@ -10,15 +10,15 @@ use std::process::Child;
 #[cfg(not(target_family = "windows"))]
 use std::process::Stdio;
 #[cfg(not(target_family = "windows"))]
-use regex::{Regex, RegexBuilder};
+use std::{fs::File, io::prelude::*, process::Command};
 #[cfg(not(target_family = "windows"))]
 use users::{get_current_gid, get_current_uid};
 #[cfg(not(target_family = "windows"))]
 use wsl::is_wsl;
 
-#[cfg(not(target_family = "windows"))]
-use crate::{php::structs::PhpServerSapi};
 use crate::php::php_server::PhpServer;
+#[cfg(not(target_family = "windows"))]
+use crate::php::structs::PhpServerSapi;
 #[cfg(not(target_family = "windows"))]
 use crate::utils::network::find_available_port;
 #[cfg(not(target_family = "windows"))]
@@ -107,13 +107,16 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
 
     let rymfony_project_path = match get_rymfony_project_directory() {
         Ok(e) => e,
-        _ => panic!("Cannot find the \"HOME\" directory in which to write the php-fpm configuration file.")
+        _ => panic!(
+            "Cannot find the \"HOME\" directory in which to write the php-fpm configuration file."
+        ),
     };
     let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
 
     if !fpm_config_file_path.exists() {
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-        fpm_config_file.write_all(config.as_bytes())
+        fpm_config_file
+            .write_all(config.as_bytes())
             .expect("Could not write to php-fpm config file.");
     } else {
         // Read the file and search the port
@@ -130,10 +133,14 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
 
         remove_file(&fpm_config_file_path).expect("Could not remove php-fpm config file");
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-        fpm_config_file.write_all(content.as_bytes())
-            .expect(format!("Could not write to php-fpm config file {}.", &fpm_config_file_path.to_str().unwrap()).as_str());
+        fpm_config_file.write_all(content.as_bytes()).expect(
+            format!(
+                "Could not write to php-fpm config file {}.",
+                &fpm_config_file_path.to_str().unwrap()
+            )
+            .as_str(),
+        );
     }
-
 
     let pid_filename = format!("{}/fpm.pid", rymfony_project_path.to_str().unwrap());
 
@@ -170,7 +177,10 @@ impl Error for ReadPortError {}
 
 #[cfg(not(target_family = "windows"))]
 fn read_port(content: &str) -> std::result::Result<u16, ReadPortError> {
-    let re = RegexBuilder::new(r"^[ ]*listen[ ]?=[ ]?(.*)$").multi_line(true).build().unwrap();
+    let re = RegexBuilder::new(r"^[ ]*listen[ ]?=[ ]?(.*)$")
+        .multi_line(true)
+        .build()
+        .unwrap();
     let regex_port = Regex::new(r"^(?:(?:127\.0\.0\.1|localhost):)?(\d{1,5})").unwrap();
 
     let mut found = false;
@@ -193,7 +203,10 @@ fn read_port(content: &str) -> std::result::Result<u16, ReadPortError> {
 
 #[cfg(not(target_family = "windows"))]
 fn change_port(original_content: &str, new_port: &u16) -> String {
-    let re = RegexBuilder::new(r"^([ ]*listen[ ]?=[ ]?)(.*)$").multi_line(true).build().unwrap();
+    let re = RegexBuilder::new(r"^([ ]*listen[ ]?=[ ]?)(.*)$")
+        .multi_line(true)
+        .build()
+        .unwrap();
     let regex_port = Regex::new(r"^((?:(?:127\.0\.0\.1|localhost):)?)(\d{1,5})").unwrap();
 
     let mut found = false;
@@ -206,7 +219,10 @@ fn change_port(original_content: &str, new_port: &u16) -> String {
         if !captures.is_none() && !found {
             found = true;
             let capss = captures.unwrap();
-            content = content.replace(&caps[0], format!("{}{}{}", &caps[1], &capss[1], new_port.to_string()).as_str());
+            content = content.replace(
+                &caps[0],
+                format!("{}{}{}", &caps[1], &capss[1], new_port.to_string()).as_str(),
+            );
         }
     }
     if !found {
@@ -235,9 +251,12 @@ mod tests {
         ";
         let port = 2316;
         let result = change_port(&str, &port);
-        assert_eq!(result.as_str(), "
+        assert_eq!(
+            result.as_str(),
+            "
         listen = 127.0.0.1:2316
-        ");
+        "
+        );
     }
     #[test]
     fn change_port_multiple_listen() {
@@ -248,11 +267,14 @@ listen =localhost:18
         ";
         let port = 2316;
         let result = change_port(&str, &port);
-        assert_eq!(result.as_str(), "
+        assert_eq!(
+            result.as_str(),
+            "
 listen = 127.0.0.1:2316
 ;listen = 127.0.0.1:158
 ;listen =localhost:18
-        ");
+        "
+        );
     }
     #[test]
     fn change_port_listen_socket() {
@@ -261,8 +283,11 @@ listen = /path/to/socket
         ";
         let port = 2316;
         let result = change_port(&str, &port);
-        assert_eq!(result.as_str(), "
+        assert_eq!(
+            result.as_str(),
+            "
 ;listen = /path/to/socket
-        \nlisten = 127.0.0.1:2316");
+        \nlisten = 127.0.0.1:2316"
+        );
     }
 }
