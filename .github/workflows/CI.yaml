@@ -175,3 +175,15 @@ jobs:
                   asset_path: target/artifacts/rymfony.${{ matrix.os }}.exe
                   asset_name: rymfony-${{ steps.vars.outputs.RELEASE_OS }}-${{ steps.vars.outputs.RELEASE_VERSION }}.exe
                   asset_content_type: application/zip
+
+    remove-artifacts:
+        name: Remove artifacts
+        runs-on: ubuntu-latest
+        needs:
+            - build
+            - build-windows
+        steps:
+            - name: Remove URL artifacts
+              uses: geekyeggo/delete-artifact@v1
+              if: startsWith(github.ref, 'refs/tags/')
+              with: { name: release-url }
