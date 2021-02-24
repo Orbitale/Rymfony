@@ -51,11 +51,12 @@ jobs:
             - name: Setup cache
               uses: actions/cache@v2
               with:
-                path: |
-                  ~/.cargo/registry
-                  ~/.cargo/git
-                  target/
-                key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+                  path: |
+                      ~/.cargo/registry
+                      ~/.cargo/git
+                      target/release/build
+                      target/release/deps
+                  key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
             - uses: hecrj/setup-rust-action@v1
               with:
@@ -63,33 +64,54 @@ jobs:
 
             - name: (release only) Fetch release URL
               uses: actions/download-artifact@v2
-              id: download-artifacts
+              id: download_artifacts
               if: startsWith(github.ref, 'refs/tags/')
               with:
                   name: release-url
                   path: artifacts
 
-            - name: (release only) Store release URL
-              if: startsWith(github.ref, 'refs/tags/')
+            - name: Prepare build metadata
               id: vars
               run: |
-                  echo ::set-output name=RELEASE_URL::`cat ${{ steps.download-artifacts.outputs.download-path }}/release-url.txt`
-                  echo ::set-output name=RELEASE_VERSION::${GITHUB_REF#refs/tags/*}
+                  artifacts_path="${{ steps.download_artifacts.outputs.download-path }}"
+                  [[ $artifacts_path == "" ]] && artifacts_path="." # Prevents touching the "/" path.
+
+                  if touch "$artifacts_path/release-url.txt" ; then
+                      RELEASE_URL="$(cat "$artifacts_path/release-url.txt")"
+                      echo "Release url: $RELEASE_URL"
+                      echo "::set-output name=RELEASE_URL::$RELEASE_URL"
+                  fi
+
+                  echo "::set-output name=GITHUB_SHA_SHORT::${GITHUB_SHA::8}"
+
+                  echo "::set-output name=RELEASE_VERSION::"${GITHUB_REF#refs/tags/*}""
+
                   export RELEASE_OS="${{ matrix.os }}"
-                  echo ::set-output name=RELEASE_OS::${RELEASE_OS/-latest/}
-                  echo ::set-output name=GITHUB_SHA_SHORT::${GITHUB_SHA::8}
-                  echo "${RELEASE_OS/-latest/}-${GITHUB_SHA::8}-`date "+%Y-%m-%d--%H-%M-%S"`-nightly" > build_type.txt
+                  echo "::set-output name=RELEASE_OS::${RELEASE_OS/-latest/}"
+
+                  echo "::set-output name=RELEASE_DATE::`date "+%Y-%m-%d %H:%M:%S"`"
+            - name: (release only) Save build metadata
+              if: startsWith(github.ref, 'refs/tags/')
+              run: |
+                  echo "${{ steps.vars.outputs.RELEASE_VERSION }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
+
+            - name: (main branch only) Save build metadata
+              if: github.ref == 'refs/heads/main'
+              run: |
+                  echo "nightly ${{ steps.vars.outputs.GITHUB_SHA_SHORT }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
 
             - name: 🏗 Build
               run: |
-                cargo build --release --all-targets
+                  cat build_metadata.txt
+
+                  cargo build --release
 
             - name: (main branch only) Push nightly build
               uses: actions/upload-artifact@v2
               if: github.ref == 'refs/heads/main'
               with:
-                name: rymfony.${{ steps.vars.outputs.RELEASE_OS }}.${{ steps.vars.outputs.GITHUB_SHA }}
-                path: target/release/rymfony
+                  name: rymfony.${{ steps.vars.outputs.RELEASE_OS }}
+                  path: target/release/rymfony
 
             - name: (release only) Upload Release
               uses: actions/upload-release-asset@v1
@@ -98,7 +120,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                   upload_url: ${{ steps.vars.outputs.RELEASE_URL }}
-                  asset_path: target/artifacts/rymfony.${{ matrix.os }}
+                  asset_path: target/release/rymfony
                   asset_name: rymfony-${{ steps.vars.outputs.RELEASE_OS }}-${{ steps.vars.outputs.RELEASE_VERSION }}
                   asset_content_type: application/zip
 
@@ -116,13 +138,12 @@ jobs:
             - name: Setup cache
               uses: actions/cache@v2
               with:
-                path: |
-                  ~/.cargo/registry
-                  ~/.cargo/git
-                  %HOME%/.cargo/registry
-                  %HOME%/.cargo/git
-                  target/
-                key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+                  path: |
+                      %HOME%/.cargo/registry
+                      %HOME%/.cargo/git
+                      target/release/build
+                      target/release/deps
+                  key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
             - uses: hecrj/setup-rust-action@v1
               with:
@@ -130,40 +151,56 @@ jobs:
 
             - name: (release only) Fetch release URL
               uses: actions/download-artifact@v2
-              id: download-artifacts
+              id: download_artifacts
               if: startsWith(github.ref, 'refs/tags/')
               with:
                   name: release-url
                   path: artifacts
 
-            - name: (release only) Store release URL
-              if: startsWith(github.ref, 'refs/tags/')
+            - name: Prepare build metadata
               id: vars
+              shell: bash
               run: |
-                  echo ::set-output name=RELEASE_URL::$(cat artifacts/release-url.txt)
+                  artifacts_path="${{ steps.download_artifacts.outputs.download-path }}"
+                  [[ $artifacts_path == "" ]] && artifacts_path="." # Prevents touching the "/" path.
 
-                  $RELEASE_VERSION="$env:GITHUB_REF" -replace 'refs/tags/',''
-                  echo ::set-output name=RELEASE_VERSION::${GITHUB_REF#refs/tags/*}
+                  if touch "$artifacts_path/release-url.txt" ; then
+                      RELEASE_URL="$(cat "$artifacts_path/release-url.txt")"
+                      echo "Release url: $RELEASE_URL"
+                      echo "::set-output name=RELEASE_URL::$RELEASE_URL"
+                  fi
 
-                  $GITHUB_SHA_SHORT=$env:GITHUB_SHA.substring(0,8)
-                  echo ::set-output name=GITHUB_SHA_SHORT::$GITHUB_SHA_SHORT
+                  echo "::set-output name=GITHUB_SHA_SHORT::${GITHUB_SHA::8}"
 
-                  $RELEASE_OS="${{ matrix.os }}" -replace '-latest',''
-                  echo ::set-output name=RELEASE_OS::$RELEASE_OS
+                  echo "::set-output name=RELEASE_VERSION::"${GITHUB_REF#refs/tags/*}""
 
-                  $RELEASE_DATE = Get-Date -Format "yyyy-MM-dd--HH-mm-ss"
-                  echo $RELEASE_OS-$GITHUB_SHA_SHORT-$RELEASE_DATE-nightly > build_type.txt
+                  export RELEASE_OS="${{ matrix.os }}"
+                  echo "::set-output name=RELEASE_OS::${RELEASE_OS/-latest/}"
+
+                  echo "::set-output name=RELEASE_DATE::`date "+%Y-%m-%d %H:%M:%S"`"
+
+            - name: (release only) Save build metadata
+              if: startsWith(github.ref, 'refs/tags/')
+              run: |
+                  echo "${{ steps.vars.outputs.RELEASE_VERSION }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
+
+            - name: (main branch only) Save build metadata
+              if: github.ref == 'refs/heads/main'
+              run: |
+                  echo "nightly ${{ steps.vars.outputs.GITHUB_SHA_SHORT }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
 
             - name: 🏗 Build
               run: |
-                cargo build --release --all-targets
+                  cat build_metadata.txt
+
+                  cargo build --release
 
             - name: (main branch only) Push nightly build
               uses: actions/upload-artifact@v2
               if: github.ref == 'refs/heads/main'
               with:
-                name: rymfony.${{ steps.vars.outputs.RELEASE_OS }}.${{ steps.vars.outputs.GITHUB_SHA }}.exe
-                path: target/release/rymfony.exe
+                  name: rymfony.${{ steps.vars.outputs.RELEASE_OS }}
+                  path: target/release/rymfony.exe
 
             - name: (release only) Upload Release
               uses: actions/upload-release-asset@v1
@@ -172,7 +209,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                   upload_url: ${{ steps.vars.outputs.RELEASE_URL }}
-                  asset_path: target/artifacts/rymfony.${{ matrix.os }}.exe
+                  asset_path: target/release/rymfony.exe
                   asset_name: rymfony-${{ steps.vars.outputs.RELEASE_OS }}-${{ steps.vars.outputs.RELEASE_VERSION }}.exe
                   asset_content_type: application/zip
 
