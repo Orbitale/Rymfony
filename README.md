@@ -3,7 +3,7 @@
 Rymfony
 =======
 
-Rymfony is a work-in-progress command-line tool to mimic the behavior of the Symfony CLI binary.
+Rymfony is a command-line tool to mimic the behavior of the Symfony CLI binary.
 
 ## Install
 
