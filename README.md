@@ -17,32 +17,32 @@ This allows you to test the latest version right away!
 
 Here are the links to download them:
 
-| [![nightly.ubuntu-latest](https://img.shields.io/badge/Ubuntu%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.ubuntu.zip) |
+| [![nightly.ubuntu-latest](https://img.shields.io/badge/Ubuntu%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main/rymfony.ubuntu.zip) |
 |:--|
-| [![nightly.windows-latest](https://img.shields.io/badge/Windows%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.windows.zip) |
-| [![nightly.macOS-latest](https://img.shields.io/badge/MacOS%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.macOS.zip) |
-| [![All nightly releases](https://img.shields.io/badge/All%20releases-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main) |
+| [![nightly.windows-latest](https://img.shields.io/badge/Windows%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main/rymfony.windows.zip) |
+| [![nightly.macOS-latest](https://img.shields.io/badge/MacOS%20nightly-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main/rymfony.macOS.zip) |
+| [![All nightly releases](https://img.shields.io/badge/All%20releases-download-brightgreen)](https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main) |
 
 Unzip the file and put the `rymfony` executable file in your `PATH`, and you're set!
 
-If you need more architectures and OSes, feel free to check the [CI.yaml](.github/workflows/CI.yaml) Github Action and contribute for more!
+If you need more architectures and OSes, feel free to check the [Build.yaml](.github/workflows/Build.yaml) Github Action and contribute for more!
 
 #### Download on Linux
 
 ```
-curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.ubuntu.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony && rm rymfony.zip
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main/rymfony.ubuntu.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony && rm rymfony.zip
 ```
 
 #### Download on Windows
 
 With `cmd` (`powershell` must be accessible):
 ```
-powershell Invoke-WebRequest https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.windows.zip -OutFile rymfony.zip && powershell Expand-Archive -Force rymfony.zip . && rm rymfony.zip
+powershell Invoke-WebRequest https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main/rymfony.windows.zip -OutFile rymfony.zip && powershell Expand-Archive -Force rymfony.zip . && rm rymfony.zip
 ```
 
 With Powershell directly:
 ```
-Invoke-WebRequest https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.windows.zip -OutFile rymfony.zip && Expand-Archive -Force rymfony.zip . && rm rymfony.zip
+Invoke-WebRequest https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main/rymfony.windows.zip -OutFile rymfony.zip && Expand-Archive -Force rymfony.zip . && rm rymfony.zip
 ```
 
 Then, add the `rymfony.exe` executable somewhere in your PATH.
@@ -50,7 +50,7 @@ Then, add the `rymfony.exe` executable somewhere in your PATH.
 #### Download on MacOS
 
 ```
-curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.macOS.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/local/bin/rymfony && sudo chmod a+x /usr/local/bin/rymfony && rm rymfony.zip
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/Build.yaml/main/rymfony.macOS.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/local/bin/rymfony && sudo chmod a+x /usr/local/bin/rymfony && rm rymfony.zip
 ```
 
 ### Manual build

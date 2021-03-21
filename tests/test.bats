@@ -7,7 +7,7 @@
 load "helpers/common"
 
 @test "Make sure server is running" {
-    run curl --no-progress-meter -I https://127.0.0.1:8000
+    run curl --insecure --no-progress-meter -I https://127.0.0.1:8000
     assert_success
     assert_line --partial --index 0 "HTTP/2 200"
     assert_line --partial --index 1 "content-type: text/plain;charset=UTF-8"
@@ -18,7 +18,7 @@ load "helpers/common"
 }
 
 @test "Test output with custom headers" {
-    run curl -i --no-progress-meter \
+    run curl --insecure -i --no-progress-meter \
       https://127.0.0.1:8000/api/project \
       --header 'Accept: application/json' \
       --header 'User-Agent: test runner' \
@@ -46,7 +46,7 @@ load "helpers/common"
     assert_line --partial --index 18 '        "QUERY_STRING": "",'
     assert_line --partial --index 19 '        "REMOTE_ADDR": "127.0.0.1",'
     assert_line --partial --index 20 '        "REMOTE_HOST": "__",'
-    assert_line --partial --index 21 '        "REMOTE_PORT": "61000",'
+    assert_line --partial --index 21 '        "REMOTE_PORT": "61001",'
     assert_line --partial --index 22 '        "REQUEST_METHOD": "GET",'
     assert_line --partial --index 23 '        "REQUEST_URI": "/api/project",'
     assert_line  --regexp --index 24 '        "SCRIPT_FILENAME": "[^"]+/index.php",'
