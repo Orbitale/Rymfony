@@ -1,28 +1,25 @@
 #[cfg(not(target_family = "windows"))]
-use regex::{Regex, RegexBuilder};
-#[cfg(not(target_family = "windows"))]
-use std::error::Error;
-#[cfg(not(target_family = "windows"))]
-use std::fmt;
-#[cfg(not(target_family = "windows"))]
-use std::fs::{read_to_string, remove_file};
-use std::process::Child;
-#[cfg(not(target_family = "windows"))]
-use std::process::Stdio;
-#[cfg(not(target_family = "windows"))]
-use std::{fs::File, io::prelude::*, process::Command};
-#[cfg(not(target_family = "windows"))]
-use users::{get_current_gid, get_current_uid};
-#[cfg(not(target_family = "windows"))]
-use wsl::is_wsl;
+use {
+    regex::Regex,
+    regex::RegexBuilder,
+    std::fmt,
+    std::error::Error,
+    std::fs::File,
+    std::fs::read_to_string,
+    std::fs::remove_file,
+    std::io::prelude::*,
+    std::process::Command,
+    std::process::Child,
+    std::path::Path,
+    std::process::Stdio,
+    users::get_current_gid,
+    users::get_current_uid,
+    crate::php::structs::PhpServerSapi,
+    crate::utils::network::find_available_port,
+    crate::utils::project_directory::get_rymfony_project_directory
+};
 
 use crate::php::php_server::PhpServer;
-#[cfg(not(target_family = "windows"))]
-use crate::php::structs::PhpServerSapi;
-#[cfg(not(target_family = "windows"))]
-use crate::utils::network::find_available_port;
-#[cfg(not(target_family = "windows"))]
-use crate::utils::project_directory::get_rymfony_project_directory;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
