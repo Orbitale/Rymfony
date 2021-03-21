@@ -92,8 +92,9 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
 
     let mut port = find_available_port(FPM_DEFAULT_PORT);
 
-    // TODO systemd support should be detected dynamically on Linux
-    let systemd_support = !cfg!(target_os = "macos") && !is_wsl();
+    // This is how you check whether systemd is active.
+    // @see https://www.freedesktop.org/software/systemd/man/sd_booted.html
+    let systemd_support = Path::new("/run/systemd/system/").exists();
 
     let config = FPM_DEFAULT_CONFIG
         .replace("{{ uid }}", uid_str.as_str())
