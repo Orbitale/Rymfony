@@ -9,7 +9,6 @@ use {
     std::fs::remove_file,
     std::io::prelude::*,
     std::process::Command,
-    std::process::Child,
     std::path::Path,
     std::process::Stdio,
     users::get_current_gid,
@@ -20,6 +19,7 @@ use {
 };
 
 use crate::php::php_server::PhpServer;
+use std::process::Child;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
