@@ -66,14 +66,11 @@ pub(crate) fn start() -> PhpServer {
     let process_status = process.try_wait();
 
     match process_status {
-        Ok(Some(status)) => panic!(format!("PHP server exited with {}", status)),
+        Ok(Some(status)) => panic!("PHP server exited with {}", status),
         Ok(None) => {
             info!("PHP server is ready");
         }
-        Err(e) => panic!(format!(
-            "An error occured when checking PHP server health: {:?}",
-            e
-        )),
+        Err(e) => panic!("An error occured when checking PHP server health: {:?}", e),
     }
 
     let process_pid = process.id();
