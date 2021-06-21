@@ -13,7 +13,7 @@ console = "0.14"
 ctrlc = { version = "3.1", features = ["termination"] }
 dirs = "3.0"
 env_logger = "0.8"
-fastcgi-client = "0.5"
+fastcgi-client = "0.7"
 glob = "0.3"
 http = "0.2"
 httparse = "1.4"

@@ -1,8 +1,7 @@
-use std::net::SocketAddr;
-use std::net::TcpStream;
 
 use fastcgi_client::Client;
 use fastcgi_client::Params;
+use fastcgi_client::Request as FastCgiRequest;
 use http::Request;
 use hyper::header::HeaderName;
 use hyper::header::HeaderValue;
@@ -12,7 +11,9 @@ use hyper::Response;
 use regex::Captures;
 use regex::Regex;
 use std::convert::Infallible;
+use std::net::SocketAddr;
 use std::path::PathBuf;
+use tokio::net::TcpStream;
 use warp::host::Authority;
 
 pub(crate) async fn handle_fastcgi(
@@ -40,7 +41,7 @@ pub(crate) async fn handle_fastcgi(
 
     let http_version = crate::http::version::as_str(parts.version);
 
-    let stream = match TcpStream::connect(("127.0.0.1", *php_port)) {
+    let stream = match TcpStream::connect(("127.0.0.1", *php_port)).await {
         Ok(t) => t,
         Err(e) => {
             return Ok(error_as_response(e, 503));
@@ -66,7 +67,7 @@ pub(crate) async fn handle_fastcgi(
     // See: https://www.nginx.com/resources/wiki/start/topics/examples/phpfcgi/
     // See also RFC there: https://tools.ietf.org/html/rfc3875#page-11
     //
-    let mut fcgi_params = Params::with_predefine();
+    let mut fcgi_params = Params::default();
     let empty_header = &HeaderValue::from_str("").unwrap();
     fcgi_params.insert(
         "CONTENT_LENGTH",
@@ -120,7 +121,7 @@ pub(crate) async fn handle_fastcgi(
     //
     // Ignition! Do the request!
     //
-    let fcgi_output = client.do_request(&fcgi_params, &mut fcgi_request_body);
+    let fcgi_output = client.execute(FastCgiRequest::new(fcgi_params, &mut fcgi_request_body)).await;
 
     // Retrieve request output
     let (raw_fcgi_stdout, fcgi_stderr) = match fcgi_output {
