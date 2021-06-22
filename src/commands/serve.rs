@@ -31,6 +31,20 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
         .name("server:start")
         .alias("serve")
         .about("Runs an HTTP server")
+        .after_help("
+Runs an HTTP server and a PHP server (based on FPM or CGI depending on what's available).
+
+Rymfony is capable of detecting your Document Root automatically.
+It will do so in this order:
+ * ./public/
+ * ./web/
+
+Rymfony is also capable of detecting your PHP entrypoint automatically.
+It will do so in this order:
+ * index.php
+ * app_dev.php
+ * app.php
+")
         .arg(
             Arg::with_name("port")
                 .long("port")
@@ -53,7 +67,7 @@ pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
         .arg(
             Arg::with_name("passthru")
                 .long("passthru")
-                .help("The PHP script all requests will be passed to")
+                .help("The PHP entrypoint all requests will be passed to")
                 .takes_value(true),
         )
         .arg(
@@ -151,7 +165,7 @@ fn serve_foreground(args: &ArgMatches) {
                 if script == "app_dev.php" {
                     warn!("Entrypoint was automaticaly resolved to \"app_dev.php\".");
                     warn!("If you are using Rymfony on productions servers,");
-                    warn!("the best practice is to remove this file when deploying, and us \"app.php\" instead.");
+                    warn!("the best practice is to remove this file when deploying, and use \"app.php\" instead.");
                 }
                 script_filename = script.to_string();
                 break;

@@ -103,12 +103,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
         .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
-    let rymfony_project_path = match get_rymfony_project_directory() {
-        Ok(e) => e,
-        _ => panic!(
-            "Cannot find the \"HOME\" directory in which to write the php-fpm configuration file."
-        ),
-    };
+    let rymfony_project_path = get_rymfony_project_directory().unwrap();
     let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
 
     if !fpm_config_file_path.exists() {
@@ -120,10 +115,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         // Read the file and search the port
         let mut content = read_to_string(&fpm_config_file_path).unwrap();
 
-        let port_used = match read_port(&content) {
-            Ok(read_port) => read_port,
-            _ => port,
-        };
+        let port_used = read_port(&content).unwrap_or(port);
 
         let port_checked = find_available_port(port_used);
         content = change_port(&content, &port_checked);
@@ -192,7 +184,7 @@ fn read_port(content: &str) -> std::result::Result<u16, ReadPortError> {
         }
     }
     if !found {
-        return Err(ReadPortError("Unable to found port".into()));
+        return Err(ReadPortError("Unable to find php-fpm port".into()));
     }
 
     let port_num: u16 = read_port.parse().unwrap();

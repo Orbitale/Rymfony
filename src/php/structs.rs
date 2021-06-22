@@ -211,7 +211,7 @@ impl PhpBinary {
             return self.cli.clone();
         } else {
             panic!(
-                "Cannot detect preferred sapi for PHP \"{}\"",
+                "Cannot detect preferred SAPI for PHP \"{}\"",
                 self._version.version()
             );
         }
@@ -229,7 +229,7 @@ impl PhpBinary {
                 self.cgi = path.clone();
             }
             PhpServerSapi::Unknown => {
-                panic!("Unknown sapi \"{}\" at path \"{}\"", &sapi, &path);
+                panic!("Unknown SAPI \"{}\" at path \"{}\"", &sapi, &path);
             }
         }
     }

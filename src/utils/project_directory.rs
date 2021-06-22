@@ -37,7 +37,7 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
         if !rymfony_project_path.is_dir() {
             create_dir(&rymfony_project_path).expect(
                 format!(
-                    "Unable to make directory for project {}",
+                    "Unable to create directory for project {}",
                     rymfony_project_path.to_str().unwrap()
                 )
                 .as_str(),

@@ -60,12 +60,7 @@ use std::sync::atomic::Ordering;
 use utils::current_process_name;
 
 fn main() {
-    let home_dir = home_dir().unwrap();
-    if home_dir.to_str().unwrap() != "" {
-        fs::create_dir_all(home_dir.join(".rymfony")).unwrap();
-    }
-
-    let commands = vec![
+    let application_commands = vec![
         crate::commands::php_list::command_config(),
         crate::commands::ca_install::command_config(),
         crate::commands::ca_uninstall::command_config(),
@@ -74,14 +69,19 @@ fn main() {
         crate::commands::new_symfony::command_config(),
     ];
 
+    let home_dir = home_dir().unwrap();
+    if home_dir.to_str().unwrap() != "" {
+        fs::create_dir_all(home_dir.join(".rymfony")).unwrap();
+    }
+
     let version = get_version_suffix();
 
     let app = App::new("rymfony")
         .version(version.as_str())
-        .author("Alex Rock <alex@orbitale.io>")
+        .author("Alex \"Pierstoval\" Rock <alex@orbitale.io>")
         .about("
 A command-line tool to spawn a PHP server behind an HTTP FastCGI proxy,
-inspired by Symfony CLI, but open-source.
+inspired by Symfony CLI, but Open Source.
 
 https://github.com/Orbitale/Rymfony
 ")
@@ -100,7 +100,7 @@ https://github.com/Orbitale/Rymfony
                 .takes_value(false)
                 .help("Do not display any output. Has precedence over -v|--verbose"),
         )
-        .subcommands(commands);
+        .subcommands(application_commands);
 
     let matches = app.get_matches();
     let verbose_value = matches.indices_of("verbose").unwrap_or_default();

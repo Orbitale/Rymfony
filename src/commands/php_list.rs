@@ -10,8 +10,9 @@ use crate::config::config::save_binaries_to_config;
 use crate::php;
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("php:list").about("List all available PHP executables.
-
+    SubCommand::with_name("php:list")
+        .about("List all available PHP executables.")
+        .after_help("
 If you have PHP installed in a custom folder, you can use the RYMFONY_PATH environment variable before executing the command.
 
 Example:

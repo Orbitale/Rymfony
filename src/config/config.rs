@@ -32,7 +32,7 @@ pub(crate) fn save_binaries_to_config(binaries: &HashMap<PhpVersion, PhpBinary>)
 
     versions_file
         .write_all(serialized.as_bytes())
-        .expect("Could not write PHP versions to JSON file.");
+        .expect("Could not write PHP versions to cache file.");
 }
 
 pub(crate) fn load_binaries_from_config(
@@ -49,7 +49,7 @@ pub(crate) fn load_binaries_from_config(
 
     let binaries: HashMap<PhpVersion, PhpBinary> =
         serde_json::from_str(read_to_string(&versions_file_path).unwrap().as_str())
-            .expect("Unable to unserialize data");
+            .expect("Unable to unserialize PHP binaries data");
 
     Ok(binaries)
 }

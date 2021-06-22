@@ -44,7 +44,7 @@ pub(crate) fn start() -> PhpServer {
 
     if !phpbin_path.is_executable() {
         error!(
-            "PHP Binary not found or not executable: {}",
+            "PHP binary not found or not executable: {}",
             php_bin.as_str()
         );
         error!("You can execute \"rymfony php:list --refresh\" to update binaries paths cache.");
@@ -76,7 +76,7 @@ pub(crate) fn start() -> PhpServer {
     let process_pid = process.id();
 
     ctrlc::set_handler(move || {
-        info!("Stopping PHP process... ");
+        info!("Stopping PHP process...");
 
         #[cfg(not(target_os = "windows"))]
         {
@@ -86,7 +86,7 @@ pub(crate) fn start() -> PhpServer {
 
         match process.kill() {
             Ok(_) => info!("PHP process stopped."),
-            Err(e) => info!("An error occured when stopping PHP: {:?}", e),
+            Err(e) => error!("An error occured when trying to stop PHP: {:?}", e),
         }
         process::exit(0);
     })
@@ -108,7 +108,7 @@ pub(crate) fn start() -> PhpServer {
         args_str,
     );
 
-    //Serialize
+    // Serialize PID content
     let serialized = serde_json::to_string_pretty(&pid_info).unwrap();
     let path = get_rymfony_project_directory().unwrap();
     let server_pid_file = path.join("server.pid");
@@ -116,7 +116,7 @@ pub(crate) fn start() -> PhpServer {
 
     versions_file
         .write_all(serialized.as_bytes())
-        .expect("Could not write Process information to JSON file.");
+        .expect("Could not write PHP process information to cache file.");
 
     php_server
 }

@@ -16,6 +16,7 @@ use crate::config::config::load_binaries_from_config;
 use crate::php::structs::PhpBinary;
 use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
+use std::ffi::OsString;
 
 pub(crate) fn get_project_version() -> String {
     let _binaries = all();
@@ -114,10 +115,11 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
         .collect::<Vec<&str>>();
 
     for dir in path_dirs {
-        trace!("Checking path for binaries: {}", &dir);
+        trace!("Checking path for PHP binaries: {}", &dir);
         merge_binaries(binaries, binaries_from_dir(PathBuf::from(dir)));
     }
 }
+
 fn binaries_from_rymfony_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
     let path_string = env::var_os("RYMFONY_PATH").unwrap_or(std::ffi::OsString::from(""));
     let path_dirs = path_string
@@ -175,14 +177,14 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
             // This means that we have a "php"-like dir.
             // For recursive search, insert a "*" glob character in the "path" variable beforehand.
             trace!(
-                "Found path {}, but it is a directory.",
+                "Found path \"{}\", but it is a directory.",
                 &binary.to_str().unwrap()
             );
             continue;
         }
 
         if !binaries_regex.is_match(binary.to_str().unwrap()) {
-            trace!("Path {} does not match.", &binary.to_str().unwrap());
+            trace!("Path \"{}\" does not match.", &binary.to_str().unwrap());
             continue;
         }
 
@@ -256,7 +258,7 @@ fn get_binary_metadata(binary: &str) -> Result<(PhpVersion, PhpServerSapi), ()> 
 
     if !php_version_output_regex.is_match(&output) {
         panic!(
-            "Version \"{}\" for php binary \"{}\" is invalid.",
+            "Version \"{}\" for PHP binary \"{}\" is invalid.",
             &output, &binary
         );
     }

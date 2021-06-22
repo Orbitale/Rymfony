@@ -194,16 +194,16 @@ fn get_render_static_path(document_root: &str, request_path: &str) -> String {
 
     if docroot_path.is_file() {
         render_static = docroot_path.to_str().unwrap();
-        debug!("Static file {} found in document root.", &render_static);
+        debug!("Static file \"{}\" found in document root.", &render_static);
     } else if docroot_public_path.is_file() {
         render_static = docroot_public_path.to_str().unwrap();
         debug!(
-            "Static file {} found in \"public/\" subdirectory.",
+            "Static file \"{}\" found in \"public/\" subdirectory.",
             &render_static
         );
     } else if docroot_web_path.is_file() {
         debug!(
-            "Static file {} found in \"web/\" subdirectory.",
+            "Static file \"{}\" found in \"web/\" subdirectory.",
             &render_static
         );
         render_static = docroot_web_path.to_str().unwrap();
