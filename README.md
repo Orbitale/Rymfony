@@ -219,9 +219,10 @@ To do (order of priority, done first):
 - Commands and command-line options
     - 🟩 Add a `stop` command.
     - 🟥 Create `open:local` command.
-    - 🟥 Create `server:logs` command.
+    - 🟥 Create `server:logs` command (needs #81 first).
     - 🟥 Create `server:list` command.
     - 🟥 Create `server:status` command.
+    - 🟥 Create `config` command, to display project's config, and maybe change it.
     - 🟥 Create `php` command (should use the configured PHP version).
     - 🟥 Create `console` command for Symfony (should use the configured PHP version, and be compatible with SF 2+).
     - 🟥 Create `artisan` command for Laravel (should use the configured PHP version).
@@ -230,7 +231,7 @@ To do (order of priority, done first):
     - 🟩 Publish nightly builds of the binary as artifacts by using Github Actions.
     - 🟩 Add support for verbosity levels in output logging, like `-v`, `-vv`, `-vvv` and `-q`.
     - 🟩 Add version hash to nightly builds.
-    - 🟥 Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
+    - 🟩 Publish releases of the binary as artifacts by using Github Actions. For now, only "nightly" builds are released.
 - HTTP server
     - 🟩 Make sure we can run a web server using Hyper and Tokio.
     - 🟩 Put the web-server execution in a separate `serve.rs` file.
@@ -238,6 +239,7 @@ To do (order of priority, done first):
     - 🟩 Make sure the web server's IP and port can be customized through a `--listen ip:port` option. 
     - 🟩 Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
     - 🟩 Transform the standard web server into an HTTP proxy to PHP using a FastCGI client
+    - 🟥 #81 Tail logs to a file when server is run in the background
     - 🟥 Make sure the server process is **totally** detached from the terminal in Windows. There are some issues about this, and it needs more investigation. Check [this blog post section](https://www.orbitale.io/2020/06/25/being-a-php-developer-on-windows-10-cool-snippets.html#3-symfony-binary-the-http-server) for more information.
     - 🟥 When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
     - 🟥 Allow listing running servers globally, without necessarily using a `.pid` file.
@@ -264,8 +266,7 @@ To do (order of priority, done first):
     - 🟥 (utopia) Support setups that have multiple PHP versions installed (such as on Ubuntu/Debian with deb-sury's repo, or with Homebrew on OSX), and allow customizing the version.
     - PHP Server
         - 🟩 Don't rewrite the `fpm-conf.ini` configuration file each time a server is launched.
-        - 🟥 Find a way to differenciate servers configurations, in case multiple servers are started
+        - 🟩 Find a way to differenciate servers configurations, in case multiple servers are started: Done by creating a specific PHP-FPM configuration for each project 🙂
 - Going way further
     - 🟥 (utopia) Detect whether the project uses Docker Compose
     - 🟥 (utopia) Be able to dynamically create environment variables for some common use-cases (database, redis, rabbitmq, mailcatcher).
-- Done (latest first):
