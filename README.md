@@ -30,7 +30,7 @@ If you need more architectures and OSes, feel free to check the [CI.yaml](.githu
 #### Download on Linux
 
 ```
-curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.ubuntu.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.ubuntu.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony && rm rymfony.zip
 ```
 
 #### Download on Windows
@@ -50,7 +50,7 @@ Then, add the `rymfony.exe` executable somewhere in your PATH.
 #### Download on MacOS
 
 ```
-curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.macOS.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.macOS.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony && rm rymfony.zip
 ```
 
 ### Manual build
