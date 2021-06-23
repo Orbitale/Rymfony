@@ -50,7 +50,7 @@ Then, add the `rymfony.exe` executable somewhere in your PATH.
 #### Download on MacOS
 
 ```
-curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.macOS.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/bin/rymfony && sudo chmod a+x /usr/bin/rymfony && rm rymfony.zip
+curl -sSL https://nightly.link/Orbitale/Rymfony/workflows/CI.yaml/main/rymfony.macOS.zip -o rymfony.zip && unzip rymfony.zip && sudo mv rymfony /usr/local/bin/rymfony && sudo chmod a+x /usr/local/bin/rymfony && rm rymfony.zip
 ```
 
 ### Manual build
