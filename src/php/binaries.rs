@@ -121,7 +121,7 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
 }
 
 fn binaries_from_rymfony_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
-    let path_string = env::var_os("RYMFONY_PATH").unwrap_or(std::ffi::OsString::from(""));
+    let path_string = env::var_os("RYMFONY_PATH").unwrap_or(OsString::from(""));
     let path_dirs = path_string
         .to_str()
         .unwrap()

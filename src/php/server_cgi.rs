@@ -1,7 +1,7 @@
 use crate::php::php_server::PhpServer;
 use crate::php::structs::PhpServerSapi;
 use crate::utils::project_directory::get_rymfony_project_directory;
-use std::fs::File;
+use std::fs::{File, create_dir_all};
 use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
@@ -11,7 +11,13 @@ const CGI_DEFAULT_PORT: u16 = 65535;
 pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let mut command = Command::new(php_bin);
 
-    let error_log_file = get_rymfony_project_directory().unwrap().join("php-cgi.log");
+    let log_path = get_rymfony_project_directory().unwrap().join("log");
+
+    if !log_path.is_dir() {
+        create_dir_all(&log_path).expect("Could not create log directory for project");
+    }
+
+    let error_log_file = log_path.join("php-cgi.log");
 
     if !error_log_file.exists() {
         let file_result = File::create(&error_log_file);
