@@ -1,3 +1,8 @@
+# v0.2.1
+
+* PHP-FPM logs are redirected to a file in the Rymfony project directory (located in the `$HOME/.rymfony/{hash}/log/` directory) instead of being redirected to `stderr`.
+* Send the right `SERVER_SOFTWARE` header through FastCGI.
+
 # v0.2.0
 
 * Update wording, help messages and error messages
