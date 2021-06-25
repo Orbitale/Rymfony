@@ -231,7 +231,7 @@ fn colored_level<'a>(style: &'a mut Style, level: Level) -> StyledValue<'a, &'st
     }
 }
 
-fn get_version_suffix() -> String {
+pub(crate) fn get_version_suffix() -> String {
     let build_metadata = include_str!("../build_metadata.txt").trim().replace("\n", "");
 
     if build_metadata == "" {

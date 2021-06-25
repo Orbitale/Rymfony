@@ -15,6 +15,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use tokio::net::TcpStream;
 use warp::host::Authority;
+use crate::get_version_suffix;
 
 pub(crate) async fn handle_fastcgi(
     document_root: &str,
@@ -91,7 +92,7 @@ pub(crate) async fn handle_fastcgi(
     fcgi_params.insert("HTTP_HOST", &hostname);
     fcgi_params.insert("SERVER_PORT", http_port_str.as_str());
     fcgi_params.insert("SERVER_PROTOCOL", http_version);
-    fcgi_params.insert("SERVER_SOFTWARE", "Rymfony v0.1.0");
+    fcgi_params.insert("SERVER_SOFTWARE", &get_version_suffix());
 
     if use_tls {
         fcgi_params.insert("HTTPS", "On");
