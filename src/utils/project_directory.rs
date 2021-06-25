@@ -1,7 +1,7 @@
 use std::env;
 use std::error::Error;
 use std::fmt;
-use std::fs::create_dir;
+use std::fs::create_dir_all;
 use std::path::PathBuf;
 use std::result::Result;
 
@@ -35,7 +35,7 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
             .join(format!("{:x}", hash));
 
         if !rymfony_project_path.is_dir() {
-            create_dir(&rymfony_project_path).expect(
+            create_dir_all(&rymfony_project_path).expect(
                 format!(
                     "Unable to create directory for project {}",
                     rymfony_project_path.to_str().unwrap()
@@ -44,10 +44,27 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
             );
         }
 
+        create_log_directory(&rymfony_project_path);
+
         return Ok(rymfony_project_path);
     }
 
     Err(Box::new(ProjectDirectoryError(
         "Cannot find the \"HOME\" directory".into(),
     )))
+}
+
+fn create_log_directory(rymfony_project_path: &PathBuf) {
+    let log_dir = rymfony_project_path.join("log");
+
+    if !log_dir.is_dir() {
+        create_dir_all(&log_dir).expect(
+            format!(
+                "Unable to create logs directory for project {}",
+                log_dir.to_str().unwrap()
+            )
+            .as_str(),
+        );
+    }
+
 }

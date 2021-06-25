@@ -50,7 +50,7 @@ $content = "Hey! It works!\n"
     'Server parameters' => $display,
     'Request headers' => $headers,
     'Request body' => $requestBody,
-], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 $logs = <<<LOG
 ===========================

@@ -34,8 +34,7 @@ const FPM_DEFAULT_CONFIG: &str = "
 [global]
 log_level = {{ log_level }}
 
-; Output to stderr
-error_log = /dev/fd/2
+error_log = {{ rymfony_project_dir }}/log/fpm.err.log
 
 ; This should be managed by Rymfony.
 ; This gives the advantage of keeping control over the process,
@@ -61,7 +60,6 @@ pm.max_spare_servers = 3
 pm.status_path = /_fpm-status
 
 ; Output to stderr
-php_admin_value[error_log] = /dev/fd/2
 php_admin_flag[log_errors] = on
 
 ; Redirect stdout and stderr to main error log instead of /dev/null (default config for fastcgi)
@@ -96,14 +94,16 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     // @see https://www.freedesktop.org/software/systemd/man/sd_booted.html
     let systemd_support = Path::new("/run/systemd/system/").exists();
 
+    let rymfony_project_path = get_rymfony_project_directory().unwrap();
+
     let config = FPM_DEFAULT_CONFIG
         .replace("{{ uid }}", uid_str.as_str())
         .replace("{{ gid }}", gid_str.as_str())
         .replace("{{ port }}", &port.to_string())
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
+        .replace("{{ rymfony_project_dir }}", &rymfony_project_path.to_str().unwrap())
         .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
-    let rymfony_project_path = get_rymfony_project_directory().unwrap();
     let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
 
     if !fpm_config_file_path.exists() {
