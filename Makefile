@@ -20,16 +20,16 @@ help: ## ❓ Show this help.
 .PHONY: help
 
 build: ## Build the project for development.
-	@cargo run build
+	@cargo build
 .PHONY: build
 
 release: ## Build the project for release.
-	@cargo run build --release
+	@cargo build --release
 .PHONY: release
 
-test: ## Run the tests
+test: build ## Run the tests
 	@cargo test
-	@cargo run -- serve --daemon && sleep 3 && \
+	@./target/debug/rymfony serve --daemon && sleep 3 && \
 	./tests/bats/bin/bats tests ; \
-	cargo run -- stop
+	./target/debug/rymfony stop
 .PHONY: test
