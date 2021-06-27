@@ -78,7 +78,7 @@ pub(crate) async fn handle_fastcgi(
         "CONTENT_TYPE",
         get_header_value(&request_headers, "Content-Type", &empty_header),
     );
-    let version = get_version_suffix();
+
     fcgi_params.insert("DOCUMENT_ROOT", &document_root);
     fcgi_params.insert("DOCUMENT_URI", request_uri_without_query.as_str());
     fcgi_params.insert("PATH_INFO", pathinfo.as_str());
@@ -93,7 +93,7 @@ pub(crate) async fn handle_fastcgi(
     fcgi_params.insert("HTTP_HOST", &hostname);
     fcgi_params.insert("SERVER_PORT", http_port_str.as_str());
     fcgi_params.insert("SERVER_PROTOCOL", http_version);
-    fcgi_params.insert("SERVER_SOFTWARE", &version);
+    fcgi_params.insert("SERVER_SOFTWARE", "Rymfony");
 
     if use_tls {
         fcgi_params.insert("HTTPS", "On");
