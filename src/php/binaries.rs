@@ -77,11 +77,14 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 fn get_all() -> HashMap<PhpVersion, PhpBinary> {
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
-    binaries_from_env(&mut binaries);
     binaries_from_rymfony_env(&mut binaries);
 
-    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
-    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
+    if cfg!(not(target_os = "macos")) {
+        binaries_from_env(&mut binaries);
+        merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
+        merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
+    }
+
     merge_binaries(
         &mut binaries,
         binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")),
