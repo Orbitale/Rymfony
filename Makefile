@@ -5,11 +5,6 @@
 ## ───────────
 ##
 
-##
-## Rymfony dev
-## ───────────
-##
-
 # Helper vars for pretty display
 _TITLE := "\033[32m[%s]\033[0m %s\n"
 _ERROR := "\033[31m[%s]\033[0m %s\n"
