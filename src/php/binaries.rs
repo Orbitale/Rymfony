@@ -105,8 +105,6 @@ fn get_all() -> HashMap<PhpVersion, PhpBinary> {
         &mut binaries,
         binaries_from_dir(PathBuf::from("/usr/local/php*/bin")),
     );
-    
-
     if cfg!(target_family = "windows") {
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("c:\\php")));
     }
