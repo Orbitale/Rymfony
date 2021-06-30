@@ -18,6 +18,8 @@ use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
 use std::ffi::OsString;
 
+use version_compare::{CompOp, VersionCompare};
+
 pub(crate) fn get_project_version() -> String {
     let _binaries = all();
 
@@ -76,10 +78,13 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 
 fn get_all() -> HashMap<PhpVersion, PhpBinary> {
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
+    let os_infos = os_info::get();
+    let os_version = os_infos.version();
+    let bigsur = "11.0.0";
 
     binaries_from_rymfony_env(&mut binaries);
 
-    if cfg!(not(target_os = "macos")) {
+    if cfg!(not(target_os = "macos")) || (cfg!(target_os = "macos") && VersionCompare::compare_to(&os_version.to_string(), &bigsur, &CompOp::Lt).unwrap()) {
         binaries_from_env(&mut binaries);
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
