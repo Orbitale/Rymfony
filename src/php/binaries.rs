@@ -81,9 +81,10 @@ fn get_all() -> HashMap<PhpVersion, PhpBinary> {
 
     binaries_from_rymfony_env(&mut binaries);
 
-    // We don't want to use these PATH by default on macos grater than 'big sur'
-    // Apple add deprecation to the default binary which throws an error in the 'php:list' command
-    if cfg!(not(target_os = "macos")) || !is_macos_big_sur() {
+    // We don't want to use these PATH by default on MacOS "Big Sur",
+    // because Apple added a deprecation to the default binary which changes
+    // how the PHP version is displayed when running `php --version`.
+    if !is_macos_big_sur() {
         binaries_from_env(&mut binaries);
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
@@ -307,9 +308,9 @@ fn is_macos_big_sur() -> bool {
     let os_version = os_infos.version();
     let bigsur = "11.0.0";
 
-    if cfg!(target_os = "macos") && VersionCompare::compare_to(&os_version.to_string(), &bigsur, &CompOp::Gt).unwrap() {
-        return true;
+    if cfg!(not(target_os = "macos")) {
+        return false;
     }
 
-    return false;
+    return VersionCompare::compare_to(&os_version.to_string(), &bigsur, &CompOp::Gt).unwrap();
 }
