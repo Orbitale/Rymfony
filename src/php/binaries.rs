@@ -18,6 +18,8 @@ use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
 use std::ffi::OsString;
 
+use version_compare::{CompOp, VersionCompare};
+
 pub(crate) fn get_project_version() -> String {
     let _binaries = all();
 
@@ -77,14 +79,24 @@ pub(crate) fn all() -> HashMap<PhpVersion, PhpBinary> {
 fn get_all() -> HashMap<PhpVersion, PhpBinary> {
     let mut binaries: HashMap<PhpVersion, PhpBinary> = HashMap::new();
 
-    binaries_from_env(&mut binaries);
     binaries_from_rymfony_env(&mut binaries);
 
-    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
-    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
+    // We don't want to use these PATH by default on MacOS "Big Sur",
+    // because Apple added a deprecation to the default binary which changes
+    // how the PHP version is displayed when running `php --version`.
+    if !is_macos_big_sur() {
+        binaries_from_env(&mut binaries);
+        merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/bin")));
+        merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
+    }
+
     merge_binaries(
         &mut binaries,
         binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")),
+    );
+    merge_binaries(
+        &mut binaries,
+        binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/sbin")),
     );
     merge_binaries(
         &mut binaries,
@@ -92,9 +104,12 @@ fn get_all() -> HashMap<PhpVersion, PhpBinary> {
     );
     merge_binaries(
         &mut binaries,
+        binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/sbin")),
+    );
+    merge_binaries(
+        &mut binaries,
         binaries_from_dir(PathBuf::from("/usr/local/php*/bin")),
     );
-
     if cfg!(target_family = "windows") {
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("c:\\php")));
     }
@@ -286,4 +301,16 @@ fn merge_binaries(into: &mut HashMap<PhpVersion, PhpBinary>, from: HashMap<PhpVe
             into.insert(version, binary);
         }
     }
+}
+
+fn is_macos_big_sur() -> bool {
+    let os_infos = os_info::get();
+    let os_version = os_infos.version();
+    let bigsur = "11.0.0";
+
+    if cfg!(not(target_os = "macos")) {
+        return false;
+    }
+
+    return VersionCompare::compare_to(&os_version.to_string(), &bigsur, &CompOp::Gt).unwrap();
 }

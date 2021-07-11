@@ -23,6 +23,7 @@ is_executable = "1.0"
 log = "0.4"
 openssl = { version = "0.10", features = ["vendored"] }
 openssl-sys = "0.9"
+os_info = { version = "3.0", default-features = false }
 pretty_env_logger = "0.4"
 prettytable-rs = "0.8"
 regex = "1.5"
@@ -31,6 +32,7 @@ serde_json = "1.0"
 tokio = { version = "1.2", features = ["full"] }
 tokio-native-tls = "0.3"
 urldecode = "0.1"
+version-compare = "0.0.11"
 which = "4.1"
 warp = { version = "0.3", features = ["tls"]}
 runas = "0.2"
