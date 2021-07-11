@@ -1,3 +1,8 @@
+# v0.2.2
+
+* Don't display Rymfony version in "SERVER_SOFTWARE" header
+* Fis compatibility with MacOS Big Sur
+
 # v0.2.1
 
 * PHP-FPM logs are redirected to a file in the Rymfony project directory (located in the `$HOME/.rymfony/{hash}/log/` directory) instead of being redirected to `stderr`.
