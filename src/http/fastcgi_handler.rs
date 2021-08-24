@@ -15,7 +15,6 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use tokio::net::TcpStream;
 use warp::host::Authority;
-use crate::get_version_suffix;
 
 pub(crate) async fn handle_fastcgi(
     document_root: &str,

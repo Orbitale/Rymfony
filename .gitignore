@@ -1,8 +1,11 @@
+/bin/caddy
+/bin/caddy.*
+/build.err
+/build.log
+/caddy_checksum.txt
 /target
-certs/*
-!certs/generate_certificates.sh
-.fpm.pid
-.pid
-_local_logs.txt
+/certs/*
+/!certs/generate_certificates.sh
+/_local_logs.txt
 /tests/workdir/
-server.log
+/server.log
