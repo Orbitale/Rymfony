@@ -39,6 +39,7 @@ mod php {
 }
 
 mod http {
+    pub(crate) mod caddy;
     pub(crate) mod fastcgi_handler;
     pub(crate) mod proxy_server;
     pub(crate) mod version;
@@ -58,6 +59,7 @@ use std::process::Command;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use utils::current_process_name;
+use crate::http::caddy::check_caddy_hash;
 
 fn main() {
     let application_commands = vec![

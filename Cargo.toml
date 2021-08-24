@@ -42,6 +42,9 @@ sysinfo = "0.18"
 [target.'cfg(not(target_family = "windows"))'.dependencies]
 users = "0.11"
 
+[build-dependencies]
+which = "4.1"
+
 [profile.release]
 opt-level = 'z' # Optimize for size.
 lto = true # Optimize at the link stage with "Link Time Optimization"
