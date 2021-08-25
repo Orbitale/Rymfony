@@ -97,8 +97,12 @@ then
     exit 1
 fi
 
+output "Downloading from "${binary_url}"" "info"
+
 tmpfile_caddy=$(mktemp /tmp/rymfonycaddy.XXXXXXXXXX)
 curl -sSL "${binary_url}" --output "${tmpfile_caddy}"
+
+tar -xvzf "${tmpfile_caddy}" -C bin/ caddy
 
 downloaded_file_checksum=$(sha512sum "${tmpfile_caddy}" | awk '{print $1}')
 
@@ -107,11 +111,5 @@ if [[ "${single_checksum}" != "${downloaded_file_checksum}" ]]; then
     rm "${tmpfile_caddy}"
     exit 1
 fi
-
-new_filename="caddy_${caddy_version}_${platform}"
-
-mv "${tmpfile_caddy}" "bin/caddy"
-
-echo "${downloaded_file_checksum}" > caddy_checksum.txt
 
 output "Caddy was successfully downloaded to bin/caddy" "success"

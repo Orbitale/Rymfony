@@ -122,7 +122,7 @@ pub(crate) fn start() -> PhpServer {
 }
 
 pub(crate) fn healthcheck(port: u16) -> u16 {
-    println!("Checking port {}", &port);
+    info!("Checking port {}", &port);
 
     0
 }

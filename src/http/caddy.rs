@@ -1,9 +1,12 @@
 use crate::utils::project_directory::get_rymfony_project_directory;
 
-use sha2::Digest;
-use sha2::Sha512;
+use regex::Regex;
 use std::path::PathBuf;
 use std::fs;
+use std::process::Command;
+use std::process::Stdio;
+
+const CADDY_VERSION_REGEX: &'static str = r"^v(2\.\d+\.\d+) ";
 
 #[cfg(target_os="windows")]
 const CADDY_BIN_FILE: &'static str = "caddy.exe";
@@ -11,24 +14,75 @@ const CADDY_BIN_FILE: &'static str = "caddy.exe";
 #[cfg(not(target_os="windows"))]
 const CADDY_BIN_FILE: &'static str = "caddy";
 
-pub(crate) fn check_caddy_hash() {
-    let caddy_path = get_caddy_path();
+pub(crate) const CADDYFILE: &'static str = "
+http://127.0.0.1:{{ http_port }} {
+    encode zstd gzip
 
-    if !caddy_path.exists() {
-        fs::write(&caddy_path, include_bytes!("../../bin/caddy")).unwrap();
+    {{ use_tls }}
+    {{ add_server_sign }}
+
+    root * {{ document_root }}
+
+    php_fastcgi 127.0.0.1:{{ php_port }} {
+        index {{ php_entrypoint_file }}
+        resolve_root_symlink
     }
 
-    let caddy_file_bytes = fs::read(caddy_path).unwrap();
+    file_server browse
+}
+";
 
-    let digest = format!("{:x}", Sha512::digest(&caddy_file_bytes));
-
-    let caddy_checksum = include_str!("../../caddy_checksum.txt").trim().replace("\n", "");
-
-    if digest != caddy_checksum {
-        panic!("Caddy checksum is not the same as the one built-in.")
-    }
+pub(crate) fn get_caddy_pid_path() -> PathBuf {
+    get_rymfony_project_directory().unwrap()
+        .join(".running_caddy.pid")
 }
 
-fn get_caddy_path() -> PathBuf {
-    get_rymfony_project_directory().unwrap().join(CADDY_BIN_FILE)
+pub(crate) fn get_caddy_path() -> PathBuf {
+    let caddy_from_path_env = caddy_from_path_env();
+
+    let caddy_path = match caddy_from_path_env {
+        Ok(path) => path,
+        Err(_) => {
+            let path = get_rymfony_project_directory()
+                .expect("Could not get Caddy path from Rymfony directory")
+                .join(CADDY_BIN_FILE)
+            ;
+
+            if !path.exists() {
+                fs::write(&path, include_bytes!("../../bin/caddy"))
+                    .expect("Could not extract built-in Caddy binary.");
+            }
+
+            path
+        }
+    };
+
+    check_caddy_version(&caddy_path);
+
+    caddy_path
+}
+
+fn caddy_from_path_env() -> which::Result<PathBuf> {
+    return which::which("caddy");
+}
+
+fn check_caddy_version(caddy_path: &PathBuf) {
+    let mut command = Command::new(caddy_path);
+
+    let output = command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .arg("version")
+        .output()
+        .expect("Could not execute Caddy")
+    ;
+
+    let stdout = String::from_utf8(output.stdout).expect("Could not convert Caddy's output to a string.");
+
+    let caddy_version_regex = Regex::new(CADDY_VERSION_REGEX).unwrap();
+
+    if !caddy_version_regex.is_match(&stdout) {
+        panic!("Invalid Caddy version output from binary at path \"{}\".", caddy_path.to_str().unwrap())
+    }
 }

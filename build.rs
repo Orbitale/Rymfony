@@ -24,13 +24,6 @@ fn main() {
 
     println!("cargo:rerun-if-changed=bin/{}", config::CADDY_BIN_FILE);
 
-    {
-        let caddy_checksum_path = Path::new("caddy_checksum.txt");
-        if caddy_checksum_path.is_file() {
-            remove_file(caddy_checksum_path).unwrap();
-        }
-    }
-
     let stdout_file_path = Path::new("build.log");
     if stdout_file_path.is_file() { remove_file(stdout_file_path).unwrap(); }
 
