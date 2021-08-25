@@ -2,7 +2,6 @@
 /bin/caddy.*
 /build.err
 /build.log
-/caddy_checksum.txt
 /target
 /certs/*
 /!certs/generate_certificates.sh

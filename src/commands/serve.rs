@@ -242,8 +242,6 @@ fn serve_foreground(args: &ArgMatches) {
         script_filename,
         args.is_present("expose-server-header"),
     );
-
-    unreachable!();
 }
 
 fn serve_background(args: &ArgMatches) {
