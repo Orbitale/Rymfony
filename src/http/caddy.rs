@@ -49,8 +49,10 @@ pub(crate) fn get_caddy_path() -> PathBuf {
             ;
 
             if !path.exists() {
-                fs::write(&path, include_bytes!("../../bin/caddy"))
-                    .expect("Could not extract built-in Caddy binary.");
+                #[cfg(target_os="windows")]
+                fs::write(&path, include_bytes!("../../bin/caddy.exe")).expect("Could not extract built-in Caddy binary.");
+                #[cfg(not(target_os="windows"))]
+                fs::write(&path, include_bytes!("../../bin/caddy")).expect("Could not extract built-in Caddy binary.");
             }
 
             path
