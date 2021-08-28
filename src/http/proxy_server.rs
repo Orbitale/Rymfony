@@ -1,12 +1,11 @@
 use std::process::Command;
 use std::process::Stdio;
-use std::io::Write;
 use crate::http::caddy::get_caddy_path;
 use crate::http::caddy::CADDYFILE;
 use crate::http::caddy::get_caddy_pid_path;
 use crate::utils::project_directory::get_rymfony_project_directory;
 use std::path::PathBuf;
-use std::fs::File;
+use std::fs::{File, write};
 
 pub(crate) fn start(
     use_tls: bool,
@@ -25,13 +24,15 @@ pub(crate) fn start(
 
     let mut caddy_command = Command::new(get_caddy_path());
 
+    let caddy_config_file = get_caddy_config_file();
+
     caddy_command
         .stdin(Stdio::piped())
         .stdout(Stdio::from(File::open(http_log_file).expect("Could not open HTTP log file.")))
         .stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file.")))
         .arg("run")
         .arg("--adapter").arg("caddyfile")
-        .arg("--config").arg(get_caddy_config_file()) // This makes Caddy use STDIN for config
+        .arg("--config").arg(&caddy_config_file) // This makes Caddy use STDIN for config
         .arg("--pidfile").arg(get_caddy_pid_path().to_str().unwrap())
         .arg("--watch")
     ;
@@ -52,7 +53,11 @@ pub(crate) fn start(
             .replace("{{ use_tls }}", if use_tls { "tls internal" } else { "" })
             .replace("{{ forward_http_to_https }}", if forward_http_to_https { "" } else { "auto_https off" })
         ;
-        std::fs::write(get_caddy_config_file(), &config).expect("Could not server config to Caddyfile.");
+
+        // if !caddy_config_file.exists() {
+            write(&caddy_config_file, &config).expect("Could not server config to Caddyfile.");
+        // }
+
         println!("Caddyfile:\n{}\n", &config);
 
         // let caddy_stdin = caddy_command.stdin.as_mut().unwrap();

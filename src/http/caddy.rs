@@ -15,7 +15,7 @@ const CADDY_BIN_FILE: &'static str = "caddy.exe";
 const CADDY_BIN_FILE: &'static str = "caddy";
 
 pub(crate) const CADDYFILE: &'static str = "
-http://127.0.0.1:{{ http_port }} {
+https://127.0.0.1:{{ http_port }} {
     encode zstd gzip
 
     {{ use_tls }}
