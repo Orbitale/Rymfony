@@ -100,6 +100,11 @@ jobs:
               run: |
                   echo "nightly ${{ steps.vars.outputs.GITHUB_SHA_SHORT }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
 
+            - name: (Mac only) Install "coreutils" to be able to get file hash
+              if: runner.os == 'macOS'
+              run: |
+                  brew install coreutils
+
             - name: 🛒 Download Caddy
               run: |
                   bin/download_caddy.bash
