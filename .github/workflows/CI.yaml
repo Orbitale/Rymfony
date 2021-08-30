@@ -28,6 +28,11 @@ jobs:
                       target/release/build
                       target/release/deps
                   key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+                  
+            - name: Setup PHP with PECL extension
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.0'
 
             - uses: hecrj/setup-rust-action@v1
               with:
