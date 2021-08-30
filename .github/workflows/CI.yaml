@@ -45,12 +45,18 @@ jobs:
               run: |
                   cargo run -- serve -d &
 
-            - name: 🚀 Bats tests
+            - name: Set up Cygwin (windows)
               if: matrix.os != 'windows-latest'
+              uses: egor-tensin/setup-cygwin@v3
+              with:
+                  platform: x64
+                  packages: cmake python3
+
+            - name: 🚀 Bats tests (Linux & MacOS)
               run: |
                   # We must make sure that server is up & listening
                   sleep 2
-                  ./tests/bats/bin/bats tests
+                  bash ./tests/bats/bin/bats tests
 
             - name: Stop server after Bats tests
               if: always()
