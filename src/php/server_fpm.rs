@@ -104,6 +104,12 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .replace("{{ rymfony_project_dir }}", &rymfony_project_path.to_str().unwrap())
         .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
 
+    if 0 == uid {
+        config
+            .replace(";user", "user")
+            .replace(";group", "group");
+    }
+
     let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
 
     if !fpm_config_file_path.exists() {
