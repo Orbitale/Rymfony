@@ -11,7 +11,6 @@ use {
     std::process::Command,
     std::path::Path,
     std::process::Stdio,
-    users::get_current_gid,
     users::get_current_uid,
     crate::php::structs::PhpServerSapi,
     crate::utils::network::find_available_port,
@@ -40,14 +39,9 @@ error_log = {{ rymfony_project_dir }}/log/fpm.err.log
 ; This gives the advantage of keeping control over the process,
 ; and possibly retrieve logs too (since logs can be piped with fpm's stderr with current config)
 daemonize = no
-{{ systemd }}systemd_interval = 0
+{{ systemd_enable }}systemd_interval = 0
 
 [www]
-; Only works if launched as a root user
-; TODO: check if this can be usable anyway
-;user = {{ uid }}
-;group = {{ gid }}
-
 ; Don't touch this line unless you know what you are doing
 listen = 127.0.0.1:{{ port }}
 listen.allowed_clients = 127.0.0.1
@@ -83,10 +77,6 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     info!("Using php-fpm");
 
     let uid = get_current_uid();
-    let uid_str = uid.to_string();
-
-    let gid = get_current_gid();
-    let gid_str = gid.to_string();
 
     let mut port = find_available_port(FPM_DEFAULT_PORT);
 
@@ -97,18 +87,11 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
     let rymfony_project_path = get_rymfony_project_directory().unwrap();
 
     let config = FPM_DEFAULT_CONFIG
-        .replace("{{ uid }}", uid_str.as_str())
-        .replace("{{ gid }}", gid_str.as_str())
         .replace("{{ port }}", &port.to_string())
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
         .replace("{{ rymfony_project_dir }}", &rymfony_project_path.to_str().unwrap())
-        .replace("{{ systemd }}", if systemd_support { "" } else { ";" });
-
-    if 0 == uid {
-        config
-            .replace(";user", "user")
-            .replace(";group", "group");
-    }
+        .replace("{{ systemd_enable }}", if systemd_support { "" } else { ";" })
+    ;
 
     let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
 
@@ -117,6 +100,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         fpm_config_file
             .write_all(config.as_bytes())
             .expect("Could not write to php-fpm config file.");
+        info!("Saved FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     } else {
         // Read the file and search the port
         let mut content = read_to_string(&fpm_config_file_path).unwrap();
@@ -136,6 +120,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
             )
             .as_str(),
         );
+        info!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     }
 
     let pid_filename = format!("{}/fpm.pid", rymfony_project_path.to_str().unwrap());
@@ -149,6 +134,12 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .arg(pid_filename)
         .arg("--fpm-config")
         .arg(fpm_config_file_path.to_str().unwrap());
+
+    if uid == 0 {
+        command.arg("--allow-to-run-as-root");
+        warn!("You are running Rymfony as root!");
+        warn!("Be careful with permissions if your application has to manipulate the filesystem!")
+    }
 
     if let Ok(child) = command.spawn() {
         info!("Running php-fpm with PID {}", child.id());
