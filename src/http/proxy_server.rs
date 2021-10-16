@@ -5,7 +5,9 @@ use crate::http::caddy::CADDYFILE;
 use crate::http::caddy::get_caddy_pid_path;
 use crate::utils::project_directory::get_rymfony_project_directory;
 use std::path::PathBuf;
-use std::fs::{File, write};
+use std::fs::File;
+use std::fs::write;
+use std::io::Write;
 
 pub(crate) fn start(
     use_tls: bool,
@@ -32,9 +34,10 @@ pub(crate) fn start(
         .stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file.")))
         .arg("run")
         .arg("--adapter").arg("caddyfile")
-        .arg("--config").arg(&caddy_config_file) // This makes Caddy use STDIN for config
+        // .arg("--config").arg(&caddy_config_file)
+        .arg("--config").arg("-") // This makes Caddy use STDIN for config
         .arg("--pidfile").arg(get_caddy_pid_path().to_str().unwrap())
-        .arg("--watch")
+        // .arg("--watch")
     ;
 
     let mut caddy_command = caddy_command
@@ -50,23 +53,26 @@ pub(crate) fn start(
             .replace("{{ https_port }}", &http_port.to_string())
             .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
             .replace("{{ add_server_sign }}", if add_server_sign { "header Server \"Rymfony\"" } else { "header -Server" })
-            .replace("{{ use_tls }}", if use_tls { "tls internal" } else { "" })
+            .replace("{{ tls }}", if use_tls { "tls internal" } else { "" })
+            .replace("{{ use_https }}", if use_tls { "s" } else { "" })
             .replace("{{ forward_http_to_https }}", if forward_http_to_https { "" } else { "auto_https off" })
         ;
 
         // if !caddy_config_file.exists() {
-            write(&caddy_config_file, &config).expect("Could not server config to Caddyfile.");
+        //     write(&caddy_config_file, &config).expect("Could not server config to Caddyfile.");
         // }
 
         println!("Caddyfile:\n{}\n", &config);
 
-        // let caddy_stdin = caddy_command.stdin.as_mut().unwrap();
-        // caddy_stdin.write_all(config.as_bytes()).expect("Could not write server config to Caddy STDIN.");
+        let caddy_stdin = caddy_command.stdin.as_mut().unwrap();
+        caddy_stdin.write_all(config.as_bytes()).expect("Could not write server config to Caddy STDIN.");
     }
 
     let output = caddy_command.wait_with_output().expect("Could not wait for Caddy to finish executing.");
 
-    dbg!(output);
+    if output.status.code().unwrap() != 0 {
+        panic!("Caddy failed to start.");
+    }
 }
 
 fn get_http_log_file() -> PathBuf {
