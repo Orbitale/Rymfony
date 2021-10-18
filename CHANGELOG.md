@@ -1,3 +1,7 @@
+# v0.2.3
+
+* Allow to run php-fpm (and by extension Rymfony itself) as root by @Shine-neko in #86
+
 # v0.2.2
 
 * Don't display Rymfony version in "SERVER_SOFTWARE" header
