@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use std::fs;
 use std::process::Command;
 use std::process::Stdio;
+#[cfg(not(target_os="windows"))]
+use std::os::unix::fs::PermissionsExt;
 
 const CADDY_VERSION_REGEX: &'static str = r"^v(2\.\d+\.\d+) ";
 
@@ -53,6 +55,9 @@ pub(crate) fn get_caddy_path() -> PathBuf {
                 fs::write(&path, include_bytes!("../../bin/caddy.exe")).expect("Could not extract built-in Caddy binary.");
                 #[cfg(not(target_os="windows"))]
                 fs::write(&path, include_bytes!("../../bin/caddy")).expect("Could not extract built-in Caddy binary.");
+
+                #[cfg(not(target_os="windows"))]
+                fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("Could not make Caddy binary executable.");
             }
 
             path
@@ -77,7 +82,7 @@ fn check_caddy_version(caddy_path: &PathBuf) {
         .stderr(Stdio::null())
         .arg("version")
         .output()
-        .expect("Could not execute Caddy")
+        .expect(&format!("Could not execute Caddy at path \"{}\"", caddy_path.to_str().unwrap()))
     ;
 
     let stdout = String::from_utf8(output.stdout).expect("Could not convert Caddy's output to a string.");
