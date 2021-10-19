@@ -8,6 +8,9 @@ use std::process::Stdio;
 #[cfg(not(target_os="windows"))]
 use std::os::unix::fs::PermissionsExt;
 
+#[cfg(not(target_os="windows"))]
+use runas::Command as SudoCommand;
+
 const CADDY_VERSION_REGEX: &'static str = r"^v(2\.\d+\.\d+) ";
 
 #[cfg(target_os="windows")]
@@ -17,13 +20,20 @@ const CADDY_BIN_FILE: &'static str = "caddy.exe";
 const CADDY_BIN_FILE: &'static str = "caddy";
 
 pub(crate) const CADDYFILE: &'static str = "
+{
+    {{ debug }}debug
+    log {{ log_file }}
+    {{ local_certs }}local_certs
+    #{{ forward_http_to_https }}auto_https off # FIXME: check proxy_server.rs about this.
+}
+
 http{{ use_https }}://127.0.0.1:{{ http_port }} {
-    encode zstd gzip
-
-    {{ tls }}
-    {{ add_server_sign }}
-
     root * {{ document_root }}
+
+    encode gzip
+
+    {{ tls }}tls internal
+    {{ add_server_sign }}
 
     php_fastcgi 127.0.0.1:{{ php_port }} {
         index {{ php_entrypoint_file }}
@@ -51,6 +61,8 @@ pub(crate) fn get_caddy_path() -> PathBuf {
             ;
 
             if !path.exists() {
+                info!("Installing Caddy for your project...");
+
                 #[cfg(target_os="windows")]
                 fs::write(&path, include_bytes!("../../bin/caddy.exe")).expect("Could not extract built-in Caddy binary.");
                 #[cfg(not(target_os="windows"))]
@@ -58,6 +70,10 @@ pub(crate) fn get_caddy_path() -> PathBuf {
 
                 #[cfg(not(target_os="windows"))]
                 fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("Could not make Caddy binary executable.");
+
+                // On linux, we try to use "setcap" to give Caddy the ability to listen to port 80
+                #[cfg(target_os="linux")]
+                set_http_capabilities(&path);
             }
 
             path
@@ -91,5 +107,25 @@ fn check_caddy_version(caddy_path: &PathBuf) {
 
     if !caddy_version_regex.is_match(&stdout) {
         panic!("Invalid Caddy version output from binary at path \"{}\".", caddy_path.to_str().unwrap())
+    }
+}
+
+#[cfg(target_os="linux")]
+fn set_http_capabilities(caddy_path: &PathBuf) {
+
+    warn!("Caddy is usually unable to listen to port 80 when running as non-root user.");
+    warn!("To make it work, we need your permisn to use the \"setcap\" command,");
+    warn!("in order to give Caddy the necessary permissions to listen to port 80.");
+
+    let status = SudoCommand::new("setcap")
+        .arg("cap_net_bind_service=+ep")
+        .arg(&caddy_path.to_str().unwrap())
+        .status()
+        .expect("The \"setcap\" command did not execute when trying to give Caddy the ability to listen to port 80.");
+
+    if status.code().unwrap_or(1) != 0 {
+        error!("The \"setcap\" command failed when trying to give Caddy the ability to listen to port 80.")
+    } else {
+        info!("Done! Caddy is now capable of listening to port 80 (for this project only)");
     }
 }

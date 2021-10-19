@@ -6,7 +6,6 @@ use crate::http::caddy::get_caddy_pid_path;
 use crate::utils::project_directory::get_rymfony_project_directory;
 use std::path::PathBuf;
 use std::fs::File;
-use std::fs::write;
 use std::io::Write;
 
 pub(crate) fn start(
@@ -30,20 +29,24 @@ pub(crate) fn start(
 
     caddy_command
         .stdin(Stdio::piped())
-        .stdout(Stdio::from(File::open(http_log_file).expect("Could not open HTTP log file.")))
-        .stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file.")))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        //.stdout(Stdio::from(File::open(http_log_file).expect("Could not open HTTP log file."))) // TODO: is this even possible?
+        //.stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file."))) // TODO: is this even possible?
         .arg("run")
         .arg("--adapter").arg("caddyfile")
-        // .arg("--config").arg(&caddy_config_file)
-        .arg("--config").arg("-") // This makes Caddy use STDIN for config
         .arg("--pidfile").arg(get_caddy_pid_path().to_str().unwrap())
-        // .arg("--watch")
+        .arg("--config").arg("-") // This makes Caddy use STDIN for config
+        // .arg("--config").arg(&caddy_config_file) // TODO: think about allowing users to customize Caddy config manually.
+        // .arg("--watch") // TODO: enable this when above arg is set. Allows automatic caddy reload if config changes.
     ;
 
     let mut caddy_command = caddy_command
         .spawn()
         .expect("Could not start HTTP server.")
     ;
+
+    let debug = false; // FIXME: use env var for this.
 
     {
         let config = CADDYFILE
@@ -52,10 +55,13 @@ pub(crate) fn start(
             .replace("{{ http_port }}", &http_port.to_string())
             .replace("{{ https_port }}", &http_port.to_string())
             .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
+            .replace("{{ log_file }}", http_log_file.to_str().unwrap())
             .replace("{{ add_server_sign }}", if add_server_sign { "header Server \"Rymfony\"" } else { "header -Server" })
-            .replace("{{ tls }}", if use_tls { "tls internal" } else { "" })
             .replace("{{ use_https }}", if use_tls { "s" } else { "" })
-            .replace("{{ forward_http_to_https }}", if forward_http_to_https { "" } else { "auto_https off" })
+            .replace("{{ tls }}", if use_tls { "" } else { "#" })
+            .replace("{{ local_certs }}", if use_tls { "" } else { "#" })
+            .replace("{{ debug }}", if debug { "" } else { "#" })
+            //.replace("{{ forward_http_to_https }}", if forward_http_to_https { "#" } else { "" }) // FIXME: I hope we can make this concept work one day.
         ;
 
         // if !caddy_config_file.exists() {
@@ -71,6 +77,8 @@ pub(crate) fn start(
     let output = caddy_command.wait_with_output().expect("Could not wait for Caddy to finish executing.");
 
     if output.status.code().unwrap() != 0 {
+        println!("Caddy stdout: \n {}", String::from_utf8(output.stdout).unwrap());
+        println!("Caddy stderr: \n {}", String::from_utf8(output.stderr).unwrap());
         panic!("Caddy failed to start.");
     }
 }
