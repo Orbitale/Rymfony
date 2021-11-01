@@ -4,7 +4,6 @@ extern crate prettytable;
 extern crate log;
 extern crate ctrlc;
 extern crate env_logger;
-extern crate httparse;
 extern crate pretty_env_logger;
 extern crate regex;
 
