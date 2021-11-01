@@ -23,17 +23,17 @@ pub(crate) const CADDYFILE: &'static str = "
 {
     {{ debug }}debug
     log {{ log_file }}
-    {{ local_certs }}local_certs
-    #{{ forward_http_to_https }}auto_https off # FIXME: check proxy_server.rs about this.
+    {{ use_tls }}local_certs
 }
 
-http{{ use_https }}://127.0.0.1:{{ http_port }} {
+{{ host }}:{{ http_port }} {
     root * {{ document_root }}
 
     encode gzip
 
-    {{ tls }}tls internal
-    {{ add_server_sign }}
+    {{ use_tls }}tls internal
+    {{ with_server_sign }}header Server \"Rymfony\"
+    {{ without_server_sign }}header -Server
 
     php_fastcgi 127.0.0.1:{{ php_port }} {
         index {{ php_entrypoint_file }}
@@ -114,7 +114,7 @@ fn check_caddy_version(caddy_path: &PathBuf) {
 fn set_http_capabilities(caddy_path: &PathBuf) {
 
     warn!("Caddy is usually unable to listen to port 80 when running as non-root user.");
-    warn!("To make it work, we need your permisn to use the \"setcap\" command,");
+    warn!("To make it work, we will try to use the \"setcap\" command,");
     warn!("in order to give Caddy the necessary permissions to listen to port 80.");
 
     let status = SudoCommand::new("setcap")

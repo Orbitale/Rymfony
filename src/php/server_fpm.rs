@@ -5,6 +5,7 @@ use {
     std::fmt,
     std::error::Error,
     std::fs::File,
+    std::fs::OpenOptions,
     std::fs::read_to_string,
     std::fs::remove_file,
     std::io::prelude::*,
@@ -123,12 +124,27 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         info!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     }
 
+    let fpm_log_file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(get_rymfony_project_directory().unwrap().join("fpm.log"))
+        .unwrap()
+    ;
+    let fpm_err_file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(get_rymfony_project_directory().unwrap().join("fpm.err"))
+        .unwrap()
+    ;
+
     let pid_filename = format!("{}/fpm.pid", rymfony_project_path.to_str().unwrap());
 
     let mut command = Command::new(php_bin);
     command
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+        .stdout(Stdio::from(fpm_log_file))
+        .stderr(Stdio::from(fpm_err_file))
         .arg("--nodaemonize")
         .arg("--pid")
         .arg(pid_filename)

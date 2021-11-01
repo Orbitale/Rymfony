@@ -10,7 +10,6 @@ use std::io::Write;
 
 pub(crate) fn start(
     use_tls: bool,
-    forward_http_to_https: bool,
     http_port: u16,
     php_port: u16,
     document_root: String,
@@ -23,9 +22,13 @@ pub(crate) fn start(
     let http_error_file = get_http_error_file();
     if !http_error_file.exists() { File::create(&http_error_file).expect("Could not create HTTP error file."); }
 
-    let mut caddy_command = Command::new(get_caddy_path());
+    let caddy_path = get_caddy_path();
+    let mut caddy_command = Command::new(&caddy_path);
 
-    let caddy_config_file = get_caddy_config_file();
+    // TODO: implement ".wip" (or other) custom domains.
+    let host_name = "127.0.0.1".to_string();
+
+    // let caddy_config_file = get_caddy_config_file();
 
     caddy_command
         .stdin(Stdio::piped())
@@ -38,7 +41,7 @@ pub(crate) fn start(
         .arg("--pidfile").arg(get_caddy_pid_path().to_str().unwrap())
         .arg("--config").arg("-") // This makes Caddy use STDIN for config
         // .arg("--config").arg(&caddy_config_file) // TODO: think about allowing users to customize Caddy config manually.
-        // .arg("--watch") // TODO: enable this when above arg is set. Allows automatic caddy reload if config changes.
+        // .arg("--watch") // TODO: enable this when "--config" arg is set. Allows automatic caddy reload if config file changes.
     ;
 
     let mut caddy_command = caddy_command
@@ -56,29 +59,39 @@ pub(crate) fn start(
             .replace("{{ https_port }}", &http_port.to_string())
             .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
             .replace("{{ log_file }}", http_log_file.to_str().unwrap())
-            .replace("{{ add_server_sign }}", if add_server_sign { "header Server \"Rymfony\"" } else { "header -Server" })
-            .replace("{{ use_https }}", if use_tls { "s" } else { "" })
-            .replace("{{ tls }}", if use_tls { "" } else { "#" })
-            .replace("{{ local_certs }}", if use_tls { "" } else { "#" })
+            .replace("{{ host }}", &host_name)
+            .replace("{{ with_server_sign }}", if add_server_sign { "" } else { "#" })
+            .replace("{{ without_server_sign }}", if add_server_sign { "#" } else { "" })
+            .replace("{{ use_tls }}", if use_tls { "" } else { "#" })
             .replace("{{ debug }}", if debug { "" } else { "#" })
-            //.replace("{{ forward_http_to_https }}", if forward_http_to_https { "#" } else { "" }) // FIXME: I hope we can make this concept work one day.
         ;
 
         // if !caddy_config_file.exists() {
         //     write(&caddy_config_file, &config).expect("Could not server config to Caddyfile.");
         // }
 
-        println!("Caddyfile:\n{}\n", &config);
+        debug!("Caddy config:\n{}\n", &config);
 
         let caddy_stdin = caddy_command.stdin.as_mut().unwrap();
         caddy_stdin.write_all(config.as_bytes()).expect("Could not write server config to Caddy STDIN.");
     }
 
+    info!("Listening to {}://{}:{}", if use_tls { "https" } else { "http" }, host_name, http_port);
+
     let output = caddy_command.wait_with_output().expect("Could not wait for Caddy to finish executing.");
 
     if output.status.code().unwrap() != 0 {
-        println!("Caddy stdout: \n {}", String::from_utf8(output.stdout).unwrap());
-        println!("Caddy stderr: \n {}", String::from_utf8(output.stderr).unwrap());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        if stderr.contains("listen tcp :80: bind: permission denied") {
+            error!("Caddy is unable to listen to port 80, which is used for HTTP to HTTPS redirection.");
+            error!("This can happen when you run Caddy (and therefore Rymfony) as non-root user.");
+            error!("To make it work, you need to give Caddy the necessary network capabilities.");
+
+            #[cfg(target_os = "linux")] {
+                error!("On most linux distribuions, you can do it by running this command (possibly with \"sudo\"):");
+                error!("   setcap cap_net_bind_service=+ep {}", caddy_path.to_str().unwrap());
+            }
+        }
         panic!("Caddy failed to start.");
     }
 }
@@ -93,7 +106,9 @@ fn get_http_error_file() -> PathBuf {
         .join("http.err")
 }
 
+/*
 fn get_caddy_config_file() -> PathBuf {
     get_rymfony_project_directory().unwrap()
         .join("Caddyfile")
 }
+*/
