@@ -6,6 +6,8 @@ use crate::http::caddy::get_caddy_pid_path;
 use crate::utils::project_directory::get_rymfony_project_directory;
 use std::path::PathBuf;
 use std::fs::File;
+use std::fs::read_to_string;
+use std::fs::write;
 use std::io::Write;
 
 pub(crate) fn start(
@@ -28,20 +30,15 @@ pub(crate) fn start(
     // TODO: implement ".wip" (or other) custom domains.
     let host_name = "127.0.0.1".to_string();
 
-    // let caddy_config_file = get_caddy_config_file();
+    let caddy_config_file = get_caddy_config_file();
 
     caddy_command
         .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        //.stdout(Stdio::from(File::open(http_log_file).expect("Could not open HTTP log file."))) // TODO: is this even possible?
-        //.stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file."))) // TODO: is this even possible?
+        .stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file."))) // TODO: check if is this working
         .arg("run")
         .arg("--adapter").arg("caddyfile")
         .arg("--pidfile").arg(get_caddy_pid_path().to_str().unwrap())
         .arg("--config").arg("-") // This makes Caddy use STDIN for config
-        // .arg("--config").arg(&caddy_config_file) // TODO: think about allowing users to customize Caddy config manually.
-        // .arg("--watch") // TODO: enable this when "--config" arg is set. Allows automatic caddy reload if config file changes.
     ;
 
     let mut caddy_command = caddy_command
@@ -52,7 +49,18 @@ pub(crate) fn start(
     let debug = false; // FIXME: use env var for this.
 
     {
-        let config = CADDYFILE
+        let mut config: String = if !caddy_config_file.exists() {
+            write(&caddy_config_file, CADDYFILE).expect("Could not write Caddyfile config.");
+            debug!("Wrote Caddy config to {}", &caddy_config_file.to_str().unwrap());
+
+            CADDYFILE.to_string()
+        } else {
+            debug!("Reusing Caddy config from {}", &caddy_config_file.to_str().unwrap());
+
+            read_to_string(&caddy_config_file).expect("Could not read Caddyfile config file.")
+        };
+
+        config = config
             .replace("{{ document_root }}", document_root.as_str())
             .replace("{{ php_port }}", &php_port.to_string())
             .replace("{{ http_port }}", &http_port.to_string())
@@ -66,11 +74,7 @@ pub(crate) fn start(
             .replace("{{ debug }}", if debug { "" } else { "#" })
         ;
 
-        // if !caddy_config_file.exists() {
-        //     write(&caddy_config_file, &config).expect("Could not server config to Caddyfile.");
-        // }
-
-        debug!("Caddy config:\n{}\n", &config);
+        trace!("Final Caddy config:\n{}\n", &config);
 
         let caddy_stdin = caddy_command.stdin.as_mut().unwrap();
         caddy_stdin.write_all(config.as_bytes()).expect("Could not write server config to Caddy STDIN.");
@@ -106,9 +110,7 @@ fn get_http_error_file() -> PathBuf {
         .join("http.err")
 }
 
-/*
 fn get_caddy_config_file() -> PathBuf {
     get_rymfony_project_directory().unwrap()
         .join("Caddyfile")
 }
-*/

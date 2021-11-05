@@ -20,6 +20,16 @@ const CADDY_BIN_FILE: &'static str = "caddy.exe";
 const CADDY_BIN_FILE: &'static str = "caddy";
 
 pub(crate) const CADDYFILE: &'static str = "
+# ⚠⚠⚠
+# This file is a *template* created by Rymfony.
+# The variables you see in brackets \"{{ … }}\" are
+# replaced **at runtime** by Rymfony.
+#
+# Be warned that if you want to change it,
+# it may have an impact on how your local project behaves.
+#
+# Change it at your own risk 💣
+
 {
     {{ debug }}debug
     log {{ log_file }}

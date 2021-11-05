@@ -75,8 +75,6 @@ pub(crate) fn start(_php_bin: String) -> (PhpServer, Child) {
 
 #[cfg(not(target_family = "windows"))]
 pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
-    info!("Using php-fpm");
-
     let uid = get_current_uid();
 
     let mut port = find_available_port(FPM_DEFAULT_PORT);
@@ -101,7 +99,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         fpm_config_file
             .write_all(config.as_bytes())
             .expect("Could not write to php-fpm config file.");
-        info!("Saved FPM config file at {}", fpm_config_file_path.to_str().unwrap());
+        debug!("Saved FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     } else {
         // Read the file and search the port
         let mut content = read_to_string(&fpm_config_file_path).unwrap();
@@ -121,7 +119,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
             )
             .as_str(),
         );
-        info!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
+        debug!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     }
 
     let fpm_log_file = OpenOptions::new()
@@ -165,6 +163,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
 
     panic!("Could not start php-fpm.");
 }
+
 #[cfg(not(target_family = "windows"))]
 #[derive(Debug)]
 struct ReadPortError(String);

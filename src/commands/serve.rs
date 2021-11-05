@@ -173,8 +173,6 @@ fn serve_foreground(args: &ArgMatches) {
         warn!("No PHP entrypoint file");
         PhpServer::new(0, PhpServerSapi::Unknown)
     } else {
-        info!("Starting PHP...");
-
         php_server::start()
     };
 
@@ -184,8 +182,9 @@ fn serve_foreground(args: &ArgMatches) {
         PhpServerSapi::CGI => "CGI",
         PhpServerSapi::Unknown => "?",
     };
+
     if sapi == "?" {
-        info!("Skip PHP start");
+        info!("Skipping PHP start");
     } else {
         info!("PHP started with module {}", sapi);
         info!("PHP entrypoint file: {}", &script_filename);
