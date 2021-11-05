@@ -5,6 +5,7 @@ use {
     std::fmt,
     std::error::Error,
     std::fs::File,
+    std::fs::OpenOptions,
     std::fs::read_to_string,
     std::fs::remove_file,
     std::io::prelude::*,
@@ -74,8 +75,6 @@ pub(crate) fn start(_php_bin: String) -> (PhpServer, Child) {
 
 #[cfg(not(target_family = "windows"))]
 pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
-    info!("Using php-fpm");
-
     let uid = get_current_uid();
 
     let mut port = find_available_port(FPM_DEFAULT_PORT);
@@ -100,7 +99,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         fpm_config_file
             .write_all(config.as_bytes())
             .expect("Could not write to php-fpm config file.");
-        info!("Saved FPM config file at {}", fpm_config_file_path.to_str().unwrap());
+        debug!("Saved FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     } else {
         // Read the file and search the port
         let mut content = read_to_string(&fpm_config_file_path).unwrap();
@@ -120,15 +119,30 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
             )
             .as_str(),
         );
-        info!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
+        debug!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     }
+
+    let fpm_log_file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(get_rymfony_project_directory().unwrap().join("fpm.log"))
+        .unwrap()
+    ;
+    let fpm_err_file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(get_rymfony_project_directory().unwrap().join("fpm.err"))
+        .unwrap()
+    ;
 
     let pid_filename = format!("{}/fpm.pid", rymfony_project_path.to_str().unwrap());
 
     let mut command = Command::new(php_bin);
     command
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+        .stdout(Stdio::from(fpm_log_file))
+        .stderr(Stdio::from(fpm_err_file))
         .arg("--nodaemonize")
         .arg("--pid")
         .arg(pid_filename)
@@ -149,6 +163,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
 
     panic!("Could not start php-fpm.");
 }
+
 #[cfg(not(target_family = "windows"))]
 #[derive(Debug)]
 struct ReadPortError(String);

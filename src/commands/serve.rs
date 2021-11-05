@@ -76,11 +76,6 @@ It will do so in this order:
                 .help("Disable TLS. Use HTTP only."),
         )
         .arg(
-            Arg::with_name("allow-http")
-                .long("allow-http")
-                .help("Do not redirect HTTP request to HTTPS"),
-        )
-        .arg(
             Arg::with_name("expose-server-header")
                 .short("s")
                 .long("expose-server-header")
@@ -178,8 +173,6 @@ fn serve_foreground(args: &ArgMatches) {
         warn!("No PHP entrypoint file");
         PhpServer::new(0, PhpServerSapi::Unknown)
     } else {
-        info!("Starting PHP...");
-
         php_server::start()
     };
 
@@ -189,8 +182,9 @@ fn serve_foreground(args: &ArgMatches) {
         PhpServerSapi::CGI => "CGI",
         PhpServerSapi::Unknown => "?",
     };
+
     if sapi == "?" {
-        info!("Skip PHP start");
+        info!("Skipping PHP start");
     } else {
         info!("PHP started with module {}", sapi);
         info!("PHP entrypoint file: {}", &script_filename);
@@ -235,15 +229,12 @@ fn serve_foreground(args: &ArgMatches) {
 
     proxy_server::start(
         !args.is_present("no-tls"),
-        !args.is_present("allow-http"),
         port,
         php_server.port(),
         document_root,
         script_filename,
         args.is_present("expose-server-header"),
     );
-
-    unreachable!();
 }
 
 fn serve_background(args: &ArgMatches) {
@@ -257,9 +248,6 @@ fn serve_background(args: &ArgMatches) {
 
     if args.is_present("no-tls") {
         cmd.arg("--no-tls");
-    }
-    if args.is_present("allow-http") {
-        cmd.arg("--allow-http");
     }
     if args.is_present("expose-server-header") {
         cmd.arg("--expose-server-header");

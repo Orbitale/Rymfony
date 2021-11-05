@@ -1,3 +1,7 @@
+# v0.3.0
+
+* Embed Caddy server into Rymfony, instead of using Warp (by @Pierstoval in https://github.com/Orbitale/Rymfony/pull/85)
+
 # v0.2.3
 
 * Allow to run php-fpm (and by extension Rymfony itself) as root by @Shine-neko in #86

@@ -4,18 +4,14 @@ extern crate prettytable;
 extern crate log;
 extern crate ctrlc;
 extern crate env_logger;
-extern crate httparse;
 extern crate pretty_env_logger;
 extern crate regex;
 
 mod config {
-    pub(crate) mod certificates;
     pub(crate) mod config;
 }
 
 mod commands {
-    pub(crate) mod ca_install;
-    pub(crate) mod ca_uninstall;
     pub(crate) mod new_symfony;
     pub(crate) mod php_list;
     pub(crate) mod serve;
@@ -39,9 +35,8 @@ mod php {
 }
 
 mod http {
-    pub(crate) mod fastcgi_handler;
+    pub(crate) mod caddy;
     pub(crate) mod proxy_server;
-    pub(crate) mod version;
 }
 
 use clap::App;
@@ -62,8 +57,6 @@ use utils::current_process_name;
 fn main() {
     let application_commands = vec![
         crate::commands::php_list::command_config(),
-        crate::commands::ca_install::command_config(),
-        crate::commands::ca_uninstall::command_config(),
         crate::commands::serve::command_config(),
         crate::commands::stop::command_config(),
         crate::commands::new_symfony::command_config(),
@@ -117,12 +110,6 @@ https://github.com/Orbitale/Rymfony
         Some("server:start") => {
             crate::commands::serve::serve(matches.subcommand_matches("server:start").unwrap())
         }
-        Some("server:ca:install") => crate::commands::ca_install::ca_install(
-            matches.subcommand_matches("server:ca:install").unwrap(),
-        ),
-        Some("server:ca:uninstall") => crate::commands::ca_uninstall::ca_uninstall(
-            matches.subcommand_matches("server:ca:uninstall").unwrap(),
-        ),
         Some("stop") => crate::commands::stop::stop(),
         Some("new") => {
             crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new").unwrap())

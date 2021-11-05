@@ -1,215 +1,116 @@
-use std::collections::HashMap;
-use std::convert::Infallible;
-use std::net::SocketAddr;
-use std::path::Path;
+use std::process::Command;
+use std::process::Stdio;
+use crate::http::caddy::get_caddy_path;
+use crate::http::caddy::CADDYFILE;
+use crate::http::caddy::get_caddy_pid_path;
+use crate::utils::project_directory::get_rymfony_project_directory;
 use std::path::PathBuf;
+use std::fs::File;
+use std::fs::read_to_string;
+use std::fs::write;
+use std::io::Write;
 
-use console::style;
-use http::HeaderMap;
-use http::Method;
-use hyper::Body;
-use hyper::Request;
-use hyper_staticfile::Static;
-use warp::filters::header::headers_cloned;
-use warp::filters::path::FullPath;
-use warp::host::Authority;
-use warp::http::Response;
-use warp::hyper::body::Bytes;
-use warp::method;
-use warp::Filter;
-
-use crate::config::certificates::get_cert_path;
-use crate::http::fastcgi_handler::handle_fastcgi;
-
-#[tokio::main]
-pub(crate) async fn start(
+pub(crate) fn start(
     use_tls: bool,
-    forward_http_to_https: bool,
     http_port: u16,
     php_port: u16,
     document_root: String,
     php_entrypoint_file: String,
     add_server_sign: bool,
 ) {
-    let http_port = http_port.clone();
-    let php_port = php_port.clone();
-    let document_root = document_root.clone();
-    let php_entrypoint_file = php_entrypoint_file.clone();
+    let http_log_file = get_http_log_file();
+    if !http_log_file.exists() { File::create(&http_log_file).expect("Could not create HTTP log file."); }
 
-    let routes = warp::any()
-        .and(warp::addr::remote())
-        .and(warp::filters::host::optional())
-        .and(method())
-        .and(warp::path::full())
-        .and(warp::query::<HashMap<String, String>>())
-        .and(headers_cloned())
-        .and(warp::body::bytes())
-        .and_then(
-            move |remote_addr: Option<SocketAddr>,
-                  host: Option<Authority>,
-                  method: Method,
-                  request_path: FullPath,
-                  query: HashMap<String, String>,
-                  headers: HeaderMap,
-                  body: Bytes| {
-                let http_port = http_port.clone();
-                let php_port = php_port.clone();
-                let document_root = document_root.clone();
-                let php_entrypoint_file = php_entrypoint_file.clone();
-                let method = method.clone();
+    let http_error_file = get_http_error_file();
+    if !http_error_file.exists() { File::create(&http_error_file).expect("Could not create HTTP error file."); }
 
-                async move {
-                    let query_string: String = query
-                        .iter()
-                        .map(|(key, value)| format!("{}={}", key, value))
-                        .collect::<Vec<String>>()
-                        .join("&");
+    let caddy_path = get_caddy_path();
+    let mut caddy_command = Command::new(&caddy_path);
 
-                    let request_path = request_path.as_str();
-                    let mut request_uri = request_path.to_string();
+    // TODO: implement ".wip" (or other) custom domains.
+    let host_name = "127.0.0.1".to_string();
 
-                    if query_string.len() > 0 {
-                        request_uri.push_str("?");
-                        request_uri.push_str(&query_string);
-                    }
+    let caddy_config_file = get_caddy_config_file();
 
-                    let mut req = http::Request::builder()
-                        .method(&method)
-                        .uri(&request_uri)
-                        .body(Body::from(body.to_vec()))
-                        .unwrap();
+    caddy_command
+        .stdin(Stdio::piped())
+        .stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file."))) // TODO: check if is this working
+        .arg("run")
+        .arg("--adapter").arg("caddyfile")
+        .arg("--pidfile").arg(get_caddy_pid_path().to_str().unwrap())
+        .arg("--config").arg("-") // This makes Caddy use STDIN for config
+    ;
 
-                    let mut cookies_value = "".to_string();
-                    let mut h = headers.clone();
-                    if headers.contains_key("cookie") {
-                        let cookies = headers.get_all("cookie");
-                        for cookie in cookies {
-                            if cookies_value.len() == 0 {
-                                cookies_value = cookie.to_str().unwrap().to_string();
-                                continue;
-                            }
-                            cookies_value =
-                                format!("{}; {}", cookies_value, cookie.to_str().unwrap());
-                        }
+    let mut caddy_command = caddy_command
+        .spawn()
+        .expect("Could not start HTTP server.")
+    ;
 
-                        h.remove("cookie");
-                        h.insert("cookie", cookies_value.parse().unwrap());
-                    }
+    let debug = false; // FIXME: use env var for this.
 
-                    {
-                        *req.headers_mut() = h;
-                    }
+    {
+        let mut config: String = if !caddy_config_file.exists() {
+            write(&caddy_config_file, CADDYFILE).expect("Could not write Caddyfile config.");
+            debug!("Wrote Caddy config to {}", &caddy_config_file.to_str().unwrap());
 
-                    let render_static = get_render_static_path(&document_root, &request_path);
-                    let render_static = !request_path.contains(".php")
-                        && render_static != ""
-                        && request_path != ""
-                        && request_path != "/";
+            CADDYFILE.to_string()
+        } else {
+            debug!("Reusing Caddy config from {}", &caddy_config_file.to_str().unwrap());
 
-                    info!(
-                        "{} {}{}",
-                        style(method.as_str()).yellow(),
-                        style(&request_uri).cyan(),
-                        if render_static { " (static)" } else { "" }
-                    );
+            read_to_string(&caddy_config_file).expect("Could not read Caddyfile config file.")
+        };
 
-                    let mut response = if render_static || php_port == 0 {
-                        serve_static(req, Static::new(Path::new(&document_root))).await
-                    } else {
-                        trace!("Forwarding to FastCGI");
+        config = config
+            .replace("{{ document_root }}", document_root.as_str())
+            .replace("{{ php_port }}", &php_port.to_string())
+            .replace("{{ http_port }}", &http_port.to_string())
+            .replace("{{ https_port }}", &http_port.to_string())
+            .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
+            .replace("{{ log_file }}", http_log_file.to_str().unwrap())
+            .replace("{{ host }}", &host_name)
+            .replace("{{ with_server_sign }}", if add_server_sign { "" } else { "#" })
+            .replace("{{ without_server_sign }}", if add_server_sign { "#" } else { "" })
+            .replace("{{ use_tls }}", if use_tls { "" } else { "#" })
+            .replace("{{ debug }}", if debug { "" } else { "#" })
+        ;
 
-                        let remote_addr = remote_addr.unwrap();
+        trace!("Final Caddy config:\n{}\n", &config);
 
-                        handle_fastcgi(
-                            &document_root,
-                            &php_entrypoint_file,
-                            host.unwrap(),
-                            remote_addr,
-                            req,
-                            &http_port,
-                            &php_port,
-                            use_tls,
-                        )
-                        .await
-                    };
-                    if add_server_sign {
-                        response
-                            .as_mut()
-                            .unwrap()
-                            .headers_mut()
-                            .append("server", "Rymfony".parse().unwrap());
-                    }
-
-                    response
-                }
-            },
-        );
-
-    if use_tls {
-        let (cert_path, key_path) = get_cert_path().expect("Could not generate TLS certificate");
-
-        warp::serve(routes)
-            .tls()
-            .cert_path(cert_path)
-            .key_path(key_path)
-            .run(([127, 0, 0, 1], http_port))
-            .await
-    } else {
-        warp::serve(routes).run(([127, 0, 0, 1], http_port)).await
-    };
-}
-
-async fn serve_static(
-    req: Request<Body>,
-    static_files_server: Static,
-) -> Result<Response<Body>, Infallible> {
-    let static_files_server = static_files_server.clone();
-    let response_future = static_files_server.serve(req);
-
-    let response = response_future.await;
-
-    anyhow::Result::Ok(response.unwrap())
-}
-
-fn get_render_static_path(document_root: &str, request_path: &str) -> String {
-    let directory_separators: &[_] = &['/', '\\'];
-    let request_path = urldecode::decode(
-        request_path
-            .trim_start_matches(directory_separators)
-            .to_string(),
-    );
-    let document_root = document_root.trim_end_matches(directory_separators);
-    let static_doc_root = PathBuf::from(&document_root);
-    let docroot_path = PathBuf::from(&static_doc_root).join(&request_path);
-
-    let docroot_public_path = PathBuf::from(&static_doc_root)
-        .join("public")
-        .join(&request_path);
-
-    let docroot_web_path = PathBuf::from(&static_doc_root)
-        .join("web")
-        .join(&request_path);
-
-    let mut render_static: &str = "";
-
-    if docroot_path.is_file() {
-        render_static = docroot_path.to_str().unwrap();
-        debug!("Static file \"{}\" found in document root.", &render_static);
-    } else if docroot_public_path.is_file() {
-        render_static = docroot_public_path.to_str().unwrap();
-        debug!(
-            "Static file \"{}\" found in \"public/\" subdirectory.",
-            &render_static
-        );
-    } else if docroot_web_path.is_file() {
-        debug!(
-            "Static file \"{}\" found in \"web/\" subdirectory.",
-            &render_static
-        );
-        render_static = docroot_web_path.to_str().unwrap();
-    } else {
-        debug!("No static file found based on \"{}\" path.", request_path);
+        let caddy_stdin = caddy_command.stdin.as_mut().unwrap();
+        caddy_stdin.write_all(config.as_bytes()).expect("Could not write server config to Caddy STDIN.");
     }
 
-    String::from(render_static)
+    info!("Listening to {}://{}:{}", if use_tls { "https" } else { "http" }, host_name, http_port);
+
+    let output = caddy_command.wait_with_output().expect("Could not wait for Caddy to finish executing.");
+
+    if output.status.code().unwrap() != 0 {
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        if stderr.contains("listen tcp :80: bind: permission denied") {
+            error!("Caddy is unable to listen to port 80, which is used for HTTP to HTTPS redirection.");
+            error!("This can happen when you run Caddy (and therefore Rymfony) as non-root user.");
+            error!("To make it work, you need to give Caddy the necessary network capabilities.");
+
+            #[cfg(target_os = "linux")] {
+                error!("On most linux distribuions, you can do it by running this command (possibly with \"sudo\"):");
+                error!("   setcap cap_net_bind_service=+ep {}", caddy_path.to_str().unwrap());
+            }
+        }
+        panic!("Caddy failed to start.");
+    }
+}
+
+fn get_http_log_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap()
+        .join("http.log")
+}
+
+fn get_http_error_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap()
+        .join("http.err")
+}
+
+fn get_caddy_config_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap()
+        .join("Caddyfile")
 }
