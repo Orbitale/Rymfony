@@ -40,7 +40,7 @@ pub(crate) const CADDYFILE: &'static str = "
         resolve_root_symlink
     }
 
-    file_server browse
+    file_server
 }
 ";
 
