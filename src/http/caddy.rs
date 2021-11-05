@@ -31,7 +31,6 @@ pub(crate) const CADDYFILE: &'static str = "
 
     encode gzip
 
-    {{ use_tls }}tls internal
     {{ with_server_sign }}header Server \"Rymfony\"
     {{ without_server_sign }}header -Server
 
