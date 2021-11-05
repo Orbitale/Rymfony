@@ -3,9 +3,9 @@
 set -eu
 
 # The goal here is to
-# Check releases and their checksums, and update the associated data here.
+# Check releases, and update the associated data here.
 # @link https://github.com/caddyserver/caddy/releases
-caddy_version="2.4.3"
+caddy_version="2.4.5"
 
 function output {
     style_start=""
@@ -74,28 +74,11 @@ platform="${kernel}_${machine}"
 
 output "Platform: ${platform}" "info"
 
-checksums=$(curl -sSL "https://github.com/caddyserver/caddy/releases/download/v${caddy_version}/caddy_${caddy_version}_checksums.txt")
-
-if [ -z "$checksums" ]
-then
-    output "An error occured when downloading checksums files." "error"
-    exit 1
-fi
-
-caddy_suffix="${platform}.tar.gz"
-release_filename="caddy_${caddy_version}_${caddy_suffix}"
+release_filename="caddy_${caddy_version}_${platform}.tar.gz"
 
 binary_url="https://github.com/caddyserver/caddy/releases/download/v${caddy_version}/${release_filename}"
 
 output "Downloading ${release_filename}" "info"
-
-single_checksum=$(echo "${checksums}" | grep "$release_filename" | awk '{print $1}')
-
-if [ -z "$single_checksum" ]
-then
-    output "No valid checksum could be resolved from the latest release." "error"
-    exit 1
-fi
 
 output "Downloading from "${binary_url}"" "info"
 
@@ -103,13 +86,5 @@ tmpfile_caddy=$(mktemp /tmp/rymfonycaddy.XXXXXXXXXX)
 curl -sSL "${binary_url}" --output "${tmpfile_caddy}"
 
 tar -xvzf "${tmpfile_caddy}" -C bin/ caddy
-
-downloaded_file_checksum=$(sha512sum "${tmpfile_caddy}" | awk '{print $1}')
-
-if [[ "${single_checksum}" != "${downloaded_file_checksum}" ]]; then
-    output "Invalid checksum for the downloaded file." "error"
-    rm "${tmpfile_caddy}"
-    exit 1
-fi
 
 output "Caddy was successfully downloaded to bin/caddy" "success"
