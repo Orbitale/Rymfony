@@ -12,7 +12,7 @@ use serde::Deserialize as SerdeDeserialize;
 use serde::Serialize;
 use serde::Serializer;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) enum PhpServerSapi {
     FPM,
     CGI,
@@ -255,7 +255,6 @@ impl PhpBinary {
 
 #[derive(Hash, Eq, PartialEq, Debug, Serialize, SerdeDeserialize)]
 pub(crate) struct ServerInfo {
-    pid: i32,
     port: u16,
     scheme: String,
     name: String,
@@ -267,8 +266,7 @@ impl Display for ServerInfo {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
-            "pid: {}, port: {}, scheme: {}, name: {}, command: {}, args: {}",
-            self.pid,
+            "port: {}, scheme: {}, name: {}, command: {}, args: {}",
             self.port,
             self.scheme,
             self.name,
@@ -280,7 +278,6 @@ impl Display for ServerInfo {
 
 impl ServerInfo {
     pub(crate) fn new(
-        pid: i32,
         port: u16,
         scheme: String,
         name: String,
@@ -288,16 +285,12 @@ impl ServerInfo {
         args: Vec<String>,
     ) -> ServerInfo {
         ServerInfo {
-            pid,
             port,
             scheme: scheme.clone(),
             name: name.clone(),
             command: command.clone(),
             args: args.clone(),
         }
-    }
-    pub(crate) fn pid(&self) -> i32 {
-        self.pid
     }
     pub(crate) fn port(&self) -> u16 {
         self.port

@@ -1,5 +1,6 @@
 use std::env;
 use std::fs::read_to_string;
+use std::fs::write;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -13,16 +14,18 @@ use log::info;
 use sysinfo::get_current_pid;
 use sysinfo::ProcessExt;
 use sysinfo::SystemExt;
+use crate::config::config::php_server_pid;
+use crate::config::paths::rymfony_server_info_file;
+use crate::config::paths::rymfony_pid_file;
 
 use crate::http::proxy_server;
 use crate::php::php_server;
-use crate::php::php_server::PhpServer;
 use crate::php::structs::PhpServerSapi;
 use crate::php::structs::ServerInfo;
 use crate::utils::current_process_name;
 use crate::utils::network::find_available_port;
 use crate::utils::network::parse_default_port;
-use crate::utils::project_directory::get_rymfony_project_directory;
+use crate::utils::project_directory::{clean_rymfony_runtime_files, get_rymfony_project_directory};
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -92,45 +95,52 @@ pub(crate) fn serve(args: &ArgMatches) {
 }
 
 fn serve_foreground(args: &ArgMatches) {
-    let path = get_rymfony_project_directory().unwrap();
-    let rymfony_pid_file = path.join("rymfony.pid");
-    debug!(
-        "Looking for PID file in \"{}\".",
-        rymfony_pid_file.to_str().unwrap()
-    );
+    let rymfony_pid_file = rymfony_pid_file();
+    debug!("Looking for Rymfony PID file in \"{}\".",rymfony_pid_file.to_str().unwrap());
+
     if rymfony_pid_file.exists() {
         // Check if process is rymfony and exit if true.
 
-        let infos: ServerInfo =
-            serde_json::from_str(read_to_string(&rymfony_pid_file).unwrap().as_str())
-                .expect("Unable to unserialize data from PID file.");
+        let server_info_file = rymfony_server_info_file();
 
-        let mut system = sysinfo::System::new_all();
-        system.refresh_all();
-        for (pid, proc_) in system.get_processes() {
-            #[cfg(not(target_family = "windows"))]
-            let process_pid = *pid;
+        if !server_info_file.exists() {
+            warn!("Rymfony's PID file exists, but no server info was found.");
+            warn!("Cleaning Rymfony's project directory.");
+            clean_rymfony_runtime_files();
+        } else {
+            let infos: ServerInfo =
+                serde_json::from_str(read_to_string(server_info_file).unwrap().as_str())
+                    .expect("Unable to unserialize data from PID file.");
 
-            #[cfg(target_family = "windows")]
-            let process_pid = *pid as i32;
+            let php_server_pid = php_server_pid();
 
-            let mut pname = proc_.exe().to_str().unwrap();
-            let pname_lower = pname.to_lowercase();
-            pname = pname_lower.as_str();
+            let mut system = sysinfo::System::new_all();
+            system.refresh_all();
+            for (pid, proc_) in system.get_processes() {
+                #[cfg(not(target_family = "windows"))]
+                    let process_pid = *pid;
 
-            let exe_rymfony_name = if cfg!(not(target_family = "windows")) {
-                "rymfony"
-            } else {
-                "rymfony.exe"
-            };
+                #[cfg(target_family = "windows")]
+                    let process_pid = *pid as i32;
 
-            if &process_pid == &infos.pid() && pname.ends_with(exe_rymfony_name) {
-                info!(
+                let mut pname = proc_.exe().to_str().unwrap();
+                let pname_lower = pname.to_lowercase();
+                pname = pname_lower.as_str();
+
+                let exe_rymfony_name = if cfg!(not(target_family = "windows")) {
+                    "rymfony"
+                } else {
+                    "rymfony.exe"
+                };
+
+                if process_pid.to_string() == php_server_pid && pname.ends_with(exe_rymfony_name) {
+                    info!(
                     "The server is already running and listening to {}://127.0.0.1:{}",
                     infos.scheme(),
                     infos.port()
                 );
-                return;
+                    return;
+                }
             }
         }
     }
@@ -169,14 +179,14 @@ fn serve_foreground(args: &ArgMatches) {
     };
 
     let php_entrypoint_path = doc_root_path.join(script_filename.as_str());
-    let php_server = if !php_entrypoint_path.is_file() {
+    let (php_sapi, php_server_port) = if !php_entrypoint_path.is_file() {
         warn!("No PHP entrypoint file");
-        PhpServer::new(0, PhpServerSapi::Unknown)
+        (PhpServerSapi::Unknown, 0)
     } else {
         php_server::start()
     };
 
-    let sapi = match php_server.sapi() {
+    let sapi = match php_sapi {
         PhpServerSapi::FPM => "FPM",
         PhpServerSapi::CLI => "CLI",
         PhpServerSapi::CGI => "CGI",
@@ -204,6 +214,8 @@ fn serve_foreground(args: &ArgMatches) {
     #[cfg(target_family = "windows")]
     let pid = get_current_pid().unwrap() as i32;
 
+    write(&rymfony_pid_file, pid.to_string()).expect("Could not write Rymfony PID to file.");
+
     let args_str: Vec<String> = Vec::new();
     let scheme = if args.is_present("no-tls") {
         "http".to_string()
@@ -211,7 +223,6 @@ fn serve_foreground(args: &ArgMatches) {
         "https".to_string()
     };
     let pid_info = ServerInfo::new(
-        pid,
         port,
         scheme,
         "Web Server".to_string(),
@@ -230,7 +241,7 @@ fn serve_foreground(args: &ArgMatches) {
     proxy_server::start(
         !args.is_present("no-tls"),
         port,
-        php_server.port(),
+        php_server_port,
         document_root,
         script_filename,
         args.is_present("expose-server-header"),

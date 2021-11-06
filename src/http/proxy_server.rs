@@ -86,17 +86,19 @@ pub(crate) fn start(
 
     if output.status.code().unwrap() != 0 {
         let stderr = String::from_utf8(output.stderr).unwrap();
+
         if stderr.contains("listen tcp :80: bind: permission denied") {
             error!("Caddy is unable to listen to port 80, which is used for HTTP to HTTPS redirection.");
             error!("This can happen when you run Caddy (and therefore Rymfony) as non-root user.");
             error!("To make it work, you need to give Caddy the necessary network capabilities.");
 
             #[cfg(target_os = "linux")] {
-                error!("On most linux distribuions, you can do it by running this command (possibly with \"sudo\"):");
+                error!("On most linux distributions, you can do it by running this command (possibly with \"sudo\"):");
                 error!("   setcap cap_net_bind_service=+ep {}", caddy_path.to_str().unwrap());
             }
         }
-        panic!("Caddy failed to start.");
+
+        panic!("Caddy failed to start with error:\n{}", stderr);
     }
 }
 

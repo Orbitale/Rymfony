@@ -14,19 +14,13 @@ use {
     std::process::Stdio,
     users::get_current_uid,
     crate::php::structs::PhpServerSapi,
-    crate::utils::network::find_available_port,
     crate::utils::project_directory::get_rymfony_project_directory
 };
-
-use crate::php::php_server::PhpServer;
-use std::process::Child;
+use crate::config::paths::php_fpm_conf_ini_file;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
 const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
-
-#[cfg(not(target_family = "windows"))]
-const FPM_DEFAULT_PORT: u16 = 60000;
 
 // The placeholders between brackets {{ }} will be replaced with proper values.
 #[cfg(not(target_family = "windows"))]
@@ -65,7 +59,7 @@ clear_env = no
 ";
 
 #[cfg(target_family = "windows")]
-pub(crate) fn start(_php_bin: String) -> (PhpServer, Child) {
+pub(crate) fn start(_php_bin: String) -> (PhpServerSapi, Command) {
     panic!(
         "PHP-FPM does not exist on Windows.\
     It seems the PHP version you selected is wrong.\
@@ -74,10 +68,8 @@ pub(crate) fn start(_php_bin: String) -> (PhpServer, Child) {
 }
 
 #[cfg(not(target_family = "windows"))]
-pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
+pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
     let uid = get_current_uid();
-
-    let mut port = find_available_port(FPM_DEFAULT_PORT);
 
     // This is how you check whether systemd is active.
     // @see https://www.freedesktop.org/software/systemd/man/sd_booted.html
@@ -92,7 +84,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .replace("{{ systemd_enable }}", if systemd_support { "" } else { ";" })
     ;
 
-    let fpm_config_file_path = rymfony_project_path.join("fpm-conf.ini");
+    let fpm_config_file_path = php_fpm_conf_ini_file();
 
     if !fpm_config_file_path.exists() {
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
@@ -102,24 +94,21 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         debug!("Saved FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     } else {
         // Read the file and search the port
-        let mut content = read_to_string(&fpm_config_file_path).unwrap();
+        let content = read_to_string(&fpm_config_file_path).unwrap();
 
-        let port_used = read_port(&content).unwrap_or(port);
+        let port_used = read_port(&content).unwrap_or(port.clone());
 
-        let port_checked = find_available_port(port_used);
-        content = change_port(&content, &port_checked);
-        port = port_checked;
-
-        remove_file(&fpm_config_file_path).expect("Could not remove php-fpm config file");
-        let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-        fpm_config_file.write_all(content.as_bytes()).expect(
-            format!(
-                "Could not write to php-fpm config file {}.",
-                &fpm_config_file_path.to_str().unwrap()
-            )
-            .as_str(),
-        );
-        debug!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
+        if &port_used != port {
+            // If the port is different in the config file than in the current execution,
+            // we rewrite the whole config, but only changing the port.
+            let content = change_port(&content, &port);
+            remove_file(&fpm_config_file_path).expect("Could not remove php-fpm config file");
+            let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
+            fpm_config_file
+                .write_all(content.as_bytes())
+                .expect(format!("Could not write to php-fpm config file {}.", &fpm_config_file_path.to_str().unwrap()).as_str());
+            debug!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
+        }
     }
 
     let fpm_log_file = OpenOptions::new()
@@ -137,15 +126,11 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         .unwrap()
     ;
 
-    let pid_filename = format!("{}/fpm.pid", rymfony_project_path.to_str().unwrap());
-
     let mut command = Command::new(php_bin);
     command
         .stdout(Stdio::from(fpm_log_file))
         .stderr(Stdio::from(fpm_err_file))
         .arg("--nodaemonize")
-        .arg("--pid")
-        .arg(pid_filename)
         .arg("--fpm-config")
         .arg(fpm_config_file_path.to_str().unwrap());
 
@@ -155,13 +140,7 @@ pub(crate) fn start(php_bin: String) -> (PhpServer, Child) {
         warn!("Be careful with permissions if your application has to manipulate the filesystem!")
     }
 
-    if let Ok(child) = command.spawn() {
-        info!("Running php-fpm with PID {}", child.id());
-
-        return (PhpServer::new(port, PhpServerSapi::FPM), child);
-    }
-
-    panic!("Could not start php-fpm.");
+    (PhpServerSapi::FPM, command)
 }
 
 #[cfg(not(target_family = "windows"))]
