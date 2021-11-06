@@ -1,3 +1,10 @@
+# v0.3.1
+
+* Add a "healthcheck" system to restart php-fpm/php-cgi when it fails.
+* Disable "native php" server support (it's not customizable, slow, not cgi, so we don't recommend it anyway).
+* Tidy the different config/project paths properly, and enhance some error messages for better debugging.
+* Tidy the PIDs management so that they're easier to discover and manage.
+
 # v0.3.0
 
 * Embed Caddy server into Rymfony, instead of using Warp (by @Pierstoval in https://github.com/Orbitale/Rymfony/pull/85)
