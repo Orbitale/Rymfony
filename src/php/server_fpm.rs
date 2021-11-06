@@ -9,14 +9,15 @@ use {
     std::fs::read_to_string,
     std::fs::remove_file,
     std::io::prelude::*,
-    std::process::Command,
     std::path::Path,
     std::process::Stdio,
     users::get_current_uid,
-    crate::php::structs::PhpServerSapi,
+    crate::config::paths::php_fpm_conf_ini_file,
     crate::utils::project_directory::get_rymfony_project_directory
 };
-use crate::config::paths::php_fpm_conf_ini_file;
+
+use crate::php::structs::PhpServerSapi;
+use std::process::Command;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
@@ -59,7 +60,7 @@ clear_env = no
 ";
 
 #[cfg(target_family = "windows")]
-pub(crate) fn start(_php_bin: String) -> (PhpServerSapi, Command) {
+pub(crate) fn start(_php_bin: String, _port: &u16) -> (PhpServerSapi, Command) {
     panic!(
         "PHP-FPM does not exist on Windows.\
     It seems the PHP version you selected is wrong.\

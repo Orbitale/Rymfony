@@ -13,6 +13,7 @@ pub(crate) fn php_server_pid_file() -> PathBuf {
     PathBuf::from(format!("{}/php_server.pid", get_rymfony_project_directory().unwrap().to_str().unwrap()))
 }
 
+#[cfg(not(target_os = "windows"))]
 pub(crate) fn php_fpm_conf_ini_file() -> PathBuf {
     PathBuf::from(format!("{}/fpm-conf.ini", get_rymfony_project_directory().unwrap().to_str().unwrap()))
 }

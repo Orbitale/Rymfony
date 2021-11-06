@@ -6,7 +6,6 @@ use crate::php::server_fpm::start as start_fpm;
 use crate::php::structs::PhpServerSapi;
 use crate::php::structs::ServerInfo;
 use crate::utils::project_directory::clean_rymfony_runtime_files;
-#[cfg(not(target_os = "windows"))]
 use crate::utils::stop_process;
 
 use is_executable::IsExecutable;

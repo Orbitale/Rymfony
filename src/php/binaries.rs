@@ -241,7 +241,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
         } else {
             let mut bin = PhpBinary::from_version(version.clone());
             bin.add_sapi(&sapi, &path);
-            &binaries.insert(version.clone(), bin);
+            let _ = &binaries.insert(version.clone(), bin);
         }
     }
 
@@ -293,7 +293,7 @@ fn merge_binaries(into: &mut HashMap<PhpVersion, PhpBinary>, from: HashMap<PhpVe
         // FIXME
         // this needs to be fixed, but for now we assume that the first ever found version is
         // the one that is first in PATH and therefore the "system" binary
-        &binary.set_system(if into.len() == 0 { true } else { false });
+        let _ = &binary.set_system(if into.len() == 0 { true } else { false });
 
         if into.contains_key(&version) {
             into.get_mut(&version).unwrap().merge_with(binary);

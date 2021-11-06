@@ -28,11 +28,17 @@ pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
     command
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .arg("-b")
+        .arg("-b") // address:port
         .arg(format!("127.0.0.1:{}", port.to_string()))
-        .arg("-d")
+        .arg("-d") // INI entries
         .arg(format!("error_log={}", error_log_file.to_str().unwrap()))
-        .arg("-e");
+        .arg("-e") // extended information for debugger/profiler
+    ;
+
+    // Strangely, php-cgi stops after this amount of requests,
+    // and it has no concurrency, so setting this to a high value
+    // avoids having to restart php-cgi too much.
+    command.env("PHP_FCGI_MAX_REQUESTS", "200000");
 
     (PhpServerSapi::CGI, command)
 }
