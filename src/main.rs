@@ -9,6 +9,7 @@ extern crate regex;
 
 mod config {
     pub(crate) mod config;
+    pub(crate) mod paths;
 }
 
 mod commands {
@@ -30,7 +31,6 @@ mod php {
     pub(crate) mod php_server;
     pub(crate) mod server_cgi;
     pub(crate) mod server_fpm;
-    pub(crate) mod server_native;
     pub(crate) mod structs;
 }
 
