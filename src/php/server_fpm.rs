@@ -12,7 +12,7 @@ use {
     std::path::Path,
     std::process::Stdio,
     users::get_current_uid,
-    crate::config::paths::php_fpm_conf_ini_file,
+    crate::config,
     crate::utils::project_directory::get_rymfony_project_directory
 };
 
@@ -27,9 +27,11 @@ const FPM_DEFAULT_LOG_LEVEL: &str = "notice";
 #[cfg(not(target_family = "windows"))]
 const FPM_DEFAULT_CONFIG: &str = "
 [global]
+pid = {{ pid_file }}
+
 log_level = {{ log_level }}
 
-error_log = {{ rymfony_project_dir }}/log/fpm.err.log
+error_log = {{ rymfony_project_dir }}/log/server.fpm.error_log
 
 ; This should be managed by Rymfony.
 ; This gives the advantage of keeping control over the process,
@@ -41,6 +43,8 @@ daemonize = no
 ; Don't touch this line unless you know what you are doing
 listen = 127.0.0.1:{{ port }}
 listen.allowed_clients = 127.0.0.1
+
+access.log = {{ rymfony_project_dir }}/log/server.fpm.access_log
 
 pm = dynamic
 pm.max_children = 5
@@ -82,10 +86,11 @@ pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
         .replace("{{ port }}", &port.to_string())
         .replace("{{ log_level }}", FPM_DEFAULT_LOG_LEVEL)
         .replace("{{ rymfony_project_dir }}", &rymfony_project_path.to_str().unwrap())
+        .replace("{{ pid_file }}", &config::paths::php_server_pid_file().to_str().unwrap())
         .replace("{{ systemd_enable }}", if systemd_support { "" } else { ";" })
     ;
 
-    let fpm_config_file_path = php_fpm_conf_ini_file();
+    let fpm_config_file_path = config::paths::php_fpm_conf_ini_file();
 
     if !fpm_config_file_path.exists() {
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
@@ -116,14 +121,14 @@ pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
         .read(true)
         .write(true)
         .create(true)
-        .open(get_rymfony_project_directory().unwrap().join("fpm.log"))
+        .open(get_rymfony_project_directory().unwrap().join("log").join("process.fpm.log"))
         .unwrap()
     ;
     let fpm_err_file = OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
-        .open(get_rymfony_project_directory().unwrap().join("fpm.err"))
+        .open(get_rymfony_project_directory().unwrap().join("log").join("process.fpm.err"))
         .unwrap()
     ;
 

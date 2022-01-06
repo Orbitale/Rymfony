@@ -2,12 +2,12 @@ use std::process::Command;
 use std::process::Stdio;
 use crate::http::caddy::get_caddy_path;
 use crate::http::caddy::CADDYFILE;
-use crate::http::caddy::get_caddy_pid_path;
+use crate::config::paths::get_caddy_pid_file;
 use crate::utils::project_directory::get_rymfony_project_directory;
 use std::path::PathBuf;
 use std::fs::File;
 use std::fs::read_to_string;
-use std::fs::write;
+use std::fs;
 use std::io::Write;
 
 pub(crate) fn start(
@@ -37,7 +37,7 @@ pub(crate) fn start(
         .stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file."))) // TODO: check if is this working
         .arg("run")
         .arg("--adapter").arg("caddyfile")
-        .arg("--pidfile").arg(get_caddy_pid_path().to_str().unwrap())
+        .arg("--pidfile").arg(get_caddy_pid_file().to_str().unwrap())
         .arg("--config").arg("-") // This makes Caddy use STDIN for config
     ;
 
@@ -50,7 +50,7 @@ pub(crate) fn start(
 
     {
         let mut config: String = if !caddy_config_file.exists() {
-            write(&caddy_config_file, CADDYFILE).expect("Could not write Caddyfile config.");
+            fs::write(&caddy_config_file, CADDYFILE).expect("Could not write Caddyfile config.");
             debug!("Wrote Caddy config to {}", &caddy_config_file.to_str().unwrap());
 
             CADDYFILE.to_string()
@@ -104,11 +104,13 @@ pub(crate) fn start(
 
 fn get_http_log_file() -> PathBuf {
     get_rymfony_project_directory().unwrap()
+        .join("log")
         .join("http.log")
 }
 
 fn get_http_error_file() -> PathBuf {
     get_rymfony_project_directory().unwrap()
+        .join("log")
         .join("http.err")
 }
 

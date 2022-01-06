@@ -32,7 +32,10 @@ pub(crate) const CADDYFILE: &'static str = "
 
 {
     {{ debug }}debug
-    log {{ log_file }}
+    log {
+        output file {{ log_file }}
+        {{ debug }}level DEBUG
+    }
     {{ use_tls }}local_certs
 }
 
@@ -44,6 +47,11 @@ pub(crate) const CADDYFILE: &'static str = "
     {{ with_server_sign }}header Server \"Rymfony\"
     {{ without_server_sign }}header -Server
 
+    log {
+        output file {{ log_file }}.vhost
+        {{ debug }}level DEBUG
+    }
+
     php_fastcgi 127.0.0.1:{{ php_port }} {
         index {{ php_entrypoint_file }}
         resolve_root_symlink
@@ -52,11 +60,6 @@ pub(crate) const CADDYFILE: &'static str = "
     file_server
 }
 ";
-
-pub(crate) fn get_caddy_pid_path() -> PathBuf {
-    get_rymfony_project_directory().unwrap()
-        .join(".running_caddy.pid")
-}
 
 pub(crate) fn get_caddy_path() -> PathBuf {
     let caddy_from_path_env = caddy_from_path_env();
