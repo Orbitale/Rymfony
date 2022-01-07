@@ -2,6 +2,7 @@ use clap::App;
 use clap::SubCommand;
 use std::fs;
 use crate::config::paths;
+use crate::utils::project_directory::clean_rymfony_runtime_files;
 use crate::utils::stop_process;
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
@@ -12,6 +13,7 @@ pub(crate) fn stop() {
     stop_rymfony();
     stop_php_server();
     stop_http_server();
+    clean_rymfony_runtime_files();
 }
 
 fn stop_rymfony() {

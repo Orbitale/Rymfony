@@ -3,12 +3,11 @@ use std::process::Stdio;
 use crate::http::caddy::get_caddy_path;
 use crate::http::caddy::CADDYFILE;
 use crate::config::paths::get_caddy_pid_file;
-use crate::utils::project_directory::get_rymfony_project_directory;
-use std::path::PathBuf;
 use std::fs::File;
 use std::fs::read_to_string;
 use std::fs;
 use std::io::Write;
+use crate::config::paths;
 
 pub(crate) fn start(
     use_tls: bool,
@@ -18,10 +17,7 @@ pub(crate) fn start(
     php_entrypoint_file: String,
     add_server_sign: bool,
 ) {
-    let http_log_file = get_http_log_file();
-    if !http_log_file.exists() { File::create(&http_log_file).expect("Could not create HTTP log file."); }
-
-    let http_error_file = get_http_error_file();
+    let http_error_file = paths::get_http_error_file();
     if !http_error_file.exists() { File::create(&http_error_file).expect("Could not create HTTP error file."); }
 
     let caddy_path = get_caddy_path();
@@ -30,7 +26,7 @@ pub(crate) fn start(
     // TODO: implement ".wip" (or other) custom domains.
     let host_name = "127.0.0.1".to_string();
 
-    let caddy_config_file = get_caddy_config_file();
+    let caddy_config_file = paths::get_caddy_config_file();
 
     caddy_command
         .stdin(Stdio::piped())
@@ -66,7 +62,8 @@ pub(crate) fn start(
             .replace("{{ http_port }}", &http_port.to_string())
             .replace("{{ https_port }}", &http_port.to_string())
             .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
-            .replace("{{ log_file }}", http_log_file.to_str().unwrap())
+            .replace("{{ log_file }}", paths::get_http_log_file().to_str().unwrap())
+            .replace("{{ vhost_log_file }}", paths::get_http_vhost_log_file().to_str().unwrap())
             .replace("{{ host }}", &host_name)
             .replace("{{ with_server_sign }}", if add_server_sign { "" } else { "#" })
             .replace("{{ without_server_sign }}", if add_server_sign { "#" } else { "" })
@@ -100,21 +97,4 @@ pub(crate) fn start(
 
         panic!("Caddy failed to start with error:\n{}", stderr);
     }
-}
-
-fn get_http_log_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap()
-        .join("log")
-        .join("http.log")
-}
-
-fn get_http_error_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap()
-        .join("log")
-        .join("http.err")
-}
-
-fn get_caddy_config_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap()
-        .join("Caddyfile")
 }

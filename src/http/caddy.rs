@@ -48,7 +48,7 @@ pub(crate) const CADDYFILE: &'static str = "
     {{ without_server_sign }}header -Server
 
     log {
-        output file {{ log_file }}.vhost
+        output file {{ vhost_log_file }}
         {{ debug }}level DEBUG
     }
 

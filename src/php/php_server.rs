@@ -5,15 +5,12 @@ use crate::php::server_cgi::start as start_cgi;
 use crate::php::server_fpm::start as start_fpm;
 use crate::php::structs::PhpServerSapi;
 use crate::php::structs::ServerInfo;
-use crate::utils::project_directory::clean_rymfony_runtime_files;
-use crate::utils::stop_process;
 
 use is_executable::IsExecutable;
 use std::path::PathBuf;
 use std::process::Command;
 use std::thread;
 use std::time;
-use crate::config::config::php_server_pid;
 use crate::config::paths::php_server_pid_file;
 use crate::config::paths::rymfony_server_info_file;
 use crate::utils::network::find_available_port;
@@ -62,18 +59,6 @@ pub(crate) fn start() -> (PhpServerSapi, u16) {
     };
 
     write(php_server_pid_file(), &process_pid_string).expect("Could not write PHP server PID to file.");
-
-    ctrlc::set_handler(move || {
-        info!("Stopping PHP process...");
-
-        let pid = php_server_pid();
-        stop_process::stop(&pid); // Stop fpm children
-        info!("PHP process stopped.");
-
-        clean_rymfony_runtime_files();
-        info!("Cleaned Rymfony runtime files.");
-    })
-    .expect("Error setting Ctrl-C handler");
 
     let pid_info = ServerInfo::new(
         php_server_port,

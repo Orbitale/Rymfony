@@ -6,6 +6,7 @@ extern crate ctrlc;
 extern crate env_logger;
 extern crate pretty_env_logger;
 extern crate regex;
+extern crate tokio;
 
 mod config {
     pub(crate) mod config;
@@ -13,6 +14,7 @@ mod config {
 }
 
 mod commands {
+    pub(crate) mod logs;
     pub(crate) mod new_symfony;
     pub(crate) mod php_list;
     pub(crate) mod serve;
@@ -56,6 +58,7 @@ use utils::current_process_name;
 
 fn main() {
     let application_commands = vec![
+        crate::commands::logs::command_config(),
         crate::commands::php_list::command_config(),
         crate::commands::serve::command_config(),
         crate::commands::stop::command_config(),
@@ -105,32 +108,32 @@ https://github.com/Orbitale/Rymfony
 
     match subcommand_name {
         Some("serve") => {
-            crate::commands::serve::serve(matches.subcommand_matches("serve").unwrap())
+            crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
         }
         Some("server:start") => {
-            crate::commands::serve::serve(matches.subcommand_matches("server:start").unwrap())
+            crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
         }
         Some("stop") => crate::commands::stop::stop(),
         Some("new") => {
-            crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new").unwrap())
+            crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
         }
-        Some("new:symfony") => crate::commands::new_symfony::new_symfony(
-            matches.subcommand_matches("new:symfony").unwrap(),
-        ),
-        Some("php:list") => {
-            crate::commands::php_list::php_list(matches.subcommand_matches("php:list").unwrap())
-        }
+        Some("new:symfony") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("php:list") => crate::commands::php_list::php_list(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("logs") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("local:server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
         _ => {
             // If no subcommand is specified,
             // re-run the program with "--help"
             let mut subprocess = Command::new(current_process_name::get().as_str())
                 .arg("--help")
                 .spawn()
-                .expect("Failed to start HTTP server");
+                .expect("Failed to create the \"help\" command.");
 
             subprocess
                 .wait()
-                .expect("An error occured when trying to execute the HTTP server");
+                .expect("Failed to run the \"help\" command.");
         }
     };
 }

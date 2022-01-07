@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
+colored = "2"
 console = "0.14"
 ctrlc = { version = "3.1", features = ["termination"] }
 dirs = "3.0"
@@ -15,6 +16,7 @@ env_logger = "0.8"
 glob = "0.3"
 is_executable = "1.0"
 log = "0.4"
+linemux = "0.2"
 os_info = { version = "3.0", default-features = false }
 pretty_env_logger = "0.4"
 prettytable-rs = "0.8"
@@ -26,6 +28,7 @@ which = "4.1"
 runas = "0.2"
 sha2 = "0.9"
 sysinfo = "0.18"
+tokio = { version = "1.15", features = ["rt-multi-thread"]}
 
 [target.'cfg(not(target_family = "windows"))'.dependencies]
 users = "0.11"

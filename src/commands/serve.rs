@@ -90,6 +90,7 @@ pub(crate) fn serve(args: &ArgMatches) {
     if args.is_present("daemon") {
         serve_background(args);
     } else {
+        ctrlc::set_handler(crate::commands::stop::stop).expect("Error setting Ctrl-C handler");
         serve_foreground(args);
     }
 }
