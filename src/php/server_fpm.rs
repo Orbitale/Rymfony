@@ -1,6 +1,7 @@
 #[cfg(not(target_family = "windows"))]
 use {
     crate::config,
+    crate::config::paths,
     crate::utils::project_directory::get_rymfony_project_directory,
     regex::Regex,
     regex::RegexBuilder,
@@ -18,7 +19,6 @@ use {
 
 use crate::php::structs::PhpServerSapi;
 use std::process::Command;
-use crate::config::paths;
 
 // Possible values: alert, error, warning, notice, debug
 #[cfg(not(target_family = "windows"))]
