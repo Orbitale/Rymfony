@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 #[cfg(not(target_family = "windows"))]
 use {
     crate::config,

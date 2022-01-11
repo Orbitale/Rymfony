@@ -4,8 +4,6 @@ use clap::ArgMatches;
 use clap::SubCommand;
 use linemux::MuxedLines;
 use crate::config::paths;
-use std::io;
-use std::io::Write;
 use colored::*;
 
 pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
