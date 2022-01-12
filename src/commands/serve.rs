@@ -99,18 +99,18 @@ fn serve_foreground(args: &ArgMatches) {
     let rymfony_pid_file = rymfony_pid_file();
     debug!("Looking for Rymfony PID file in \"{}\".",rymfony_pid_file.to_str().unwrap());
 
+    let server_info_path = rymfony_server_info_file();
+
     if rymfony_pid_file.exists() {
         // Check if process is rymfony and exit if true.
 
-        let server_info_file = rymfony_server_info_file();
-
-        if !server_info_file.exists() {
+        if !&server_info_path.exists() {
             warn!("Rymfony's PID file exists, but no server info was found.");
             warn!("Cleaning Rymfony's project directory.");
             clean_rymfony_runtime_files();
         } else {
             let infos: ServerInfo =
-                serde_json::from_str(read_to_string(server_info_file).unwrap().as_str())
+                serde_json::from_str(read_to_string(&server_info_path).unwrap().as_str())
                     .expect("Unable to unserialize data from PID file.");
 
             let php_server_pid = php_server_pid();
@@ -233,9 +233,9 @@ fn serve_foreground(args: &ArgMatches) {
 
     //Serialize
     let serialized = serde_json::to_string_pretty(&pid_info).unwrap();
-    let mut versions_file = File::create(&rymfony_pid_file).unwrap();
+    let mut server_info_file = File::create(&server_info_path).unwrap();
 
-    versions_file
+    server_info_file
         .write_all(serialized.as_bytes())
         .expect("Could not write Process informations to JSON file.");
 

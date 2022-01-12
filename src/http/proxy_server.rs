@@ -4,8 +4,12 @@ use crate::http::caddy::get_caddy_path;
 use crate::http::caddy::CADDYFILE;
 use crate::config::paths::get_caddy_pid_file;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::fs::read_to_string;
 use std::fs;
+use std::io::Seek;
+use std::io::Read;
+use std::io::SeekFrom;
 use std::io::Write;
 use crate::config::paths;
 
@@ -17,9 +21,6 @@ pub(crate) fn start(
     php_entrypoint_file: String,
     add_server_sign: bool,
 ) {
-    let http_error_file = paths::get_http_error_file();
-    if !http_error_file.exists() { File::create(&http_error_file).expect("Could not create HTTP error file."); }
-
     let caddy_path = get_caddy_path();
     let mut caddy_command = Command::new(&caddy_path);
 
@@ -28,9 +29,17 @@ pub(crate) fn start(
 
     let caddy_config_file = paths::get_caddy_config_file();
 
+    // let stderr_file = File::create(paths::get_http_process_stderr_file()).expect("Could not open HTTP error file.");
+    let mut std_file_options = OpenOptions::new();
+    std_file_options.read(true).append(true).write(true);
+
+    let stderr_file = open_stderr_file(&std_file_options);
+    let file_pointer = stderr_file.metadata().unwrap().len();
+
     caddy_command
         .stdin(Stdio::piped())
-        .stderr(Stdio::from(File::open(http_error_file).expect("Could not open HTTP error file."))) // TODO: check if is this working
+        .stdout(Stdio::from(File::create(paths::get_http_process_stdout_file()).expect("Could not open HTTP error file.")))
+        .stderr(stderr_file)
         .arg("run")
         .arg("--adapter").arg("caddyfile")
         .arg("--pidfile").arg(get_caddy_pid_file().to_str().unwrap())
@@ -62,7 +71,7 @@ pub(crate) fn start(
             .replace("{{ http_port }}", &http_port.to_string())
             .replace("{{ https_port }}", &http_port.to_string())
             .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
-            .replace("{{ log_file }}", paths::get_http_log_file().to_str().unwrap())
+            .replace("{{ log_file }}", paths::get_http_server_log_file().to_str().unwrap())
             .replace("{{ vhost_log_file }}", paths::get_http_vhost_log_file().to_str().unwrap())
             .replace("{{ host }}", &host_name)
             .replace("{{ with_server_sign }}", if add_server_sign { "" } else { "#" })
@@ -81,7 +90,8 @@ pub(crate) fn start(
 
     let output = caddy_command.wait_with_output().expect("Could not wait for Caddy to finish executing.");
 
-    if output.status.code().unwrap() != 0 {
+    let exit_code = output.status.code().unwrap();
+    if exit_code != 0 {
         let stderr = String::from_utf8(output.stderr).unwrap();
 
         if stderr.contains("listen tcp :80: bind: permission denied") {
@@ -95,6 +105,26 @@ pub(crate) fn start(
             }
         }
 
-        panic!("Caddy failed to start with error:\n{}", stderr);
+        if stderr == "".to_string() {
+            let mut bytes = Vec::new();
+            let mut stderr_file = open_stderr_file(&std_file_options);
+            stderr_file.seek(SeekFrom::Start(file_pointer)).unwrap();
+            stderr_file.read_to_end(&mut bytes).unwrap();
+            let bytes_string = String::from_utf8(bytes.into()).unwrap();
+
+            error!("Caddy failed to start with exit code {} and following error:", exit_code);
+            let error_lines = bytes_string.trim().split("\n");
+            for line in error_lines {
+                error!("  {}", line)
+            }
+        } else {
+            unreachable!();
+        }
     }
+}
+
+fn open_stderr_file(file_options: &OpenOptions) -> File {
+    file_options
+        .open(paths::get_http_process_stderr_file())
+        .expect("Could not open HTTP error file.")
 }
