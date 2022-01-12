@@ -2,9 +2,11 @@ use std::env;
 use std::fs::read_to_string;
 use std::fs::write;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
+use std::process::Stdio;
 
 use clap::App;
 use clap::Arg;
@@ -15,8 +17,7 @@ use sysinfo::get_current_pid;
 use sysinfo::ProcessExt;
 use sysinfo::SystemExt;
 use crate::config::config::php_server_pid;
-use crate::config::paths::rymfony_server_info_file;
-use crate::config::paths::rymfony_pid_file;
+use crate::config::paths;
 
 use crate::http::proxy_server;
 use crate::php::php_server;
@@ -96,10 +97,10 @@ pub(crate) fn serve(args: &ArgMatches) {
 }
 
 fn serve_foreground(args: &ArgMatches) {
-    let rymfony_pid_file = rymfony_pid_file();
+    let rymfony_pid_file = paths::rymfony_pid_file();
     debug!("Looking for Rymfony PID file in \"{}\".",rymfony_pid_file.to_str().unwrap());
 
-    let server_info_path = rymfony_server_info_file();
+    let server_info_path = paths::rymfony_server_info_file();
 
     if rymfony_pid_file.exists() {
         // Check if process is rymfony and exit if true.
@@ -255,8 +256,20 @@ fn serve_background(args: &ArgMatches) {
         DEFAULT_PORT,
     ));
 
+    let mut file_options = OpenOptions::new();
+    file_options.read(true).append(true).write(true).create(true);
+
+    let rymfony_log_file = file_options.open(paths::get_rymfony_process_log_file()).unwrap();
+    let rymfony_err_file = file_options.open(paths::get_rymfony_process_err_file()).unwrap();
+
     let mut cmd = Command::new(current_process_name::get().as_str());
-    cmd.arg("serve").arg("--port").arg(port.to_string());
+    cmd
+        .stdout(Stdio::from(rymfony_log_file))
+        .stderr(Stdio::from(rymfony_err_file))
+        .arg("serve")
+        .arg("--port")
+        .arg(port.to_string())
+    ;
 
     if args.is_present("no-tls") {
         cmd.arg("--no-tls");

@@ -23,6 +23,14 @@ pub(crate) fn php_fpm_conf_ini_file() -> PathBuf {
     get_rymfony_project_directory().unwrap().join("fpm-conf.ini")
 }
 
+pub(crate) fn get_rymfony_process_log_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap().join("log").join("process.rymfony.log")
+}
+
+pub(crate) fn get_rymfony_process_err_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap().join("log").join("process.rymfony.err")
+}
+
 pub(crate) fn get_php_process_log_file() -> PathBuf {
     get_rymfony_project_directory().unwrap().join("log").join("process.fpm.log")
 }
