@@ -39,15 +39,17 @@ pub(crate) fn logs(args: &'_ ArgMatches) {
     rt.block_on(async {
         let mut lines = MuxedLines::new().unwrap();
 
-        // Register some files to be tailed, whether they currently exist or not.
-        lines.add_file(paths::get_http_server_log_file()).await.unwrap();
         lines.add_file(paths::get_http_process_stdout_file()).await.unwrap();
         lines.add_file(paths::get_http_process_stderr_file()).await.unwrap();
+
+        lines.add_file(paths::get_http_server_log_file()).await.unwrap();
         lines.add_file(paths::get_http_vhost_log_file()).await.unwrap();
-        lines.add_file(paths::get_php_access_log_file()).await.unwrap();
-        lines.add_file(paths::get_php_error_log_file()).await.unwrap();
+
         lines.add_file(paths::get_php_process_log_file()).await.unwrap();
         lines.add_file(paths::get_php_process_err_file()).await.unwrap();
+
+        lines.add_file(paths::get_php_server_log_file()).await.unwrap();
+        lines.add_file(paths::get_php_server_error_file()).await.unwrap();
 
         while let Ok(Some(line)) = lines.next_line().await {
             let source = line.source().file_name().unwrap();

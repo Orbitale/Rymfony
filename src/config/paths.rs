@@ -31,12 +31,12 @@ pub(crate) fn get_php_process_err_file() -> PathBuf {
     get_rymfony_project_directory().unwrap().join("log").join("process.fpm.err")
 }
 
-pub(crate) fn get_php_access_log_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap().join("log").join("server.php.access.log")
+pub(crate) fn get_php_server_log_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap().join("log").join("server.php.log")
 }
 
-pub(crate) fn get_php_error_log_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap().join("log").join("server.php.access.err")
+pub(crate) fn get_php_server_error_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap().join("log").join("server.php.err")
 }
 
 pub(crate) fn get_http_server_log_file() -> PathBuf {

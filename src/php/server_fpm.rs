@@ -89,8 +89,8 @@ pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
         .replace("{{ rymfony_project_dir }}", &rymfony_project_path.to_str().unwrap())
         .replace("{{ pid_file }}", &config::paths::php_server_pid_file().to_str().unwrap())
         .replace("{{ systemd_enable }}", if systemd_support { "" } else { ";" })
-        .replace("{{ access_log_file }}", &config::paths::get_php_access_log_file().to_str().unwrap())
-        .replace("{{ error_log_file }}", &config::paths::get_php_error_log_file().to_str().unwrap())
+        .replace("{{ access_log_file }}", &config::paths::get_php_server_log_file().to_str().unwrap())
+        .replace("{{ error_log_file }}", &config::paths::get_php_server_error_file().to_str().unwrap())
     ;
 
     let fpm_config_file_path = config::paths::php_fpm_conf_ini_file();
@@ -120,20 +120,11 @@ pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
         }
     }
 
-    let fpm_log_file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(paths::get_php_process_log_file())
-        .unwrap()
-    ;
-    let fpm_err_file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(paths::get_php_process_err_file())
-        .unwrap()
-    ;
+    let mut file_options = OpenOptions::new();
+    file_options.read(true).append(true).write(true).create(true);
+
+    let fpm_log_file = file_options.open(paths::get_php_process_log_file()).unwrap();
+    let fpm_err_file = file_options.open(paths::get_php_process_err_file()).unwrap();
 
     let mut command = Command::new(php_bin);
     command

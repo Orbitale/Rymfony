@@ -31,14 +31,15 @@ pub(crate) fn start(
 
     // let stderr_file = File::create(paths::get_http_process_stderr_file()).expect("Could not open HTTP error file.");
     let mut std_file_options = OpenOptions::new();
-    std_file_options.read(true).append(true).write(true);
+    std_file_options.create(true).read(true).append(true).write(true);
 
+    let stdout_file = std_file_options.open(paths::get_http_process_stdout_file()).expect("Could not open HTTP error file.");
     let stderr_file = open_stderr_file(&std_file_options);
     let file_pointer = stderr_file.metadata().unwrap().len();
 
     caddy_command
         .stdin(Stdio::piped())
-        .stdout(Stdio::from(File::create(paths::get_http_process_stdout_file()).expect("Could not open HTTP error file.")))
+        .stdout(stdout_file)
         .stderr(stderr_file)
         .arg("run")
         .arg("--adapter").arg("caddyfile")
