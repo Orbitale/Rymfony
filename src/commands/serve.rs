@@ -1,5 +1,4 @@
 use std::env;
-use std::fs::read_to_string;
 use std::fs::write;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -7,6 +6,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
+use std::time::Duration;
 
 use clap::App;
 use clap::Arg;
@@ -14,19 +14,17 @@ use clap::ArgMatches;
 use clap::SubCommand;
 use log::info;
 use sysinfo::get_current_pid;
-use sysinfo::ProcessExt;
-use sysinfo::SystemExt;
-use crate::config::config::php_server_pid;
 use crate::config::paths;
 
 use crate::http::proxy_server;
+use crate::http::proxy_server::start_caddy;
 use crate::php::php_server;
-use crate::php::structs::PhpServerSapi;
-use crate::php::structs::ServerInfo;
+use crate::php::php_server::PhpServerStartInput;
+use crate::php::php_server::start_php_server;
 use crate::utils::current_process_name;
 use crate::utils::network::find_available_port;
 use crate::utils::network::parse_default_port;
-use crate::utils::project_directory::{clean_rymfony_runtime_files, get_rymfony_project_directory};
+use crate::utils::project_directory::get_rymfony_project_directory;
 
 const DEFAULT_PORT: &str = "8000";
 
@@ -91,7 +89,6 @@ pub(crate) fn serve(args: &ArgMatches) {
     if args.is_present("daemon") {
         serve_background(args);
     } else {
-        ctrlc::set_handler(crate::commands::stop::stop).expect("Error setting Ctrl-C handler");
         serve_foreground(args);
     }
 }
@@ -100,51 +97,11 @@ fn serve_foreground(args: &ArgMatches) {
     let rymfony_pid_file = paths::rymfony_pid_file();
     debug!("Looking for Rymfony PID file in \"{}\".",rymfony_pid_file.to_str().unwrap());
 
-    let server_info_path = paths::rymfony_server_info_file();
-
     if rymfony_pid_file.exists() {
         // Check if process is rymfony and exit if true.
-
-        if !&server_info_path.exists() {
-            warn!("Rymfony's PID file exists, but no server info was found.");
-            warn!("Cleaning Rymfony's project directory.");
-            clean_rymfony_runtime_files();
-        } else {
-            let infos: ServerInfo =
-                serde_json::from_str(read_to_string(&server_info_path).unwrap().as_str())
-                    .expect("Unable to unserialize data from PID file.");
-
-            let php_server_pid = php_server_pid();
-
-            let mut system = sysinfo::System::new_all();
-            system.refresh_all();
-            for (pid, proc_) in system.get_processes() {
-                #[cfg(not(target_family = "windows"))]
-                    let process_pid = *pid;
-
-                #[cfg(target_family = "windows")]
-                    let process_pid = *pid as i32;
-
-                let mut pname = proc_.exe().to_str().unwrap();
-                let pname_lower = pname.to_lowercase();
-                pname = pname_lower.as_str();
-
-                let exe_rymfony_name = if cfg!(not(target_family = "windows")) {
-                    "rymfony"
-                } else {
-                    "rymfony.exe"
-                };
-
-                if process_pid.to_string() == php_server_pid && pname.ends_with(exe_rymfony_name) {
-                    info!(
-                    "The server is already running and listening to {}://127.0.0.1:{}",
-                    infos.scheme(),
-                    infos.port()
-                );
-                    return;
-                }
-            }
-        }
+        info!("The server is already running for this directory.");
+        info!("Run the \"rymfony log\" command to tail its logs if you need.");
+        return;
     }
 
     let mut document_root =
@@ -181,73 +138,110 @@ fn serve_foreground(args: &ArgMatches) {
     };
 
     let php_entrypoint_path = doc_root_path.join(script_filename.as_str());
-    let (php_sapi, php_server_port) = if !php_entrypoint_path.is_file() {
-        warn!("No PHP entrypoint file");
-        (PhpServerSapi::Unknown, 0)
+    let (mut php_start_command, php_server_input) = if !php_entrypoint_path.is_file() {
+        panic!("No PHP entrypoint specified.");
     } else {
-        php_server::start()
+        php_server::get_php_server_start_input()
     };
 
-    let sapi = match php_sapi {
-        PhpServerSapi::FPM => "FPM",
-        PhpServerSapi::CLI => "CLI",
-        PhpServerSapi::CGI => "CGI",
-        PhpServerSapi::Unknown => "?",
-    };
+    let sapi = php_server_input.sapi;
+    let sapi_string = sapi.to_string();
 
-    if sapi == "?" {
-        info!("Skipping PHP start");
+    if sapi_string == "unknown" {
+        panic!("Unknown PHP SAPI to execute");
     } else {
-        info!("PHP started with module {}", sapi);
+        info!("PHP starting with module {}", sapi_string);
         info!("PHP entrypoint file: {}", &script_filename);
     }
+
+    let php_port = php_server_input.port.clone();
+    let php_bin = php_server_input.php_bin.clone();
+
+    let mut php_process = start_php_server(&mut php_start_command, php_server_input.clone());
 
     info!("Starting HTTP server...");
 
     info!("Configured document root: {}", &document_root);
 
-    let port = find_available_port(parse_default_port(
+    let http_port = find_available_port(parse_default_port(
         args.value_of("port").unwrap_or(DEFAULT_PORT),
         DEFAULT_PORT,
     ));
 
     #[cfg(not(target_family = "windows"))]
-    let pid = get_current_pid().unwrap();
+    let rymfony_pid = get_current_pid().unwrap();
     #[cfg(target_family = "windows")]
-    let pid = get_current_pid().unwrap() as i32;
+    let rymfony_pid = get_current_pid().unwrap() as i32;
 
-    write(&rymfony_pid_file, pid.to_string()).expect("Could not write Rymfony PID to file.");
-
-    let args_str: Vec<String> = Vec::new();
-    let scheme = if args.is_present("no-tls") {
-        "http".to_string()
-    } else {
-        "https".to_string()
-    };
-    let pid_info = ServerInfo::new(
-        port,
-        scheme,
-        "Web Server".to_string(),
-        current_process_name::get(),
-        args_str,
-    );
+    write(&rymfony_pid_file, rymfony_pid.to_string()).expect("Could not write Rymfony PID to file.");
 
     //Serialize
-    let serialized = serde_json::to_string_pretty(&pid_info).unwrap();
-    let mut server_info_file = File::create(&server_info_path).unwrap();
+    let no_tls = args.is_present("no-tls");
 
-    server_info_file
-        .write_all(serialized.as_bytes())
-        .expect("Could not write Process informations to JSON file.");
+    // TODO: implement ".wip" (or other) custom domains.
+    let host_name = "127.0.0.1".to_string();
 
-    proxy_server::start(
-        !args.is_present("no-tls"),
-        port,
-        php_server_port,
+    let (mut caddy_command, caddy_command_input) = proxy_server::get_caddy_start_command(
+        !no_tls,
+        host_name.clone(),
+        http_port.clone(),
+        php_port.clone(),
         document_root,
         script_filename,
         args.is_present("expose-server-header"),
     );
+
+    let mut caddy_process = start_caddy(&mut caddy_command, caddy_command_input.config.clone());
+
+    info!("Listening to {}://{}:{}", if no_tls { "http" } else { "https" }, host_name, http_port);
+
+    ctrlc::set_handler(|| {
+        crate::commands::stop::stop();
+        info!("Bye! 🌙");
+        std::process::exit(0);
+    }).expect("Error setting Ctrl-C handler");
+
+    //
+    // Healthcheck command
+    //
+    loop {
+        let caddy_command_input = caddy_command_input.clone();
+
+        std::thread::sleep(Duration::from_secs(100));
+
+        //
+        // PHP server healthcheck
+        //
+        let php_server_input = PhpServerStartInput {
+            sapi,
+            port: php_port,
+            php_bin: php_bin.clone(),
+        };
+        let php_process_status = php_process.try_wait();
+        match php_process_status {
+            Ok(Some(status)) => {
+                debug!("PHP stopped with exit code {}. Restarting it.", status.code().unwrap_or(255));
+                php_process = start_php_server(&mut php_start_command, php_server_input);
+                debug!("PHP restarted, running with PID {}", php_process.id());
+            },
+            Ok(None) => (), // PHP server still alive.
+            Err(e) => panic!("An error occured when checking PHP server health: {:?}", e),
+        };
+
+        //
+        // HTTP server healthcheck
+        //
+        let caddy_process_status = caddy_process.try_wait();
+        match caddy_process_status {
+            Ok(Some(status)) => {
+                debug!("Caddy stopped with exit code {}. Restarting it.", status.code().unwrap_or(255));
+                caddy_process = start_caddy(&mut caddy_command, caddy_command_input.config);
+                debug!("Caddy restarted, running with PID {}", caddy_process.id());
+            },
+            Ok(None) => (), // HTTP server still alive.
+            Err(e) => panic!("An error occured when checking Caddy HTTP server health: {:?}", e),
+        };
+    }
 }
 
 fn serve_background(args: &ArgMatches) {

@@ -8,7 +8,6 @@ use std::fs::read_to_string;
 use std::fs::remove_file;
 use std::fs::File;
 use std::io::Write;
-use crate::config::paths::php_server_pid_file;
 
 #[derive(Debug)]
 struct ConfigError(String);
@@ -71,8 +70,4 @@ pub(crate) fn clear_binaries_list() -> std::result::Result<(), Box<dyn std::erro
         );
     }
     Ok(())
-}
-
-pub(crate) fn php_server_pid() -> String {
-    String::from(read_to_string(php_server_pid_file()).expect("Could not read PHP server's PID file."))
 }

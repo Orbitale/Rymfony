@@ -10,7 +10,6 @@ use dirs::home_dir;
 use sha2::Digest;
 use crate::config::paths::php_server_pid_file;
 use crate::config::paths::rymfony_pid_file;
-use crate::config::paths::rymfony_server_info_file;
 use crate::config::paths::get_caddy_pid_file;
 
 #[derive(Debug)]
@@ -25,7 +24,6 @@ impl fmt::Display for ProjectDirectoryError {
 impl Error for ProjectDirectoryError {}
 
 pub(crate) fn clean_rymfony_runtime_files() {
-    remove_file(rymfony_server_info_file()).unwrap_or_default();
     remove_file(rymfony_pid_file()).unwrap_or_default();
     remove_file(php_server_pid_file()).unwrap_or_default();
     remove_file(get_caddy_pid_file()).unwrap_or_default();

@@ -4,7 +4,7 @@ use std::fs::{File, create_dir_all};
 use std::process::Command;
 use std::process::Stdio;
 
-pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
+pub(crate) fn get_start_command(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
     let mut command = Command::new(php_bin);
 
     let log_path = get_rymfony_project_directory().unwrap().join("log");

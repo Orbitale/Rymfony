@@ -34,7 +34,10 @@ fn stop_php_server() {
         let pid = fs::read_to_string(&php_pid_file).unwrap();
         stop_process::stop(pid.as_ref());
         info!("Stopped PHP server running with PID {}", pid);
-        fs::remove_file(&php_pid_file).expect("Could not remove PHP's PID file")
+        let remove_result = fs::remove_file(&php_pid_file);
+        if remove_result.is_err() {
+            info!("Seems like PHP server was not running or was stopped when I checked for its status");
+        }
     } else {
         info!("Seems like PHP server is not running");
     }

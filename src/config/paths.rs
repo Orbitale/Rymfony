@@ -10,10 +10,6 @@ pub(crate) fn get_caddy_pid_file() -> PathBuf {
     get_rymfony_project_directory().unwrap().join(".caddy.pid")
 }
 
-pub(crate) fn rymfony_server_info_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap().join("rymfony_server_info.json")
-}
-
 pub(crate) fn php_server_pid_file() -> PathBuf {
     get_rymfony_project_directory().unwrap().join(".php_server.pid")
 }

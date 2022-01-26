@@ -65,7 +65,7 @@ clear_env = no
 ";
 
 #[cfg(target_family = "windows")]
-pub(crate) fn start(_php_bin: String, _port: &u16) -> (PhpServerSapi, Command) {
+pub(crate) fn get_start_command(_php_bin: String, _port: &u16) -> (PhpServerSapi, Command) {
     panic!(
         "PHP-FPM does not exist on Windows.\
     It seems the PHP version you selected is wrong.\
@@ -74,7 +74,7 @@ pub(crate) fn start(_php_bin: String, _port: &u16) -> (PhpServerSapi, Command) {
 }
 
 #[cfg(not(target_family = "windows"))]
-pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
+pub(crate) fn get_start_command(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
     let uid = get_current_uid();
 
     // This is how you check whether systemd is active.
