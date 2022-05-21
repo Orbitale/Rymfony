@@ -167,10 +167,7 @@ fn serve_foreground(args: &ArgMatches) {
         DEFAULT_PORT,
     ));
 
-    #[cfg(not(target_family = "windows"))]
     let rymfony_pid = get_current_pid().unwrap();
-    #[cfg(target_family = "windows")]
-    let rymfony_pid = get_current_pid().unwrap() as i32;
 
     write(&rymfony_pid_file, rymfony_pid.to_string()).expect("Could not write Rymfony PID to file.");
 
