@@ -19,12 +19,12 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($tmpfile_caddy) # Open ZIP archive for reading
 # Find all files in ZIP that match the filter "caddy.exe"
 $zip.Entries |
-        Where-Object { $_.FullName -like 'caddy.exe' } |
-        ForEach-Object {
-            # extract the selected items from the ZIP archive and copy them to the output folder
-            $FileName = $_.Name
-            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($_, "$output_path\$FileName", $true)
-        }
+    Where-Object { $_.FullName -like 'caddy.exe' } |
+    ForEach-Object {
+        # extract the selected items from the ZIP archive and copy them to the output folder
+        $FileName = $_.Name
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($_, "$output_path\$FileName", $true)
+    }
 $zip.Dispose() # Close ZIP file
 
 # Remove temporary file

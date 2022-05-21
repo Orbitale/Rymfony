@@ -94,8 +94,6 @@ pub(crate) fn get_caddy_start_command(
 }
 
 pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> Child {
-    let caddy_path = get_caddy_path();
-
     // let stderr_file = File::create(paths::get_http_process_stderr_file()).expect("Could not open HTTP error file.");
     let mut std_file_options = OpenOptions::new();
     std_file_options.create(true).read(true).append(true).write(true);
@@ -131,6 +129,8 @@ pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> 
                 error!("To make it work, you need to give Caddy the necessary network capabilities.");
 
                 #[cfg(target_os = "linux")] {
+                    let caddy_path = get_caddy_path();
+
                     error!("On most linux distributions, you can do it by running this command (possibly with \"sudo\"):");
                     error!("   setcap cap_net_bind_service=+ep {}", caddy_path.to_str().unwrap());
                 }
@@ -154,7 +154,6 @@ pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> 
         },
         Ok(None) => {
             info!("Running Caddy HTTP server");
-            dbg!(&process_status);
         },
         Err(e) => panic!("An error occured when checking HTTP server status: {:?}", e),
     };
