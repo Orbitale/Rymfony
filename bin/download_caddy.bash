@@ -5,7 +5,7 @@ set -eu
 # The goal here is to
 # Check releases, and update the associated data here.
 # @link https://github.com/caddyserver/caddy/releases
-caddy_version="2.4.5"
+caddy_version="2.5.1"
 
 function output {
     style_start=""

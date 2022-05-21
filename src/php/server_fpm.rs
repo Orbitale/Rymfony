@@ -1,9 +1,12 @@
 #[cfg(not(target_family = "windows"))]
 use {
+    crate::config,
+    crate::config::paths,
+    crate::utils::project_directory::get_rymfony_project_directory,
     regex::Regex,
     regex::RegexBuilder,
-    std::fmt,
     std::error::Error,
+    std::fmt,
     std::fs::File,
     std::fs::OpenOptions,
     std::fs::read_to_string,
@@ -11,9 +14,7 @@ use {
     std::io::prelude::*,
     std::path::Path,
     std::process::Stdio,
-    users::get_current_uid,
-    crate::config,
-    crate::utils::project_directory::get_rymfony_project_directory
+    users::get_current_uid
 };
 
 use crate::php::structs::PhpServerSapi;
@@ -31,7 +32,7 @@ pid = {{ pid_file }}
 
 log_level = {{ log_level }}
 
-error_log = {{ rymfony_project_dir }}/log/server.fpm.error_log
+error_log = {{ error_log_file }}
 
 ; This should be managed by Rymfony.
 ; This gives the advantage of keeping control over the process,
@@ -44,7 +45,7 @@ daemonize = no
 listen = 127.0.0.1:{{ port }}
 listen.allowed_clients = 127.0.0.1
 
-access.log = {{ rymfony_project_dir }}/log/server.fpm.access_log
+access.log = {{ access_log_file }}
 
 pm = dynamic
 pm.max_children = 5
@@ -64,7 +65,7 @@ clear_env = no
 ";
 
 #[cfg(target_family = "windows")]
-pub(crate) fn start(_php_bin: String, _port: &u16) -> (PhpServerSapi, Command) {
+pub(crate) fn get_start_command(_php_bin: String, _port: &u16) -> (PhpServerSapi, Command) {
     panic!(
         "PHP-FPM does not exist on Windows.\
     It seems the PHP version you selected is wrong.\
@@ -73,7 +74,7 @@ pub(crate) fn start(_php_bin: String, _port: &u16) -> (PhpServerSapi, Command) {
 }
 
 #[cfg(not(target_family = "windows"))]
-pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
+pub(crate) fn get_start_command(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
     let uid = get_current_uid();
 
     // This is how you check whether systemd is active.
@@ -88,6 +89,8 @@ pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
         .replace("{{ rymfony_project_dir }}", &rymfony_project_path.to_str().unwrap())
         .replace("{{ pid_file }}", &config::paths::php_server_pid_file().to_str().unwrap())
         .replace("{{ systemd_enable }}", if systemd_support { "" } else { ";" })
+        .replace("{{ access_log_file }}", &config::paths::get_php_server_log_file().to_str().unwrap())
+        .replace("{{ error_log_file }}", &config::paths::get_php_server_error_file().to_str().unwrap())
     ;
 
     let fpm_config_file_path = config::paths::php_fpm_conf_ini_file();
@@ -117,20 +120,11 @@ pub(crate) fn start(php_bin: String, port: &u16) -> (PhpServerSapi, Command) {
         }
     }
 
-    let fpm_log_file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(get_rymfony_project_directory().unwrap().join("log").join("process.fpm.log"))
-        .unwrap()
-    ;
-    let fpm_err_file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .open(get_rymfony_project_directory().unwrap().join("log").join("process.fpm.err"))
-        .unwrap()
-    ;
+    let mut file_options = OpenOptions::new();
+    file_options.read(true).append(true).write(true).create(true);
+
+    let fpm_log_file = file_options.open(paths::get_php_process_log_file()).unwrap();
+    let fpm_err_file = file_options.open(paths::get_php_process_err_file()).unwrap();
 
     let mut command = Command::new(php_bin);
     command

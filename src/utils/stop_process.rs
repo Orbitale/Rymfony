@@ -1,6 +1,4 @@
 use std::process::Command;
-
-#[cfg(target_family = "windows")]
 use std::process::Stdio;
 
 #[cfg(target_family = "windows")]
@@ -23,6 +21,8 @@ pub(crate) fn stop(pid: &str) {
 #[cfg(not(target_family = "windows"))]
 pub(crate) fn stop(pid: &str) {
     let mut child = Command::new("kill")
+        .stderr(Stdio::null())
+        .stdout(Stdio::null())
         .arg("-TERM")
         .arg("--")
         .arg(pid)

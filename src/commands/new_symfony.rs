@@ -1,30 +1,29 @@
-use clap::App;
+use clap::Command as ClapCommand;
 use clap::Arg;
 use clap::ArgMatches;
-use clap::SubCommand;
 
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
-pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("new:symfony")
+pub(crate) fn command_config<'a>() -> ClapCommand<'a> {
+    ClapCommand::new("new:symfony")
         .alias("new")
         .about("Create a new Symfony project")
         .arg(
-            Arg::with_name("directory")
+            Arg::new("directory")
                 .index(1)
                 .help("The directory in which the project will be created"),
         )
         .arg(
-            Arg::with_name("full")
+            Arg::new("full")
                 .long("full")
                 .help("Use the symfony/website-skeleton instead of the default one")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("no-git")
+            Arg::new("no-git")
                 .long("no-git")
                 .help("Do not initialize the project with git"),
         )

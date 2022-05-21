@@ -219,7 +219,7 @@ To do (order of priority, done first):
 - Commands and command-line options
     - 🟩 Add a `stop` command.
     - 🟥 Create `open:local` command.
-    - 🟥 Create `server:logs` command (needs #81 first).
+    - 🟩 Create `server:logs` command (needs #81 first).
     - 🟥 Create `server:list` command.
     - 🟥 Create `server:status` command.
     - 🟥 Create `config` command, to display project's config, and maybe change it.
@@ -244,7 +244,7 @@ To do (order of priority, done first):
     - 🟥 When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
     - 🟥 Allow listing running servers globally, without necessarily using a `.pid` file.
     - 🟥 Allow stopping a server globally, without necessarily using a `.pid` file.
-    - 🟥 (possibly hard work) Find a way to force the entire request-response workflow to be streamed instead of buffered (will make better performances and memory usage)
+    - 🟩 (note: handled by Caddy) Find a way to force the entire request-response workflow to be streamed instead of buffered (will make better performances and memory usage)
 - PHP server
     - 🟩 Create a tool to discover the `php` binary if none of the two above are detected.
     - 🟩 Create a tool to discover the `php-fpm` binary if on Linux.
@@ -255,7 +255,7 @@ To do (order of priority, done first):
         - 🟥 Search for PHP binaries elsewhere than in `PATH`, such as with Homebrew or phpenv. This will need many checks about the "standard locations" where PHP can be found.
             - 🟩 Search in `/usr/bin` for most Ubuntu defaults
             - 🟩 Search in `/usr/local/Cellar` for most Homebrew defaults on Mac
-            - 💡 Please [suggest](https://github.com/Pierstoval/rymfony/issues/new) more places where PHP could be present!
+            - 🟥💡 Please [suggest](https://github.com/Pierstoval/rymfony/issues/new) more places where PHP could be present!
         - 🟩 Flag the current path-based `php` script to check its version and mark it as "System" (just like in Symfony CLI)
         - 🟩 Store a list of all PHP binaries in `~/.rymfony/php_versions.json`
         - 🟩 Deserialize the `php-versions.json` config file if it exists when using `binaries::all()` or `binaries::current()` to make the command faster

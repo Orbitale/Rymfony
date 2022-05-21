@@ -7,31 +7,34 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "2.33"
-console = "0.14"
-ctrlc = { version = "3.1", features = ["termination"] }
-dirs = "3.0"
-env_logger = "0.8"
+clap = "3.1"
+colored = "2"
+console = "0.15"
+ctrlc = { version = "3.2", features = ["termination"] }
+dirs = "4.0"
+env_logger = "0.9"
 glob = "0.3"
 is_executable = "1.0"
 log = "0.4"
-os_info = { version = "3.0", default-features = false }
+linemux = "0.2"
+os_info = { version = "3.3", default-features = false }
 pretty_env_logger = "0.4"
 prettytable-rs = "0.8"
 regex = "1.5"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-version-compare = "0.0.11"
-which = "4.1"
+version-compare = "0.1"
+which = "4.2"
 runas = "0.2"
-sha2 = "0.9"
-sysinfo = "0.18"
+sha2 = "0.10"
+sysinfo = "0.23"
+tokio = { version = "1.18", features = ["rt-multi-thread"]}
 
 [target.'cfg(not(target_family = "windows"))'.dependencies]
 users = "0.11"
 
 [build-dependencies]
-which = "4.1"
+which = "4.2"
 
 [profile.release]
 opt-level = 'z' # Optimize for size.

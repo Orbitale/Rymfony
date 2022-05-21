@@ -6,6 +6,7 @@ extern crate ctrlc;
 extern crate env_logger;
 extern crate pretty_env_logger;
 extern crate regex;
+extern crate tokio;
 
 mod config {
     pub(crate) mod config;
@@ -13,6 +14,7 @@ mod config {
 }
 
 mod commands {
+    pub(crate) mod logs;
     pub(crate) mod new_symfony;
     pub(crate) mod php_list;
     pub(crate) mod serve;
@@ -39,7 +41,7 @@ mod http {
     pub(crate) mod proxy_server;
 }
 
-use clap::App;
+use clap::Command as ClapCommand;
 use clap::Arg;
 use dirs::home_dir;
 use log::Level;
@@ -55,11 +57,17 @@ use std::sync::atomic::Ordering;
 use utils::current_process_name;
 
 fn main() {
+    let build_metadata = include_str!("../build_metadata.txt").trim().replace("\n", "");
+    let build_metadata_str = build_metadata.as_str();
+
+    let version = if build_metadata == "" { "dev" } else { build_metadata_str };
+
     let application_commands = vec![
-        crate::commands::php_list::command_config(),
-        crate::commands::serve::command_config(),
-        crate::commands::stop::command_config(),
-        crate::commands::new_symfony::command_config(),
+        commands::logs::command_config(),
+        commands::php_list::command_config(),
+        commands::serve::command_config(),
+        commands::stop::command_config(),
+        commands::new_symfony::command_config(),
     ];
 
     let home_dir = home_dir().unwrap();
@@ -67,10 +75,8 @@ fn main() {
         fs::create_dir_all(home_dir.join(".rymfony")).unwrap();
     }
 
-    let version = get_version_suffix();
-
-    let app = App::new("rymfony")
-        .version(version.as_str())
+    let app = ClapCommand::new("rymfony")
+        .version(version)
         .author("Alex \"Pierstoval\" Rock <alex@orbitale.io>")
         .about("
 A command-line tool to spawn a PHP server behind an HTTP FastCGI proxy,
@@ -79,16 +85,17 @@ inspired by Symfony CLI, but Open Source.
 https://github.com/Orbitale/Rymfony
 ")
         .arg(
-            Arg::with_name("verbose")
-                .short("v")
+            Arg::new("verbose")
+                .short('v')
                 .long("verbose")
-                .multiple(true)
+                .multiple_occurrences(true)
+                .multiple_values(true)
                 .takes_value(false)
                 .help("Set the verbosity level. -v for debug, -vv for trace, -vvv to trace executed modules"),
         )
         .arg(
-            Arg::with_name("quiet")
-                .short("q")
+            Arg::new("quiet")
+                .short('q')
                 .long("quiet")
                 .takes_value(false)
                 .help("Do not display any output. Has precedence over -v|--verbose"),
@@ -105,32 +112,32 @@ https://github.com/Orbitale/Rymfony
 
     match subcommand_name {
         Some("serve") => {
-            crate::commands::serve::serve(matches.subcommand_matches("serve").unwrap())
+            crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
         }
         Some("server:start") => {
-            crate::commands::serve::serve(matches.subcommand_matches("server:start").unwrap())
+            crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
         }
         Some("stop") => crate::commands::stop::stop(),
         Some("new") => {
-            crate::commands::new_symfony::new_symfony(matches.subcommand_matches("new").unwrap())
+            crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
         }
-        Some("new:symfony") => crate::commands::new_symfony::new_symfony(
-            matches.subcommand_matches("new:symfony").unwrap(),
-        ),
-        Some("php:list") => {
-            crate::commands::php_list::php_list(matches.subcommand_matches("php:list").unwrap())
-        }
+        Some("new:symfony") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("php:list") => crate::commands::php_list::php_list(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("logs") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("local:server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+        Some("server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
         _ => {
             // If no subcommand is specified,
             // re-run the program with "--help"
             let mut subprocess = Command::new(current_process_name::get().as_str())
                 .arg("--help")
                 .spawn()
-                .expect("Failed to start HTTP server");
+                .expect("Failed to create the \"help\" command.");
 
             subprocess
                 .wait()
-                .expect("An error occured when trying to execute the HTTP server");
+                .expect("Failed to run the \"help\" command.");
         }
     };
 }
@@ -215,15 +222,5 @@ fn colored_level<'a>(style: &'a mut Style, level: Level) -> StyledValue<'a, &'st
         Level::Info => style.set_color(Color::Green).value(" INFO"),
         Level::Warn => style.set_color(Color::Yellow).value(" WARN"),
         Level::Error => style.set_color(Color::Red).value("ERROR"),
-    }
-}
-
-pub(crate) fn get_version_suffix() -> String {
-    let build_metadata = include_str!("../build_metadata.txt").trim().replace("\n", "");
-
-    if build_metadata == "" {
-        "dev".to_string()
-    } else {
-        build_metadata
     }
 }

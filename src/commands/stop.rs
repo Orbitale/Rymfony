@@ -1,17 +1,18 @@
-use clap::App;
-use clap::SubCommand;
+use clap::Command;
 use std::fs;
 use crate::config::paths;
+use crate::utils::project_directory::clean_rymfony_runtime_files;
 use crate::utils::stop_process;
 
-pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("stop").about("Stops a potentially running HTTP server")
+pub(crate) fn command_config<'a>() -> Command<'a> {
+    Command::new("stop").about("Stops a potentially running HTTP server")
 }
 
 pub(crate) fn stop() {
     stop_rymfony();
     stop_php_server();
     stop_http_server();
+    clean_rymfony_runtime_files();
 }
 
 fn stop_rymfony() {
@@ -32,7 +33,10 @@ fn stop_php_server() {
         let pid = fs::read_to_string(&php_pid_file).unwrap();
         stop_process::stop(pid.as_ref());
         info!("Stopped PHP server running with PID {}", pid);
-        fs::remove_file(&php_pid_file).expect("Could not remove PHP's PID file")
+        let remove_result = fs::remove_file(&php_pid_file);
+        if remove_result.is_err() {
+            info!("Seems like PHP server was not running or was stopped when I checked for its status");
+        }
     } else {
         info!("Seems like PHP server is not running");
     }
@@ -43,9 +47,9 @@ fn stop_http_server() {
     if caddy_pid_file.exists() {
         let pid = fs::read_to_string(&caddy_pid_file).unwrap();
         stop_process::stop(pid.as_ref());
-        info!("Stopped HTTP server running with PID {}", pid);
+        info!("Stopped Caddy HTTP server running with PID {}", pid);
         fs::remove_file(&caddy_pid_file).expect("Could not remove HTTP server's PID file")
     } else {
-        info!("Seems like HTTP server is not running");
+        info!("Seems like Caddy HTTP server is not running");
     }
 }

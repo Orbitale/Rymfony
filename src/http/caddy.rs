@@ -48,11 +48,12 @@ pub(crate) const CADDYFILE: &'static str = "
     {{ without_server_sign }}header -Server
 
     log {
-        output file {{ log_file }}.vhost
+        output file {{ vhost_log_file }}
         {{ debug }}level DEBUG
     }
 
     php_fastcgi 127.0.0.1:{{ php_port }} {
+        env SERVER_SOFTWARE \"Rymfony/Caddy\"
         index {{ php_entrypoint_file }}
         resolve_root_symlink
     }
@@ -73,7 +74,7 @@ pub(crate) fn get_caddy_path() -> PathBuf {
             ;
 
             if !path.exists() {
-                info!("Installing Caddy for your project...");
+                info!("Installing Caddy HTTP server for your project...");
 
                 #[cfg(target_os="windows")]
                 fs::write(&path, include_bytes!("../../bin/caddy.exe")).expect("Could not extract built-in Caddy binary.");
@@ -138,6 +139,6 @@ fn set_http_capabilities(caddy_path: &PathBuf) {
     if status.code().unwrap_or(1) != 0 {
         error!("The \"setcap\" command failed when trying to give Caddy the ability to listen to port 80.")
     } else {
-        info!("Done! Caddy is now capable of listening to port 80 (for this project only)");
+        info!("Done! Caddy HTTP server is now capable of listening to port 80 (for this project only)");
     }
 }

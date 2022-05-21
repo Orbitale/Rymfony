@@ -8,10 +8,7 @@ use std::result::Result;
 
 use dirs::home_dir;
 use sha2::Digest;
-use crate::config::paths::php_server_pid_file;
-use crate::config::paths::rymfony_pid_file;
-use crate::config::paths::rymfony_server_info_file;
-use crate::config::paths::get_caddy_pid_file;
+use crate::config::paths;
 
 #[derive(Debug)]
 struct ProjectDirectoryError(String);
@@ -25,10 +22,10 @@ impl fmt::Display for ProjectDirectoryError {
 impl Error for ProjectDirectoryError {}
 
 pub(crate) fn clean_rymfony_runtime_files() {
-    remove_file(rymfony_server_info_file()).unwrap_or_default();
-    remove_file(rymfony_pid_file()).unwrap_or_default();
-    remove_file(php_server_pid_file()).unwrap_or_default();
-    remove_file(get_caddy_pid_file()).unwrap_or_default();
+    remove_file(paths::rymfony_pid_file()).unwrap_or_default();
+    remove_file(paths::php_server_pid_file()).unwrap_or_default();
+    remove_file(paths::get_caddy_pid_file()).unwrap_or_default();
+    remove_file(paths::get_caddy_runtime_config_file()).unwrap_or_default();
 }
 
 pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::error::Error>> {

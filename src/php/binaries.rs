@@ -18,8 +18,6 @@ use crate::php::structs::PhpServerSapi;
 use crate::php::structs::PhpVersion;
 use std::ffi::OsString;
 
-use version_compare::{CompOp, VersionCompare};
-
 pub(crate) fn get_project_version() -> String {
     let _binaries = all();
 
@@ -304,13 +302,13 @@ fn merge_binaries(into: &mut HashMap<PhpVersion, PhpBinary>, from: HashMap<PhpVe
 }
 
 fn is_macos_big_sur() -> bool {
-    let os_infos = os_info::get();
-    let os_version = os_infos.version();
-    let bigsur = "11.0.0";
-
     if cfg!(not(target_os = "macos")) {
         return false;
     }
 
-    return VersionCompare::compare_to(&os_version.to_string(), &bigsur, &CompOp::Gt).unwrap();
+    let os_infos = os_info::get();
+    let os_version = os_infos.version();
+    let bigsur_version = "11.0.0";
+
+    return version_compare::compare_to(&os_version.to_string(), &bigsur_version, version_compare::Cmp::Gt).unwrap();
 }
