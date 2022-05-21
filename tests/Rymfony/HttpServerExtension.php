@@ -40,37 +40,31 @@ class HttpServerExtension implements AfterLastTestHook, BeforeFirstTestHook
             }
         }
 
-        var_dump($rymfonyBinPath);
-
+        $this->io->writeln('<info>Ensuring Rymfony is stopped...</info>');
         $process = new Process([$rymfonyBinPath, 'stop'], $projectDirectory);
         $process->run();
 
         $process = new Process([$rymfonyBinPath, 'serve'], $projectDirectory);
 
-        $process->start(function ($_, string $output)  {
-            print_r(['type' => $_, 'output' => $output]);
-        });
+        $process->start();
 
         $executionResult = $process->waitUntil(function ($_, string $output)  {
             return str_contains($output, 'Listening to https://127.0.0.1:8000');
         });
-        var_dump($process);
 
         if (!$executionResult) {
             $this->io->error('Rymfony server could not start.');
-            print_r($process->getOutput()."========".$process->getErrorOutput());
 
             throw new RuntimeException();
         }
 
+        $this->io->writeln('<info>Rymfony server started</info>');
+
         $client = createClient();
         for ($i = 0; $i < 5; $i++) {
             try {
-                print_r("\nattempting request");
                 $res = $client->request('GET', '/');
-                print_r("\ndone!");
 
-                var_dump($res->getStatusCode());
                 if ($res->getStatusCode() === 200) {
                     break;
                 }
@@ -78,11 +72,9 @@ class HttpServerExtension implements AfterLastTestHook, BeforeFirstTestHook
             }
         }
 
-        sleep(1);
+        sleep(1); // Because "wait until" and attempting to make requests is never enough..
 
-        sleep(1); // Because "wait until" is never enough..
-
-        $this->io->writeln('<info>Rymfony server started</info>');
+        $this->io->writeln('<info>Rymfony server ready</info>');
 
         $this->process = $process;
     }
