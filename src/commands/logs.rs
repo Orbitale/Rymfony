@@ -1,31 +1,30 @@
-use clap::App;
+use clap::Command;
 use clap::Arg;
 use clap::ArgMatches;
-use clap::SubCommand;
 use linemux::MuxedLines;
 use crate::config::paths;
 use colored::*;
 
-pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("logs")
+pub(crate) fn command_config<'a>() -> Command<'a> {
+    Command::new("logs")
         .alias("log")
         .alias("local:server:log") // For Symfony CLI compat
         .alias("server:log") // For Symfony CLI compat
         .about("Display server logs")
         .arg(
-            Arg::with_name("channel")
+            Arg::new("channel")
                 .index(1)
                 .help("The optional logging channel you want to display"),
         )
         .arg(
-            Arg::with_name("no-follow")
+            Arg::new("no-follow")
                 .long("no-follow")
                 .alias("no-tail")
                 .help("Do no tail the logs")
         )
         .arg(
-            Arg::with_name("lines")
-                .short("n")
+            Arg::new("lines")
+                .short('n')
                 .long("lines")
                 .help("Number of lines to display at start")
                 .takes_value(true)

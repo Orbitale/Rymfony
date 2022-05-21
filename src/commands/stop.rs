@@ -1,12 +1,11 @@
-use clap::App;
-use clap::SubCommand;
+use clap::Command;
 use std::fs;
 use crate::config::paths;
 use crate::utils::project_directory::clean_rymfony_runtime_files;
 use crate::utils::stop_process;
 
-pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("stop").about("Stops a potentially running HTTP server")
+pub(crate) fn command_config<'a>() -> Command<'a> {
+    Command::new("stop").about("Stops a potentially running HTTP server")
 }
 
 pub(crate) fn stop() {

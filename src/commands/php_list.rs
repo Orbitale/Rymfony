@@ -1,7 +1,6 @@
-use clap::App;
+use clap::Command;
 use clap::Arg;
 use clap::ArgMatches;
-use clap::SubCommand;
 use prettytable::format;
 use prettytable::Table;
 
@@ -9,8 +8,8 @@ use crate::config::config::clear_binaries_list;
 use crate::config::config::save_binaries_to_config;
 use crate::php;
 
-pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("php:list")
+pub(crate) fn command_config<'a>() -> Command<'a> {
+    Command::new("php:list")
         .about("List all available PHP executables.")
         .after_help("
 If you have PHP installed in a custom folder, you can use the RYMFONY_PATH environment variable before executing the command.
@@ -20,8 +19,8 @@ Example:
 $ RYMFONY_PATH=\"/var/php80/bin\" rymfony php:list --refresh
 ")
         .arg(
-            Arg::with_name("refresh")
-                .short("r")
+            Arg::new("refresh")
+                .short('r')
                 .long("refresh")
                 .help("Refresh the PHP list cache"),
         )

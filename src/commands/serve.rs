@@ -8,10 +8,9 @@ use std::process::Command;
 use std::process::Stdio;
 use std::time::Duration;
 
-use clap::App;
+use clap::Command as ClapCommand;
 use clap::Arg;
 use clap::ArgMatches;
-use clap::SubCommand;
 use log::info;
 use sysinfo::get_current_pid;
 use crate::config::paths;
@@ -28,8 +27,8 @@ use crate::utils::project_directory::get_rymfony_project_directory;
 
 const DEFAULT_PORT: &str = "8000";
 
-pub(crate) fn command_config<'a, 'b>() -> App<'a, 'b> {
-    SubCommand::with_name("server:start")
+pub(crate) fn command_config<'a>() -> ClapCommand<'a> {
+    ClapCommand::new("server:start")
         .name("server:start")
         .alias("serve")
         .about("Runs an HTTP server")
@@ -48,38 +47,38 @@ It will do so in this order:
  * app.php
 ")
         .arg(
-            Arg::with_name("port")
+            Arg::new("port")
                 .long("port")
                 .help("The TCP port to listen to")
                 .default_value(DEFAULT_PORT.as_ref())
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("daemon")
-                .short("d")
+            Arg::new("daemon")
+                .short('d')
                 .long("daemon")
                 .help("Run the server in the background"),
         )
         .arg(
-            Arg::with_name("document-root")
+            Arg::new("document-root")
                 .long("document-root")
                 .help("Project's document root")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("passthru")
+            Arg::new("passthru")
                 .long("passthru")
                 .help("The PHP entrypoint all requests will be passed to")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("no-tls")
+            Arg::new("no-tls")
                 .long("no-tls")
                 .help("Disable TLS. Use HTTP only."),
         )
         .arg(
-            Arg::with_name("expose-server-header")
-                .short("s")
+            Arg::new("expose-server-header")
+                .short('s')
                 .long("expose-server-header")
                 .help("Add server header into all response"),
         )

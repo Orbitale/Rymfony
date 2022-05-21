@@ -41,7 +41,7 @@ mod http {
     pub(crate) mod proxy_server;
 }
 
-use clap::App;
+use clap::Command as ClapCommand;
 use clap::Arg;
 use dirs::home_dir;
 use log::Level;
@@ -57,12 +57,17 @@ use std::sync::atomic::Ordering;
 use utils::current_process_name;
 
 fn main() {
+    let build_metadata = include_str!("../build_metadata.txt").trim().replace("\n", "");
+    let build_metadata_str = build_metadata.as_str();
+
+    let version = if build_metadata == "" { "dev" } else { build_metadata_str };
+
     let application_commands = vec![
-        crate::commands::logs::command_config(),
-        crate::commands::php_list::command_config(),
-        crate::commands::serve::command_config(),
-        crate::commands::stop::command_config(),
-        crate::commands::new_symfony::command_config(),
+        commands::logs::command_config(),
+        commands::php_list::command_config(),
+        commands::serve::command_config(),
+        commands::stop::command_config(),
+        commands::new_symfony::command_config(),
     ];
 
     let home_dir = home_dir().unwrap();
@@ -70,10 +75,8 @@ fn main() {
         fs::create_dir_all(home_dir.join(".rymfony")).unwrap();
     }
 
-    let version = get_version_suffix();
-
-    let app = App::new("rymfony")
-        .version(version.as_str())
+    let app = ClapCommand::new("rymfony")
+        .version(version)
         .author("Alex \"Pierstoval\" Rock <alex@orbitale.io>")
         .about("
 A command-line tool to spawn a PHP server behind an HTTP FastCGI proxy,
@@ -82,16 +85,17 @@ inspired by Symfony CLI, but Open Source.
 https://github.com/Orbitale/Rymfony
 ")
         .arg(
-            Arg::with_name("verbose")
-                .short("v")
+            Arg::new("verbose")
+                .short('v')
                 .long("verbose")
-                .multiple(true)
+                .multiple_occurrences(true)
+                .multiple_values(true)
                 .takes_value(false)
                 .help("Set the verbosity level. -v for debug, -vv for trace, -vvv to trace executed modules"),
         )
         .arg(
-            Arg::with_name("quiet")
-                .short("q")
+            Arg::new("quiet")
+                .short('q')
                 .long("quiet")
                 .takes_value(false)
                 .help("Do not display any output. Has precedence over -v|--verbose"),
@@ -218,15 +222,5 @@ fn colored_level<'a>(style: &'a mut Style, level: Level) -> StyledValue<'a, &'st
         Level::Info => style.set_color(Color::Green).value(" INFO"),
         Level::Warn => style.set_color(Color::Yellow).value(" WARN"),
         Level::Error => style.set_color(Color::Red).value("ERROR"),
-    }
-}
-
-pub(crate) fn get_version_suffix() -> String {
-    let build_metadata = include_str!("../build_metadata.txt").trim().replace("\n", "");
-
-    if build_metadata == "" {
-        "dev".to_string()
-    } else {
-        build_metadata
     }
 }
