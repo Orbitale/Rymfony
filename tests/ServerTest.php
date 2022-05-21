@@ -1,6 +1,6 @@
 <?php
 
-namespace Rymfony;
+namespace Rymfony\Tests;
 
 use function dirname;
 use function json_decode;
@@ -21,7 +21,7 @@ class ServerTest extends HttpTestCase
         self::assertJson($content);
         $json = json_decode($content, true);
 
-        $projectDir = dirname(__DIR__, 2);
+        $projectDir = dirname(__DIR__);
 
         self::assertJsonPathEquals($json, 'Server parameters.DOCUMENT_ROOT', $projectDir);
         self::assertJsonPathEquals($json, 'Server parameters.DOCUMENT_URI', '/index.php');

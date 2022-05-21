@@ -1,3 +1,4 @@
+# Project
 /bin/caddy
 /bin/caddy.*
 /build.err
@@ -8,3 +9,8 @@
 /_local_logs.txt
 /tests/workdir/
 /server.log
+
+# Tests
+vendor
+.phpunit.cache
+phpunit.xml

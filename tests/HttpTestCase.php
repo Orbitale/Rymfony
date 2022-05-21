@@ -1,6 +1,6 @@
 <?php
 
-namespace Rymfony;
+namespace Rymfony\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\HttpClient\HttpClientInterface;

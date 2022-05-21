@@ -7,11 +7,11 @@
          executionOrder="depends,defects"
          failOnWarning="true"
          verbose="true"
-         extensionsDirectory="./Rymfony"
+         extensionsDirectory="./tests"
     >
     <testsuites>
         <testsuite name="default">
-            <directory>./Rymfony/</directory>
+            <directory>./tests/</directory>
         </testsuite>
     </testsuites>
 
@@ -22,6 +22,6 @@
     </coverage>
 
     <extensions>
-        <extension class="Rymfony\HttpServerExtension" />
+        <extension class="Rymfony\Tests\HttpServerExtension" />
     </extensions>
 </phpunit>

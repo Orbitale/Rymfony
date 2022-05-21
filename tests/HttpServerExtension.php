@@ -1,6 +1,6 @@
 <?php
 
-namespace Rymfony;
+namespace Rymfony\Tests;
 
 use PHPUnit\Runner\AfterLastTestHook;
 use PHPUnit\Runner\BeforeFirstTestHook;
@@ -26,7 +26,7 @@ class HttpServerExtension implements AfterLastTestHook, BeforeFirstTestHook
 
     public function executeBeforeFirstTest(): void
     {
-        $projectDirectory = dirname(__DIR__, 2);
+        $projectDirectory = dirname(__DIR__);
         $rymfonyBinPath = $projectDirectory.'/target/release/rymfony';
 
         if (!file_exists($rymfonyBinPath)) {
