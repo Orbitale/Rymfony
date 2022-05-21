@@ -3,12 +3,10 @@ use std::process::Command;
 use std::process::Stdio;
 use crate::http::caddy::get_caddy_path;
 use crate::http::caddy::CADDYFILE;
-use crate::config::paths::get_caddy_pid_file;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::fs::read_to_string;
 use std::fs::write;
-use std::fs;
 use std::io::Seek;
 use std::io::Read;
 use std::io::SeekFrom;
@@ -35,6 +33,7 @@ pub(crate) fn get_caddy_start_command(
 ) -> (Command, CaddyCommandInput) {
     let caddy_path = get_caddy_path();
     let mut caddy_command = Command::new(&caddy_path);
+    let caddy_runtime_config_file = paths::get_caddy_runtime_config_file();
 
     let caddy_config_file = paths::get_caddy_config_file();
 
@@ -50,22 +49,23 @@ pub(crate) fn get_caddy_start_command(
         .stdout(stdout_file)
         .stderr(stderr_file)
         .arg("run")
+        .arg("--watch")
         .arg("--adapter").arg("caddyfile")
-        .arg("--config").arg("-") // This makes Caddy use STDIN for config
+        .arg("--config").arg(&caddy_runtime_config_file) // This makes Caddy use STDIN for config
     ;
 
     let debug = false; // FIXME: use env var for this.
 
     let config = {
         let mut config: String = if !caddy_config_file.exists() {
-            fs::write(&caddy_config_file, CADDYFILE).expect("Could not write Caddyfile config.");
+            write(&caddy_config_file, CADDYFILE).expect("Could not write base Caddyfile config.");
             debug!("Wrote Caddy config to {}", &caddy_config_file.to_str().unwrap());
 
             CADDYFILE.to_string()
         } else {
             debug!("Reusing Caddy config from {}", &caddy_config_file.to_str().unwrap());
 
-            read_to_string(&caddy_config_file).expect("Could not read Caddyfile config file.")
+            read_to_string(&caddy_config_file).expect("Could not read base Caddyfile config file.")
         };
 
         config = config
@@ -84,6 +84,8 @@ pub(crate) fn get_caddy_start_command(
         ;
 
         trace!("Final Caddy config:\n{}\n", &config);
+
+        write(&caddy_runtime_config_file, &config).expect("Could not write runtime Caddyfile config.");
 
         config
     };
@@ -107,7 +109,7 @@ pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> 
 
     let caddy_pid = caddy_child_process.id().to_string();
 
-    write(get_caddy_pid_file(), caddy_pid).expect("Could not write PHP server PID to file.");
+    write(paths::get_caddy_pid_file(), caddy_pid).expect("Could not write PHP server PID to file.");
 
     let caddy_stdin = caddy_child_process.stdin.as_mut().unwrap();
     caddy_stdin.write_all(caddy_config.as_bytes()).expect("Could not write server config to Caddy STDIN.");
@@ -150,7 +152,10 @@ pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> 
                 unreachable!();
             }
         },
-        Ok(None) => (),
+        Ok(None) => {
+            info!("Running Caddy HTTP server");
+            dbg!(&process_status);
+        },
         Err(e) => panic!("An error occured when checking HTTP server status: {:?}", e),
     };
 

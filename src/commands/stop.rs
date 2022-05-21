@@ -48,9 +48,9 @@ fn stop_http_server() {
     if caddy_pid_file.exists() {
         let pid = fs::read_to_string(&caddy_pid_file).unwrap();
         stop_process::stop(pid.as_ref());
-        info!("Stopped HTTP server running with PID {}", pid);
+        info!("Stopped Caddy HTTP server running with PID {}", pid);
         fs::remove_file(&caddy_pid_file).expect("Could not remove HTTP server's PID file")
     } else {
-        info!("Seems like HTTP server is not running");
+        info!("Seems like Caddy HTTP server is not running");
     }
 }

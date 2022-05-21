@@ -159,7 +159,7 @@ fn serve_foreground(args: &ArgMatches) {
 
     let mut php_process = start_php_server(&mut php_start_command, php_server_input.clone());
 
-    info!("Starting HTTP server...");
+    info!("Starting Caddy HTTP server...");
 
     info!("Configured document root: {}", &document_root);
 

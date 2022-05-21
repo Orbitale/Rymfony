@@ -75,3 +75,8 @@ pub(crate) fn get_caddy_config_file() -> PathBuf {
     get_rymfony_project_directory().unwrap()
         .join("Caddyfile")
 }
+
+pub(crate) fn get_caddy_runtime_config_file() -> PathBuf {
+    get_rymfony_project_directory().unwrap()
+        .join("Caddyfile.runtime")
+}

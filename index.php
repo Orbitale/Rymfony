@@ -68,6 +68,8 @@ header('Content-Length: '.strlen($content));
 header('X-Some-Random-Header: some-random-value');
 echo $content;
 
+file_put_contents("php://stderr", "This content should be written to stderr.\n", FILE_APPEND);
+
 if (\function_exists('fastcgi_finish_request')) {
     fastcgi_finish_request();
 }

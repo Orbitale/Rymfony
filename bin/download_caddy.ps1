@@ -2,7 +2,7 @@
 # The goal here is to
 # Check releases, and update the associated data here.
 # @link https://github.com/caddyserver/caddy/releases
-$caddy_version = "2.4.3"
+$caddy_version = "2.5.1"
 
 # We only support this version for now.
 # Windows won't probably be the most used platform anyway.
