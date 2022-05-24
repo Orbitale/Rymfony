@@ -115,6 +115,19 @@ jobs:
 
                   cargo build --release
 
+            - name: 🐘 Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.1'
+
+            - name: 🧪 Prepare test setup
+              run: |
+                  composer install
+
+            - name: ⚗️ Execute tests
+              run: |
+                  php vendor/bin/phpunit
+
             - name: (main branch only) Push nightly build
               uses: actions/upload-artifact@v2
               if: github.ref == 'refs/heads/main'
