@@ -8,7 +8,7 @@ use function createClient;
 use function explode;
 use function sprintf;
 
-abstract class HttpTestCase extends TestCase
+abstract class AbstractHttpTestCase extends TestCase
 {
     protected ?HttpClientInterface $client = null;
 

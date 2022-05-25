@@ -7,7 +7,7 @@ use function json_decode;
 use function preg_replace;
 use function trim;
 
-class ServerTest extends HttpTestCase
+class ServerTest extends AbstractHttpTestCase
 {
     public function testDefaultRequest(): void
     {
