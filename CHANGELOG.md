@@ -1,3 +1,12 @@
+# v0.4.0
+
+* Add a logging system that you can use by running `rymfony log` in your project root directory. Will tail log files from your running `rymfony` server, even when server is not started.
+* Enhanched "healthcheck" so that both Caddy HTTP server and PHP-FPM/PHP-CGI servers can be restarted automatically when they fail. Very useful on Windows when PHP-CGI fails for concurrency/overloading reasons.
+* Use latest versions of dependencies.
+* Latest version of the `clap` package enhances the output of all command-line documentation, like `rymfony help`. (especially adds colors to your terminal!)
+* Add functional tests to check for cross-OS consistency in how HTTP and PHP are handled.
+* Enhance how Caddy HTTP server permissions are checked: before, `setcap` was executed to allow Caddy to bind port 80 when running as non-root.<br>This restriction happened because Linux prevents non-root to bind ports below 1024, for security reasons.<br>Now, `setcap` is run in a non-blocking way when a TTY is detected, so that Caddy can fail gracefully, but still blocks and wait for user input when a console/shell/terminal output is detected (like when in login/interactive mode).<br>Also, the `Caddyfile` template was modified to ensure that port 80 is no longer listened (this is linked to the _"Redirect HTTP to HTTPS"_ feature from Caddy).
+
 # v0.3.1
 
 * Add a "healthcheck" system to restart php-fpm/php-cgi when it fails.
