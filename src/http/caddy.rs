@@ -37,6 +37,7 @@ pub(crate) const CADDYFILE: &'static str = "
         {{ debug }}level DEBUG
     }
     {{ use_tls }}local_certs
+    {{ use_tls }}auto_https disable_redirects
 }
 
 {{ host }}:{{ http_port }} {
