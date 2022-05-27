@@ -128,7 +128,7 @@ fn check_caddy_version(caddy_path: &PathBuf) {
 #[cfg(target_os="linux")]
 fn set_http_capabilities(caddy_path: &PathBuf) {
     // TODO:
-    // Check capabilities with this kind of command:
+    // Checking capabilities might be done with this kind of command:
     // echo "{\ndebug\n}\nhttp://127.0.0.1 {\n root * `pwd`\n file_server\n}\n" | ~/.rymfony/uuid/caddy_uncap run --config=- --adapter=caddyfile
     // The goal is to make sure caddy can run with port 80.
     // If it can, just return from the function.
