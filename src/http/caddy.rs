@@ -127,9 +127,16 @@ fn check_caddy_version(caddy_path: &PathBuf) {
 
 #[cfg(target_os="linux")]
 fn set_http_capabilities(caddy_path: &PathBuf) {
+    // TODO:
+    // Check capabilities with this kind of command:
+    // echo "{\ndebug\n}\nhttp://127.0.0.1 {\n root * `pwd`\n file_server\n}\n" | ~/.rymfony/uuid/caddy_uncap run --config=- --adapter=caddyfile
+    // The goal is to make sure caddy can run with port 80.
+    // If it can, just return from the function.
+    // If not, run all the code below this comment (and remove this comment afterwards).
+
     warn!("Caddy is usually unable to listen to port 80 when running as non-root user.");
     warn!("This is due a security measure from your OS to not accept non-root executables");
-    warn!("to bind ports below 1000.");
+    warn!("to bind ports below 1024.");
 
     if atty::is(Stream::Stdout) {
         warn!("To make it work, we will try to use the \"setcap\" command,");
