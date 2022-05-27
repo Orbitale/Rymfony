@@ -7,6 +7,7 @@ use std::process::Command;
 use std::process::Stdio;
 #[cfg(not(target_os="windows"))]
 use std::os::unix::fs::PermissionsExt;
+use atty::Stream;
 
 #[cfg(not(target_os="windows"))]
 use runas::Command as SudoCommand;
@@ -126,20 +127,27 @@ fn check_caddy_version(caddy_path: &PathBuf) {
 
 #[cfg(target_os="linux")]
 fn set_http_capabilities(caddy_path: &PathBuf) {
-
     warn!("Caddy is usually unable to listen to port 80 when running as non-root user.");
-    warn!("To make it work, we will try to use the \"setcap\" command,");
-    warn!("in order to give Caddy the necessary permissions to listen to port 80.");
+    warn!("This is due a security measure from your OS to not accept non-root executables");
+    warn!("to bind ports below 1000.");
 
-    let status = SudoCommand::new("setcap")
-        .arg("cap_net_bind_service=+ep")
-        .arg(&caddy_path.to_str().unwrap())
-        .status()
-        .expect("The \"setcap\" command did not execute when trying to give Caddy the ability to listen to port 80.");
+    if atty::is(Stream::Stdout) {
+        warn!("To make it work, we will try to use the \"setcap\" command,");
+        warn!("in order to give Caddy the necessary permissions to listen to port 80.");
 
-    if status.code().unwrap_or(1) != 0 {
-        error!("The \"setcap\" command failed when trying to give Caddy the ability to listen to port 80.")
+        let status = SudoCommand::new("setcap")
+            .arg("cap_net_bind_service=+ep")
+            .arg(&caddy_path.to_str().unwrap())
+            .status()
+            .expect("The \"setcap\" command did not execute when trying to give Caddy the ability to listen to port 80.");
+
+        if status.code().unwrap_or(1) != 0 {
+            error!("The \"setcap\" command failed when trying to give Caddy the ability to listen to port 80.")
+        } else {
+            info!("Done! Caddy HTTP server is now capable of listening to port 80 (for this project only)");
+        }
     } else {
-        info!("Done! Caddy HTTP server is now capable of listening to port 80 (for this project only)");
+        warn!("To make it work, you must stop Rymfony and execute this command (as a privileged user):");
+        warn!("setcap cap_net_bind_service=+ep {}", &caddy_path.to_str().unwrap());
     }
 }
