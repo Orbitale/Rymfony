@@ -192,6 +192,7 @@ fn serve_foreground(args: &ArgMatches) {
     info!("Listening to {}://{}:{}", if no_tls { "http" } else { "https" }, host_name, http_port);
 
     ctrlc::set_handler(|| {
+        info!("Stopping Rymfony...");
         crate::commands::stop::stop();
         info!("Bye! 🌙");
         std::process::exit(0);

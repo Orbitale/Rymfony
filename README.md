@@ -239,9 +239,11 @@ To do (order of priority, done first):
     - 🟩 Make sure the web server's IP and port can be customized through a `--listen ip:port` option. 
     - 🟩 Once a "way to start PHP" is found (either via CGI on Windows, FPM on Linux, or PHP's native server for other cases), make sure we can start a background PHP process.
     - 🟩 Transform the standard web server into an HTTP proxy to PHP using a FastCGI client
-    - 🟥 #81 Tail logs to a file when server is run in the background
+    - 🟩 #81 Tail logs to a file when server is run in the background
     - 🟥 Make sure the server process is **totally** detached from the terminal in Windows. There are some issues about this, and it needs more investigation. Check [this blog post section](https://www.orbitale.io/2020/06/25/being-a-php-developer-on-windows-10-cool-snippets.html#3-symfony-binary-the-http-server) for more information.
+    - 🟥 Make sure that Caddy server has the proper capabilities to run with port 80 at runtime instead of installation-time (to make sure the port can be used as a flag to whether this `setcap` feature must be used or not).<br>Check the `set_http_capabilities()` function in the `caddy.rs` file for more details.
     - 🟥 When the server is stopped (via Ctrl+C or via a panic), make sure PHP is stopped too.
+        - Note: on Windows, it seems that the `ctrlc` package does not work, something must be done on this!
     - 🟥 Allow listing running servers globally, without necessarily using a `.pid` file.
     - 🟥 Allow stopping a server globally, without necessarily using a `.pid` file.
     - 🟩 (note: handled by Caddy) Find a way to force the entire request-response workflow to be streamed instead of buffered (will make better performances and memory usage)

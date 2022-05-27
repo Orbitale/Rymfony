@@ -1,6 +1,6 @@
 use std::process::Command;
 use std::process::Stdio;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::fs::remove_file;
 use std::fs::read_to_string;
@@ -46,11 +46,23 @@ fn main() {
             let code = output.status.code().unwrap();
             if code != 0 {
                 let error = read_to_string("build.err").expect("Could not retrieve error log after failing to download Caddy server.");
-                panic!("\n An error occured when downloading Caddy.\n Here is the error log:\n{}\n", error);
+                caddy_download_error(format!(" An error occured when downloading Caddy.\n Here is the error log:\n{}", error));
             }
         },
         Err(e) => {
-            panic!("Could not download Caddy: {}", e);
+            caddy_download_error(format!(" Could not download Caddy: {}", e));
         }
     };
+}
+
+fn caddy_download_error(message: String) {
+    let caddy_bin = PathBuf::from("bin").join(config::CADDY_BIN_FILE);
+    if caddy_bin.exists() {
+        // Maybe network is disabled, but in the meantime, we'll reuse the existing Caddy.
+        eprintln!(" /!\\ ==================== /!\\ ");
+        eprintln!("{}", message);
+        eprintln!(" /!\\ ==================== /!\\ ");
+    } else {
+        panic!("{}", message);
+    }
 }

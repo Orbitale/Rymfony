@@ -80,7 +80,7 @@ binary_url="https://github.com/caddyserver/caddy/releases/download/v${caddy_vers
 
 output "Downloading ${release_filename}" "info"
 
-output "Downloading from "${binary_url}"" "info"
+output "Downloading from \"${binary_url}\"" "info"
 
 tmpfile_caddy=$(mktemp /tmp/rymfonycaddy.XXXXXXXXXX)
 curl -sSL "${binary_url}" --output "${tmpfile_caddy}"

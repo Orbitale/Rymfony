@@ -89,7 +89,7 @@ https://github.com/Orbitale/Rymfony
                 .short('v')
                 .long("verbose")
                 .multiple_occurrences(true)
-                .multiple_values(true)
+                .multiple_values(false)
                 .takes_value(false)
                 .help("Set the verbosity level. -v for debug, -vv for trace, -vvv to trace executed modules"),
         )

@@ -7,6 +7,7 @@ use std::process::Command;
 use std::process::Stdio;
 #[cfg(not(target_os="windows"))]
 use std::os::unix::fs::PermissionsExt;
+use atty::Stream;
 
 #[cfg(not(target_os="windows"))]
 use runas::Command as SudoCommand;
@@ -37,6 +38,7 @@ pub(crate) const CADDYFILE: &'static str = "
         {{ debug }}level DEBUG
     }
     {{ use_tls }}local_certs
+    {{ use_tls }}auto_https disable_redirects
 }
 
 {{ host }}:{{ http_port }} {
@@ -125,20 +127,34 @@ fn check_caddy_version(caddy_path: &PathBuf) {
 
 #[cfg(target_os="linux")]
 fn set_http_capabilities(caddy_path: &PathBuf) {
+    // TODO:
+    // Checking capabilities might be done with this kind of command:
+    // echo "{\ndebug\n}\nhttp://127.0.0.1 {\n root * `pwd`\n file_server\n}\n" | ~/.rymfony/uuid/caddy_uncap run --config=- --adapter=caddyfile
+    // The goal is to make sure caddy can run with port 80.
+    // If it can, just return from the function.
+    // If not, run all the code below this comment (and remove this comment afterwards).
 
     warn!("Caddy is usually unable to listen to port 80 when running as non-root user.");
-    warn!("To make it work, we will try to use the \"setcap\" command,");
-    warn!("in order to give Caddy the necessary permissions to listen to port 80.");
+    warn!("This is due a security measure from your OS to not accept non-root executables");
+    warn!("to bind ports below 1024.");
 
-    let status = SudoCommand::new("setcap")
-        .arg("cap_net_bind_service=+ep")
-        .arg(&caddy_path.to_str().unwrap())
-        .status()
-        .expect("The \"setcap\" command did not execute when trying to give Caddy the ability to listen to port 80.");
+    if atty::is(Stream::Stdout) {
+        warn!("To make it work, we will try to use the \"setcap\" command,");
+        warn!("in order to give Caddy the necessary permissions to listen to port 80.");
 
-    if status.code().unwrap_or(1) != 0 {
-        error!("The \"setcap\" command failed when trying to give Caddy the ability to listen to port 80.")
+        let status = SudoCommand::new("setcap")
+            .arg("cap_net_bind_service=+ep")
+            .arg(&caddy_path.to_str().unwrap())
+            .status()
+            .expect("The \"setcap\" command did not execute when trying to give Caddy the ability to listen to port 80.");
+
+        if status.code().unwrap_or(1) != 0 {
+            error!("The \"setcap\" command failed when trying to give Caddy the ability to listen to port 80.")
+        } else {
+            info!("Done! Caddy HTTP server is now capable of listening to port 80 (for this project only)");
+        }
     } else {
-        info!("Done! Caddy HTTP server is now capable of listening to port 80 (for this project only)");
+        warn!("To make it work, you must stop Rymfony and execute this command (as a privileged user):");
+        warn!("setcap cap_net_bind_service=+ep {}", &caddy_path.to_str().unwrap());
     }
 }
