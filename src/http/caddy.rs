@@ -7,7 +7,6 @@ use std::process::Command;
 use std::process::Stdio;
 #[cfg(not(target_os="windows"))]
 use std::os::unix::fs::PermissionsExt;
-use atty::Stream;
 
 #[cfg(not(target_os="windows"))]
 use runas::Command as SudoCommand;
@@ -138,7 +137,7 @@ fn set_http_capabilities(caddy_path: &PathBuf) {
     warn!("This is due a security measure from your OS to not accept non-root executables");
     warn!("to bind ports below 1024.");
 
-    if atty::is(Stream::Stdout) {
+    if atty::is(atty::Stream::Stdout) {
         warn!("To make it work, we will try to use the \"setcap\" command,");
         warn!("in order to give Caddy the necessary permissions to listen to port 80.");
 
