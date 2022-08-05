@@ -3,12 +3,6 @@
 namespace Rymfony\Tests;
 
 use function dirname;
-use function fclose;
-use function file_get_contents;
-use function fopen;
-use function json_decode;
-use function preg_replace;
-use function trim;
 
 class ServerTest extends AbstractHttpTestCase
 {

@@ -7,8 +7,6 @@ use Symfony\Component\HttpFoundation\Request;
 
 require __DIR__.'/../../vendor/autoload.php';
 
-
-
 $request = Request::createFromGlobals();
 $response = new BinaryFileResponse(__DIR__.'/binaryfile.pdf');
 
