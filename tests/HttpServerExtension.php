@@ -61,7 +61,9 @@ class HttpServerExtension implements AfterLastTestHook, BeforeFirstTestHook
         $this->io->writeln('<info>Rymfony server started</info>');
 
         $client = createClient();
-        for ($i = 0; $i < 5; $i++) {
+        $startTime = microtime(true);
+        $maxWaitingTimeInMs = 5000;
+        while (true) {
             try {
                 $res = $client->request('GET', '/');
 
@@ -70,9 +72,15 @@ class HttpServerExtension implements AfterLastTestHook, BeforeFirstTestHook
                 }
             } catch (TransportExceptionInterface $e) {
             }
-        }
 
-        sleep(1); // Because "wait until" and attempting to make requests is never enough..
+            usleep(10000);
+
+            $elapsed = microtime(true) - $startTime;
+            if ($elapsed >= $maxWaitingTimeInMs) {
+                $this->io->error('Rymfony server was not started properly.');
+                throw new \RuntimeException();
+            }
+        }
 
         $this->io->writeln('<info>Rymfony server ready</info>');
 
