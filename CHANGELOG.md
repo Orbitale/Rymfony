@@ -1,3 +1,7 @@
+# v0.4.2
+
+* Don't build on MacOS anymore, because Github Action is super slow with Mac (see [this run](https://github.com/Orbitale/Rymfony/actions/runs/3000081339))
+
 # v0.4.1
 
 * Updated all dependencies

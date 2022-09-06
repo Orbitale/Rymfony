@@ -42,7 +42,7 @@ jobs:
         needs: [check-release]
         strategy:
             matrix:
-                os: [ubuntu-latest, macOS-latest]
+                os: [ubuntu-latest]
                 rust: [stable]
 
         steps:
