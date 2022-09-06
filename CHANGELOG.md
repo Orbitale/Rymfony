@@ -1,3 +1,10 @@
+# v0.4.1
+
+* Updated all dependencies
+* Enforced php 8.1 on the test setup
+* Update caddy from 2.5.1 to 2.5.2
+* Fix tests behaving differently on different CI builds
+
 # v0.4.0
 
 * Add a logging system that you can use by running `rymfony log` in your project root directory. Will tail log files from your running `rymfony` server, even when server is not started.
