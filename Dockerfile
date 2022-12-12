@@ -19,6 +19,8 @@ RUN apt-get update \
 
 FROM scratch
 
+WORKDIR /srv
+
 COPY --from=builder /build/target/release/rymfony /rymfony
 
 ENTRYPOINT ["/rymfony"]
