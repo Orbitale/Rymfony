@@ -30,6 +30,7 @@ pub(crate) fn get_caddy_start_command(
     document_root: String,
     php_entrypoint_file: String,
     add_server_sign: bool,
+    debug: bool,
 ) -> (Command, CaddyCommandInput) {
     let caddy_path = get_caddy_path();
     let mut caddy_command = Command::new(&caddy_path);
@@ -54,8 +55,6 @@ pub(crate) fn get_caddy_start_command(
         .arg("--config").arg(&caddy_runtime_config_file) // This makes Caddy use STDIN for config
     ;
 
-    let debug = false; // FIXME: use env var for this.
-
     let config = {
         let mut config: String = if !caddy_config_file.exists() {
             write(&caddy_config_file, CADDYFILE).expect("Could not write base Caddyfile config.");
@@ -69,18 +68,21 @@ pub(crate) fn get_caddy_start_command(
         };
 
         config = config
+            .replace("{{ debug }}", if debug { "" } else { "#" })
             .replace("{{ document_root }}", document_root.as_str())
-            .replace("{{ php_port }}", &php_port.to_string())
-            .replace("{{ http_port }}", &http_port.to_string())
-            .replace("{{ https_port }}", &http_port.to_string())
-            .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
-            .replace("{{ log_file }}", paths::get_http_server_log_file().to_str().unwrap())
-            .replace("{{ vhost_log_file }}", paths::get_http_vhost_log_file().to_str().unwrap())
             .replace("{{ host }}", &host_name)
+            .replace("{{ server_port }}", &http_port.to_string())
+            .replace("{{ https_port }}", &http_port.to_string())
+            .replace("{{ show_http_port }}", if use_tls { "#" } else { "" })
+            .replace("{{ log_file }}", paths::get_http_server_log_file().to_str().unwrap())
+            .replace("{{ log_level }}", if debug { "DEBUG" } else { "INFO" })
+            .replace("{{ php_entrypoint_file }}", php_entrypoint_file.as_str())
+            .replace("{{ php_port }}", &php_port.to_string())
+            .replace("{{ protocol }}", if use_tls { "" } else { "http://" })
+            .replace("{{ use_tls }}", if use_tls { "" } else { "#" })
+            .replace("{{ vhost_log_file }}", paths::get_http_vhost_log_file().to_str().unwrap())
             .replace("{{ with_server_sign }}", if add_server_sign { "" } else { "#" })
             .replace("{{ without_server_sign }}", if add_server_sign { "#" } else { "" })
-            .replace("{{ use_tls }}", if use_tls { "" } else { "#" })
-            .replace("{{ debug }}", if debug { "" } else { "#" })
         ;
 
         trace!("Final Caddy config:\n{}\n", &config);

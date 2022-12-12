@@ -1,38 +1,29 @@
-use clap::Command as ClapCommand;
-use clap::Arg;
+use clap::arg;
 use clap::ArgMatches;
-
+use clap::Command as ClapCommand;
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, ExitCode};
 use std::process::Stdio;
+use crate::command_handling::CommandHandler;
 
-pub(crate) fn command_config<'a>() -> ClapCommand<'a> {
-    ClapCommand::new("new:symfony")
-        .alias("new")
-        .about("Create a new Symfony project")
-        .arg(
-            Arg::new("directory")
-                .index(1)
-                .help("The directory in which the project will be created"),
-        )
-        .arg(
-            Arg::new("full")
-                .long("full")
-                .help("Use the symfony/website-skeleton instead of the default one")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::new("no-git")
-                .long("no-git")
-                .help("Do not initialize the project with git"),
-        )
+pub(crate) fn get_command() -> CommandHandler {
+    CommandHandler::new(
+        ClapCommand::new("new:symfony")
+            .alias("new") // For Symfony CLI compat
+            .about("Create a new Symfony project")
+            .arg(arg!(<directory> "The directory in which the project will be created"))
+            .arg(arg!(--full "Use the symfony/website-skeleton instead of the default one"))
+            .arg(arg!(--"no-git" "Do not initialize the project with git"))
+        ,
+        Box::new(execute),
+    )
 }
 
-pub(crate) fn new_symfony(args: &ArgMatches) {
-    let mut directory = args.value_of("directory").unwrap_or("").to_string();
-    let full = args.is_present("full");
-    let initialize_git = !args.is_present("no_git");
+pub(crate) fn execute(args: &ArgMatches) -> ExitCode {
+    let mut directory = args.get_one::<String>("directory").map(|s| s.as_str()).unwrap_or("").to_string();
+    let full = args.get_flag("full");
+    let initialize_git = !args.get_flag("no-git");
 
     if directory == "" {
         let path = env::current_dir().unwrap().join("symfony");
@@ -52,7 +43,7 @@ pub(crate) fn new_symfony(args: &ArgMatches) {
             &path.to_str().unwrap()
         );
 
-        return;
+        return ExitCode::from(1);
     }
 
     info!("Using directory {}", &path.to_str().unwrap());
@@ -80,6 +71,8 @@ pub(crate) fn new_symfony(args: &ArgMatches) {
         Err(e) => {
             error!("Could not create project");
             error!("{}", e);
+
+            return ExitCode::from(1);
         }
     };
 
@@ -100,7 +93,11 @@ pub(crate) fn new_symfony(args: &ArgMatches) {
             Err(e) => {
                 error!("Could not initialize git");
                 error!("{}", e);
+
+                return ExitCode::from(1);
             }
         };
     }
+
+    ExitCode::from(0)
 }

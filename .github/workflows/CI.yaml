@@ -93,12 +93,12 @@ jobs:
             - name: (release only) Save build metadata
               if: startsWith(github.ref, 'refs/tags/')
               run: |
-                  echo "${{ steps.vars.outputs.RELEASE_VERSION }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
+                  echo "${{ steps.vars.outputs.RELEASE_VERSION }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > .version
 
             - name: (main branch only) Save build metadata
               if: github.ref == 'refs/heads/main'
               run: |
-                  echo "nightly ${{ steps.vars.outputs.GITHUB_SHA_SHORT }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
+                  echo "nightly ${{ steps.vars.outputs.GITHUB_SHA_SHORT }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > .version
 
             - name: (Mac only) Install "coreutils" to be able to get file hash
               if: runner.os == 'macOS'
@@ -111,7 +111,7 @@ jobs:
 
             - name: 🏗 Build
               run: |
-                  cat build_metadata.txt
+                  cat .version
 
                   cargo build --release
 
@@ -204,12 +204,12 @@ jobs:
             - name: (release only) Save build metadata
               if: startsWith(github.ref, 'refs/tags/')
               run: |
-                  echo "${{ steps.vars.outputs.RELEASE_VERSION }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
+                  echo "${{ steps.vars.outputs.RELEASE_VERSION }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > .version
 
             - name: (main branch only) Save build metadata
               if: github.ref == 'refs/heads/main'
               run: |
-                  echo "nightly ${{ steps.vars.outputs.GITHUB_SHA_SHORT }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > build_metadata.txt
+                  echo "nightly ${{ steps.vars.outputs.GITHUB_SHA_SHORT }} ${{ steps.vars.outputs.RELEASE_OS }} (${{ steps.vars.outputs.RELEASE_DATE }})" > .version
 
             - name: 🛒 Download Caddy
               run: |
@@ -217,7 +217,7 @@ jobs:
 
             - name: 🏗 Build
               run: |
-                  cat build_metadata.txt
+                  cat .version
 
                   cargo build --release
 

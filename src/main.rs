@@ -8,6 +8,9 @@ extern crate pretty_env_logger;
 extern crate regex;
 extern crate tokio;
 
+mod command_handling;
+mod logging;
+
 mod config {
     pub(crate) mod config;
     pub(crate) mod paths;
@@ -41,43 +44,112 @@ mod http {
     pub(crate) mod proxy_server;
 }
 
+use clap::{Arg, ColorChoice};
+use clap::ArgAction;
 use clap::Command as ClapCommand;
-use clap::Arg;
 use dirs::home_dir;
-use log::Level;
-use pretty_env_logger::env_logger::fmt::Color;
-use pretty_env_logger::env_logger::fmt::Style;
-use pretty_env_logger::env_logger::fmt::StyledValue;
-use std::fmt;
 use std::fs;
-use std::io::Write;
 use std::process::Command;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering;
-use utils::current_process_name;
+use std::process::ExitCode;
+use crate::command_handling::CommandList;
 
-fn main() {
-    let build_metadata = include_str!("../build_metadata.txt").trim().replace("\n", "");
-    let build_metadata_str = build_metadata.as_str();
+fn application_commands() -> CommandList {
+    CommandList {
+        commands: vec![
+            Box::new(commands::logs::get_command()),
+            Box::new(commands::php_list::get_command()),
+            Box::new(commands::serve::get_command()),
+            Box::new(commands::stop::get_command()),
+            Box::new(commands::new_symfony::get_command()),
+        ],
+    }
+}
 
-    let version = if build_metadata == "" { "dev" } else { build_metadata_str };
+const APPLICATION_NAME: &str = "rymfony";
+const APP_VERSION_METADATA: &str = include_str!("../.version");
 
-    let application_commands = vec![
-        commands::logs::command_config(),
-        commands::php_list::command_config(),
-        commands::serve::command_config(),
-        commands::stop::command_config(),
-        commands::new_symfony::command_config(),
-    ];
+
+/*
+match subcommand_name {
+    Some("serve") => {
+        crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
+    }
+    Some("server:start") => {
+        crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
+    }
+    Some("stop") => crate::commands::stop::stop(),
+    Some("new") => {
+        crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
+    }
+    Some("new:symfony") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+    Some("php:list") => crate::commands::php_list::php_list(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+    Some("logs") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+    Some("log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+    Some("local:server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+    Some("server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
+    _ => {
+        // If no subcommand is specified,
+        // re-run the program with "--help"
+        let mut subprocess = Command::new(current_process_name::get().as_str())
+            .arg("--help")
+            .spawn()
+            .expect("Failed to create the \"help\" command.");
+
+        subprocess
+            .wait()
+            .expect("Failed to run the \"help\" command.");
+    }
+};
+*/
+fn main() -> ExitCode {
+    startup_actions();
+
+    let application_commands = application_commands();
+
+    let subcommands = application_commands.subcommands().into_iter();
+
+    let application = get_application().subcommands(subcommands);
+
+    let arg_matches = application.get_matches();
+
+    let verbosity_level: &u8 = arg_matches.get_one::<u8>("verbose").unwrap_or(&0);
+    let is_quiet = arg_matches.get_flag("quiet");
+
+    logging::set_verbosity_value(*verbosity_level, is_quiet);
+
+    let subcommand_name = arg_matches.subcommand_name();
+    let args = if let Some(subcommand_name) = subcommand_name {
+        arg_matches.subcommand_matches(subcommand_name)
+    } else {
+        None
+    };
+
+    if let Some(subcommand_name) = subcommand_name {
+        for command in application_commands.commands.iter() {
+            if command.command_definition.get_name() == subcommand_name {
+                return (command.executor)(args.unwrap());
+            }
+        }
+    }
+
+
+    default_command().unwrap_or(ExitCode::FAILURE)
+}
+
+fn startup_actions() {
 
     let home_dir = home_dir().unwrap();
     if home_dir.to_str().unwrap() != "" {
         fs::create_dir_all(home_dir.join(".rymfony")).unwrap();
     }
 
-    let app = ClapCommand::new("rymfony")
-        .version(version)
+}
+
+fn get_application() -> ClapCommand {
+    ClapCommand::new(APPLICATION_NAME)
+        .version(APP_VERSION_METADATA.trim())
         .author("Alex \"Pierstoval\" Rock <alex@orbitale.io>")
+        .color(ColorChoice::Always)
         .about("
 A command-line tool to spawn a PHP server behind an HTTP FastCGI proxy,
 inspired by Symfony CLI, but Open Source.
@@ -88,139 +160,48 @@ https://github.com/Orbitale/Rymfony
             Arg::new("verbose")
                 .short('v')
                 .long("verbose")
-                .multiple_occurrences(true)
-                .multiple_values(false)
-                .takes_value(false)
+                .global(true)
+                .action(ArgAction::Count)
                 .help("Set the verbosity level. -v for debug, -vv for trace, -vvv to trace executed modules"),
         )
         .arg(
             Arg::new("quiet")
                 .short('q')
                 .long("quiet")
-                .takes_value(false)
+                .global(true)
+                .num_args(0)
                 .help("Do not display any output. Has precedence over -v|--verbose"),
         )
-        .subcommands(application_commands);
-
-    let matches = app.get_matches();
-    let verbose_value = matches.indices_of("verbose").unwrap_or_default();
-    let is_quiet = matches.index_of("quiet").unwrap_or_default() > 0;
-
-    set_verbosity_value(verbose_value.len(), is_quiet);
-
-    let subcommand_name = matches.subcommand_name();
-
-    match subcommand_name {
-        Some("serve") => {
-            crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
-        }
-        Some("server:start") => {
-            crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
-        }
-        Some("stop") => crate::commands::stop::stop(),
-        Some("new") => {
-            crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
-        }
-        Some("new:symfony") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-        Some("php:list") => crate::commands::php_list::php_list(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-        Some("logs") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-        Some("log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-        Some("local:server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-        Some("server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-        _ => {
-            // If no subcommand is specified,
-            // re-run the program with "--help"
-            let mut subprocess = Command::new(current_process_name::get().as_str())
-                .arg("--help")
-                .spawn()
-                .expect("Failed to create the \"help\" command.");
-
-            subprocess
-                .wait()
-                .expect("Failed to run the \"help\" command.");
-        }
-    };
 }
 
-fn set_verbosity_value(value: usize, is_quiet: bool) {
-    let level = std::env::var("RYMFONY_LOG").unwrap_or(String::from("INFO"));
-    let mut level = level.as_str();
+fn default_command() -> Option<ExitCode> {
+    let process_args: Vec<String> = std::env::args().collect();
+    let current_process_name = process_args[0].as_str().to_owned();
 
-    let mut builder = pretty_env_logger::formatted_timed_builder();
+    // If no subcommand is specified,
+    // re-run the program with "--help"
+    let mut subprocess = Command::new(&current_process_name)
+        .arg("--help")
+        .spawn()
+        .ok()?;
 
-    if is_quiet {
-        level = "OFF";
-    } else {
-        match value {
-            1 => level = "DEBUG",           // -v
-            v if v >= 2 => level = "TRACE", // -vv
-            _ => {}
-        }
-    }
+    let child = subprocess.wait().ok()?;
 
-    builder
-        .parse_filters(level)
-        .format(move |f, record| {
-            // This is the same format as the initial one in the pretty_env_logger crate,
-            // but only the part with the module name is changed.
+    let status = child.code();
 
-            let mut style = f.style();
-            let level = colored_level(&mut style, record.level());
-
-            let mut style = f.style();
-            let target = if value > 2 {
-                let target = format!(" {}", record.target());
-                let max_width = max_target_width(&target);
-                style.set_bold(true).value(Padded {
-                    value: target,
-                    width: max_width,
-                })
-            } else {
-                style.value(Padded {
-                    value: String::from(""),
-                    width: 0,
-                })
-            };
-
-            let time = f.timestamp_millis();
-
-            writeln!(f, " {} {}{} > {}", time, level, target, record.args(),)
-        })
-        .try_init()
-        .unwrap();
-}
-
-// This struct is a copy/paste of the one in pertty_env_logger.
-// It's necessary for left-padding the message type.
-struct Padded<T> {
-    value: T,
-    width: usize,
-}
-
-impl<T: fmt::Display> fmt::Display for Padded<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{: <width$}", self.value, width = self.width)
+    match status {
+        Some(code) => Some(ExitCode::from(code as u8)),
+        None => Some(ExitCode::FAILURE),
     }
 }
 
-static MAX_MODULE_WIDTH: AtomicUsize = AtomicUsize::new(0);
+#[cfg(test)]
+mod main_tests {
+    use super::*;
 
-fn max_target_width(target: &str) -> usize {
-    let max_width = MAX_MODULE_WIDTH.load(Ordering::Relaxed);
-    if max_width < target.len() {
-        MAX_MODULE_WIDTH.store(target.len(), Ordering::Relaxed);
-        target.len()
-    } else {
-        max_width
+    #[test]
+    fn verify_cli() {
+        get_application().debug_assert();
     }
 }
 
-fn colored_level<'a>(style: &'a mut Style, level: Level) -> StyledValue<'a, &'static str> {
-    match level {
-        Level::Trace => style.set_color(Color::Magenta).value("TRACE"),
-        Level::Debug => style.set_color(Color::Blue).value("DEBUG"),
-        Level::Info => style.set_color(Color::Green).value(" INFO"),
-        Level::Warn => style.set_color(Color::Yellow).value(" WARN"),
-        Level::Error => style.set_color(Color::Red).value("ERROR"),
-    }
-}

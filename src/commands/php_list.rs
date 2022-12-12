@@ -1,15 +1,18 @@
-use clap::Command;
-use clap::Arg;
+use clap::arg;
 use clap::ArgMatches;
+use clap::Command as ClapCommand;
 use prettytable::format;
 use prettytable::Table;
+use std::process::ExitCode;
+use crate::command_handling::CommandHandler;
 
 use crate::config::config::clear_binaries_list;
 use crate::config::config::save_binaries_to_config;
 use crate::php;
 
-pub(crate) fn command_config<'a>() -> Command<'a> {
-    Command::new("php:list")
+pub(crate) fn get_command() -> CommandHandler {
+    CommandHandler::new(
+        ClapCommand::new("php:list")
         .about("List all available PHP executables.")
         .after_help("
 If you have PHP installed in a custom folder, you can use the RYMFONY_PATH environment variable before executing the command.
@@ -18,19 +21,21 @@ Example:
 
 $ RYMFONY_PATH=\"/var/php80/bin\" rymfony php:list --refresh
 ")
-        .arg(
-            Arg::new("refresh")
-                .short('r')
-                .long("refresh")
-                .help("Refresh the PHP list cache"),
-        )
+        .arg(arg!(-r --refresh "Refresh the PHP list cache"))
+        ,
+        Box::new(execute),
+    )
 }
 
-pub(crate) fn php_list(args: &ArgMatches) {
-    if args.is_present("refresh") {
+pub(crate) fn execute(args: &ArgMatches) -> ExitCode {
+    if args.get_flag("refresh") {
         match clear_binaries_list() {
             Ok(_) => info!("Binaries cache successfully cleared!"),
-            Err(e) => error!("Could not clear binaries cache: {}", e),
+            Err(e) => {
+                error!("Could not clear binaries cache: {}", e);
+
+                return ExitCode::from(1);
+            },
         }
     }
 
@@ -38,7 +43,8 @@ pub(crate) fn php_list(args: &ArgMatches) {
 
     if binaries.len() == 0 {
         error!("No PHP installation found. To provide your specific PHP installation path, you can use the RYMFONY_PATH environment variable before running \"rymfony php:list --refresh\".");
-        return;
+
+        return ExitCode::from(1);
     }
 
     save_binaries_to_config(&binaries);
@@ -80,4 +86,6 @@ pub(crate) fn php_list(args: &ArgMatches) {
     }
 
     table.printstd();
+
+    ExitCode::from(0)
 }

@@ -31,16 +31,18 @@ pub(crate) const CADDYFILE: &'static str = "
 # Change it at your own risk 💣
 
 {
+    {{ show_http_port }}http_port {{ server_port }}
+    {{ use_tls }}https_port {{ https_port }}
     {{ debug }}debug
     log {
         output file {{ log_file }}
-        {{ debug }}level DEBUG
+        level {{ log_level }}
     }
     {{ use_tls }}local_certs
     {{ use_tls }}auto_https disable_redirects
 }
 
-{{ host }}:{{ http_port }} {
+{{ protocol }}{{ host }}:{{ server_port }} {
     root * {{ document_root }}
 
     encode gzip

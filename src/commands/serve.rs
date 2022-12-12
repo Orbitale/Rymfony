@@ -4,17 +4,17 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, ExitCode};
 use std::process::Stdio;
 use std::time::Duration;
 
-use clap::Command as ClapCommand;
-use clap::Arg;
+use clap::arg;
 use clap::ArgMatches;
+use clap::Command as ClapCommand;
 use log::info;
 use sysinfo::get_current_pid;
 use crate::config::paths;
-
+use crate::command_handling::CommandHandler;
 use crate::http::proxy_server;
 use crate::http::proxy_server::start_caddy;
 use crate::php::php_server;
@@ -26,13 +26,15 @@ use crate::utils::network::parse_default_port;
 use crate::utils::project_directory::get_rymfony_project_directory;
 
 const DEFAULT_PORT: &str = "8000";
+const DEFAULT_HOST: &str = "127.0.0.1";
 
-pub(crate) fn command_config<'a>() -> ClapCommand<'a> {
-    ClapCommand::new("server:start")
-        .name("server:start")
-        .alias("serve")
-        .about("Runs an HTTP server")
-        .after_help("
+pub(crate) fn get_command() -> CommandHandler {
+    CommandHandler::new(
+        ClapCommand::new("server:start")
+            .name("server:start")
+            .alias("serve")
+            .about("Runs an HTTP server")
+            .after_help("
 Runs an HTTP server and a PHP server (based on FPM or CGI depending on what's available).
 
 Rymfony is capable of detecting your Document Root automatically.
@@ -46,53 +48,27 @@ It will do so in this order:
  * app_dev.php
  * app.php
 ")
-        .arg(
-            Arg::new("port")
-                .long("port")
-                .help("The TCP port to listen to")
-                .default_value(DEFAULT_PORT.as_ref())
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("daemon")
-                .short('d')
-                .long("daemon")
-                .help("Run the server in the background"),
-        )
-        .arg(
-            Arg::new("document-root")
-                .long("document-root")
-                .help("Project's document root")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("passthru")
-                .long("passthru")
-                .help("The PHP entrypoint all requests will be passed to")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("no-tls")
-                .long("no-tls")
-                .help("Disable TLS. Use HTTP only."),
-        )
-        .arg(
-            Arg::new("expose-server-header")
-                .short('s')
-                .long("expose-server-header")
-                .help("Add server header into all response"),
-        )
+            .arg(arg!(--port <PORT> "The TCP port to listen to").default_value(DEFAULT_PORT))
+            .arg(arg!(--host <HOST> "The hostname to listen to").default_value(DEFAULT_HOST))
+            .arg(arg!(-d --daemon "Run the server in the background"))
+            .arg(arg!(--"document-root" <DIRECTORY_PATH> "Project's document root"))
+            .arg(arg!(--passthru <ENTRYPOINT> "The PHP entrypoint all requests will be passed to"))
+            .arg(arg!(--"no-tls" "Disable TLS. Use HTTP only."))
+            .arg(arg!(-s --"expose-server-header" "Add server header into all response"))
+        ,
+        Box::new(execute),
+    )
 }
 
-pub(crate) fn serve(args: &ArgMatches) {
-    if args.is_present("daemon") {
-        serve_background(args);
+pub(crate) fn execute(args: &ArgMatches) -> ExitCode {
+    if args.get_flag("daemon") {
+        serve_background(args)
     } else {
-        serve_foreground(args);
+        serve_foreground(args)
     }
 }
 
-fn serve_foreground(args: &ArgMatches) {
+fn serve_foreground(args: &ArgMatches) -> ExitCode {
     let rymfony_pid_file = paths::rymfony_pid_file();
     debug!("Looking for Rymfony PID file in \"{}\".",rymfony_pid_file.to_str().unwrap());
 
@@ -100,11 +76,11 @@ fn serve_foreground(args: &ArgMatches) {
         // Check if process is rymfony and exit if true.
         info!("The server is already running for this directory.");
         info!("Run the \"rymfony log\" command to tail its logs if you need.");
-        return;
+
+        return ExitCode::from(1);
     }
 
-    let mut document_root =
-        get_document_root(args.value_of("document-root").unwrap_or("").to_string());
+    let mut document_root = get_document_root(args.get_one::<String>("document-root").map(|s| s.as_str()).unwrap_or("").to_string());
     if document_root.ends_with('/') {
         document_root.pop();
     }
@@ -119,8 +95,8 @@ fn serve_foreground(args: &ArgMatches) {
     let doc_root_path = PathBuf::from(document_root.as_str());
     let common_scripts_names = vec!["index.php", "app_dev.php", "app.php"];
     let mut script_filename = "index.php".to_string();
-    if args.is_present("passthru") {
-        script_filename = args.value_of("passthru").unwrap_or("index.php").to_string()
+    if args.contains_id("passthru") {
+        script_filename = args.get_one::<String>("passthru").map(|s| s.as_str()).unwrap_or("index.php").to_string()
     } else {
         for script in common_scripts_names {
             let php_entrypoint_path = doc_root_path.join(script);
@@ -138,7 +114,9 @@ fn serve_foreground(args: &ArgMatches) {
 
     let php_entrypoint_path = doc_root_path.join(script_filename.as_str());
     let (mut php_start_command, php_server_input) = if !php_entrypoint_path.is_file() {
-        panic!("No PHP entrypoint specified.");
+        error!("No PHP entrypoint specified.");
+
+        return ExitCode::from(1);
     } else {
         php_server::get_php_server_start_input()
     };
@@ -147,7 +125,9 @@ fn serve_foreground(args: &ArgMatches) {
     let sapi_string = sapi.to_string();
 
     if sapi_string == "unknown" {
-        panic!("Unknown PHP SAPI to execute");
+        error!("Unknown PHP SAPI to execute");
+
+        return ExitCode::from(1);
     } else {
         info!("PHP starting with module {}", sapi_string);
         info!("PHP entrypoint file: {}", &script_filename);
@@ -163,7 +143,7 @@ fn serve_foreground(args: &ArgMatches) {
     info!("Configured document root: {}", &document_root);
 
     let http_port = find_available_port(parse_default_port(
-        args.value_of("port").unwrap_or(DEFAULT_PORT),
+        args.get_one::<String>("port").map(|s| s.as_str()).unwrap_or(DEFAULT_PORT),
         DEFAULT_PORT,
     ));
 
@@ -172,10 +152,11 @@ fn serve_foreground(args: &ArgMatches) {
     write(&rymfony_pid_file, rymfony_pid.to_string()).expect("Could not write Rymfony PID to file.");
 
     //Serialize
-    let no_tls = args.is_present("no-tls");
+    let no_tls = args.get_flag("no-tls");
 
-    // TODO: implement ".wip" (or other) custom domains.
-    let host_name = "127.0.0.1".to_string();
+    let host_name = args.get_one::<String>("host").map(|s| s.as_str()).unwrap_or(DEFAULT_HOST).to_string();
+
+    let verbosity_level: u8 = *args.get_one::<u8>("verbose").unwrap_or(&0);
 
     let (mut caddy_command, caddy_command_input) = proxy_server::get_caddy_start_command(
         !no_tls,
@@ -184,16 +165,17 @@ fn serve_foreground(args: &ArgMatches) {
         php_port.clone(),
         document_root,
         script_filename,
-        args.is_present("expose-server-header"),
+        args.get_flag("expose-server-header"),
+        if verbosity_level == 3 { true } else { false }
     );
 
     let mut caddy_process = start_caddy(&mut caddy_command, caddy_command_input.config.clone());
 
     info!("Listening to {}://{}:{}", if no_tls { "http" } else { "https" }, host_name, http_port);
 
-    ctrlc::set_handler(|| {
+    ctrlc::set_handler(move || {
         info!("Stopping Rymfony...");
-        crate::commands::stop::stop();
+        crate::utils::stop_process::stop(rymfony_pid.to_string().as_str());
         info!("Bye! 🌙");
         std::process::exit(0);
     }).expect("Error setting Ctrl-C handler");
@@ -201,7 +183,7 @@ fn serve_foreground(args: &ArgMatches) {
     //
     // Healthcheck command
     //
-    loop {
+    let error: Option<String> = loop {
         let caddy_command_input = caddy_command_input.clone();
 
         std::thread::sleep(Duration::from_secs(100));
@@ -222,7 +204,7 @@ fn serve_foreground(args: &ArgMatches) {
                 debug!("PHP restarted, running with PID {}", php_process.id());
             },
             Ok(None) => (), // PHP server still alive.
-            Err(e) => panic!("An error occured when checking PHP server health: {:?}", e),
+            Err(e) => break Some(format!("An error occured when checking PHP server health: {:?}", e).into()),
         };
 
         //
@@ -236,14 +218,22 @@ fn serve_foreground(args: &ArgMatches) {
                 debug!("Caddy restarted, running with PID {}", caddy_process.id());
             },
             Ok(None) => (), // HTTP server still alive.
-            Err(e) => panic!("An error occured when checking Caddy HTTP server health: {:?}", e),
+            Err(e) => break Some(format!("An error occured when checking Caddy HTTP server health: {:?}", e).into()),
         };
+    };
+
+    if error.is_some() {
+        error!("{}", error.unwrap());
+
+        return ExitCode::from(1);
     }
+
+    ExitCode::from(0)
 }
 
-fn serve_background(args: &ArgMatches) {
+fn serve_background(args: &ArgMatches) -> ExitCode {
     let port = find_available_port(parse_default_port(
-        args.value_of("port").unwrap_or(DEFAULT_PORT),
+        args.get_one::<String>("port").map(|s| s.as_str()).unwrap_or(DEFAULT_PORT),
         DEFAULT_PORT,
     ));
 
@@ -262,19 +252,19 @@ fn serve_background(args: &ArgMatches) {
         .arg(port.to_string())
     ;
 
-    if args.is_present("no-tls") {
+    if args.get_flag("no-tls") {
         cmd.arg("--no-tls");
     }
-    if args.is_present("expose-server-header") {
+    if args.get_flag("expose-server-header") {
         cmd.arg("--expose-server-header");
     }
-    if args.is_present("document-root") {
+    if args.get_flag("document-root") {
         cmd.arg("--document-root")
-            .arg(args.value_of("document-root").unwrap_or("").to_string());
+            .arg(args.get_one::<String>("document-root").map(|s| s.as_str()).unwrap_or("").to_string());
     }
-    if args.is_present("passthru") {
+    if args.get_flag("passthru") {
         cmd.arg("--passthru")
-            .arg(args.value_of("passthru").unwrap_or("index.php").to_string());
+            .arg(args.get_one::<String>("passthru").map(|s| s.as_str()).unwrap_or("index.php").to_string());
     }
 
     let subprocess = cmd
@@ -290,6 +280,8 @@ fn serve_background(args: &ArgMatches) {
         .expect("Cannot write to PID file");
 
     info!("Background server running with PID {}", pid);
+
+    ExitCode::from(0)
 }
 
 fn get_document_root(document_root_arg: String) -> String {

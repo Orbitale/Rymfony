@@ -1,38 +1,28 @@
-use clap::Command;
-use clap::Arg;
+use std::process::ExitCode;
+use clap::arg;
 use clap::ArgMatches;
+use clap::Command as ClapCommand;
+use colored::*;
 use linemux::MuxedLines;
 use crate::config::paths;
-use colored::*;
+use crate::command_handling::CommandHandler;
 
-pub(crate) fn command_config<'a>() -> Command<'a> {
-    Command::new("logs")
-        .alias("log")
-        .alias("local:server:log") // For Symfony CLI compat
-        .alias("server:log") // For Symfony CLI compat
-        .about("Display server logs")
-        .arg(
-            Arg::new("channel")
-                .index(1)
-                .help("The optional logging channel you want to display"),
-        )
-        .arg(
-            Arg::new("no-follow")
-                .long("no-follow")
-                .alias("no-tail")
-                .help("Do no tail the logs")
-        )
-        .arg(
-            Arg::new("lines")
-                .short('n')
-                .long("lines")
-                .help("Number of lines to display at start")
-                .takes_value(true)
-                .default_value("0"),
-        )
+pub(crate) fn get_command() -> CommandHandler {
+    CommandHandler::new(
+        ClapCommand::new("logs")
+            .alias("log")
+            .alias("local:server:log") // For Symfony CLI compat
+            .alias("server:log") // For Symfony CLI compat
+            .about("Display server logs")
+            .arg(arg!(<channel> "The optional logging channel you want to display"))
+            .arg(arg!(--"no-follow" "Do not tail the logs").alias("no-tail"))
+            .arg(arg!(-n --lines <LINES> "Number of lines to display at start").default_value("0"))
+        ,
+        Box::new(execute),
+    )
 }
 
-pub(crate) fn logs(args: &'_ ArgMatches) {
+pub(crate) fn execute(_args: &ArgMatches) -> ExitCode {
     let rt = tokio::runtime::Runtime::new().unwrap();
 
     rt.block_on(async {
@@ -81,4 +71,6 @@ pub(crate) fn logs(args: &'_ ArgMatches) {
             println!("[{}] - {}", source.to_str().unwrap().green(), line.line());
         }
     });
+
+    ExitCode::from(0)
 }
