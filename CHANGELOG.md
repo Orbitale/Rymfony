@@ -1,3 +1,14 @@
+# v0.4.3
+
+* Update all Rust dependencies
+* In the Rust-deps update, Clap was updated to v4, so big changes were made in how CLI commands are implemented. The setup is now a bit more abstract, making it a bit easier to maintain (despite abstraction). All base command executors now return instances of `ExitCode`, to be consistent with CLI. (ultimate goal would be to get rid of `panic!()` and just handle everything with `Result` or `Option` objects)
+* Update Caddy to v2.6.2
+* Added `--host` option to `rymfony serve`
+* When using `-vvv` (debug), the `debug` option is also set in Caddy for logging
+* Enforce usage of the HTTP/HTTPS protocol in the `Caddyfile`
+* Added a `Dockerfile` (⚠ work in progress, only experimental for now)
+* Reformat all code with `caddy fmt` and create a `.rustfmt.toml` file for that 
+
 # v0.4.2
 
 * Don't build on MacOS anymore, because Github Action is super slow with Mac (see [this run](https://github.com/Orbitale/Rymfony/actions/runs/3000081339))
