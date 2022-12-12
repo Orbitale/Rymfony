@@ -1,17 +1,17 @@
+use crate::config::paths;
+use crate::http::caddy::get_caddy_path;
+use crate::http::caddy::CADDYFILE;
+use std::fs::read_to_string;
+use std::fs::write;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::Read;
+use std::io::Seek;
+use std::io::SeekFrom;
+use std::io::Write;
 use std::process::Child;
 use std::process::Command;
 use std::process::Stdio;
-use crate::http::caddy::get_caddy_path;
-use crate::http::caddy::CADDYFILE;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::fs::read_to_string;
-use std::fs::write;
-use std::io::Seek;
-use std::io::Read;
-use std::io::SeekFrom;
-use std::io::Write;
-use crate::config::paths;
 
 #[derive(Clone)]
 pub(crate) struct CaddyCommandInput {
@@ -42,7 +42,8 @@ pub(crate) fn get_caddy_start_command(
     let mut std_file_options = OpenOptions::new();
     std_file_options.create(true).read(true).append(true).write(true);
 
-    let stdout_file = std_file_options.open(paths::get_http_process_stdout_file()).expect("Could not open HTTP error file.");
+    let stdout_file =
+        std_file_options.open(paths::get_http_process_stdout_file()).expect("Could not open HTTP error file.");
     let stderr_file = open_stderr_file(&std_file_options);
 
     caddy_command
@@ -82,8 +83,7 @@ pub(crate) fn get_caddy_start_command(
             .replace("{{ use_tls }}", if use_tls { "" } else { "#" })
             .replace("{{ vhost_log_file }}", paths::get_http_vhost_log_file().to_str().unwrap())
             .replace("{{ with_server_sign }}", if add_server_sign { "" } else { "#" })
-            .replace("{{ without_server_sign }}", if add_server_sign { "#" } else { "" })
-        ;
+            .replace("{{ without_server_sign }}", if add_server_sign { "#" } else { "" });
 
         trace!("Final Caddy config:\n{}\n", &config);
 
@@ -102,10 +102,7 @@ pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> 
 
     let stderr_file = open_stderr_file(&std_file_options);
 
-    let mut caddy_child_process = caddy_command
-        .spawn()
-        .expect("Could not start HTTP server.")
-    ;
+    let mut caddy_child_process = caddy_command.spawn().expect("Could not start HTTP server.");
 
     let caddy_pid = caddy_child_process.id().to_string();
 
@@ -130,10 +127,13 @@ pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> 
                 error!("This can happen when you run Caddy (and therefore Rymfony) as non-root user.");
                 error!("To make it work, you need to give Caddy the necessary network capabilities.");
 
-                #[cfg(target_os = "linux")] {
+                #[cfg(target_os = "linux")]
+                {
                     let caddy_path = get_caddy_path();
 
-                    error!("On most linux distributions, you can do it by running this command (possibly with \"sudo\"):");
+                    error!(
+                        "On most linux distributions, you can do it by running this command (possibly with \"sudo\"):"
+                    );
                     error!("   setcap cap_net_bind_service=+ep {}", caddy_path.to_str().unwrap());
                 }
             }
@@ -164,7 +164,5 @@ pub(crate) fn start_caddy(caddy_command: &mut Command, caddy_config: String) -> 
 }
 
 fn open_stderr_file(file_options: &OpenOptions) -> File {
-    file_options
-        .open(paths::get_http_process_stderr_file())
-        .expect("Could not open HTTP error file.")
+    file_options.open(paths::get_http_process_stderr_file()).expect("Could not open HTTP error file.")
 }

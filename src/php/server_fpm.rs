@@ -7,14 +7,14 @@ use {
     regex::RegexBuilder,
     std::error::Error,
     std::fmt,
-    std::fs::File,
-    std::fs::OpenOptions,
     std::fs::read_to_string,
     std::fs::remove_file,
+    std::fs::File,
+    std::fs::OpenOptions,
     std::io::prelude::*,
     std::path::Path,
     std::process::Stdio,
-    users::get_current_uid
+    users::get_current_uid,
 };
 
 use crate::php::structs::PhpServerSapi;
@@ -90,16 +90,13 @@ pub(crate) fn get_start_command(php_bin: String, port: &u16) -> (PhpServerSapi, 
         .replace("{{ pid_file }}", &config::paths::php_server_pid_file().to_str().unwrap())
         .replace("{{ systemd_enable }}", if systemd_support { "" } else { ";" })
         .replace("{{ access_log_file }}", &config::paths::get_php_server_log_file().to_str().unwrap())
-        .replace("{{ error_log_file }}", &config::paths::get_php_server_error_file().to_str().unwrap())
-    ;
+        .replace("{{ error_log_file }}", &config::paths::get_php_server_error_file().to_str().unwrap());
 
     let fpm_config_file_path = config::paths::php_fpm_conf_ini_file();
 
     if !fpm_config_file_path.exists() {
         let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-        fpm_config_file
-            .write_all(config.as_bytes())
-            .expect("Could not write to php-fpm config file.");
+        fpm_config_file.write_all(config.as_bytes()).expect("Could not write to php-fpm config file.");
         debug!("Saved FPM config file at {}", fpm_config_file_path.to_str().unwrap());
     } else {
         // Read the file and search the port
@@ -113,9 +110,9 @@ pub(crate) fn get_start_command(php_bin: String, port: &u16) -> (PhpServerSapi, 
             let content = change_port(&content, &port);
             remove_file(&fpm_config_file_path).expect("Could not remove php-fpm config file");
             let mut fpm_config_file = File::create(&fpm_config_file_path).unwrap();
-            fpm_config_file
-                .write_all(content.as_bytes())
-                .expect(format!("Could not write to php-fpm config file {}.", &fpm_config_file_path.to_str().unwrap()).as_str());
+            fpm_config_file.write_all(content.as_bytes()).expect(
+                format!("Could not write to php-fpm config file {}.", &fpm_config_file_path.to_str().unwrap()).as_str(),
+            );
             debug!("Rewrote FPM config file at {}", fpm_config_file_path.to_str().unwrap());
         }
     }
@@ -158,10 +155,7 @@ impl Error for ReadPortError {}
 
 #[cfg(not(target_family = "windows"))]
 fn read_port(content: &str) -> std::result::Result<u16, ReadPortError> {
-    let re = RegexBuilder::new(r"^[ ]*listen[ ]?=[ ]?(.*)$")
-        .multi_line(true)
-        .build()
-        .unwrap();
+    let re = RegexBuilder::new(r"^[ ]*listen[ ]?=[ ]?(.*)$").multi_line(true).build().unwrap();
     let regex_port = Regex::new(r"^(?:(?:127\.0\.0\.1|localhost):)?(\d{1,5})").unwrap();
 
     let mut found = false;
@@ -184,10 +178,7 @@ fn read_port(content: &str) -> std::result::Result<u16, ReadPortError> {
 
 #[cfg(not(target_family = "windows"))]
 fn change_port(original_content: &str, new_port: &u16) -> String {
-    let re = RegexBuilder::new(r"^([ ]*listen[ ]?=[ ]?)(.*)$")
-        .multi_line(true)
-        .build()
-        .unwrap();
+    let re = RegexBuilder::new(r"^([ ]*listen[ ]?=[ ]?)(.*)$").multi_line(true).build().unwrap();
     let regex_port = Regex::new(r"^((?:(?:127\.0\.0\.1|localhost):)?)(\d{1,5})").unwrap();
 
     let mut found = false;
@@ -200,10 +191,7 @@ fn change_port(original_content: &str, new_port: &u16) -> String {
         if !captures.is_none() && !found {
             found = true;
             let capss = captures.unwrap();
-            content = content.replace(
-                &caps[0],
-                format!("{}{}{}", &caps[1], &capss[1], new_port.to_string()).as_str(),
-            );
+            content = content.replace(&caps[0], format!("{}{}{}", &caps[1], &capss[1], new_port.to_string()).as_str());
         }
     }
     if !found {

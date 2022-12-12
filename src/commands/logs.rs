@@ -1,11 +1,11 @@
-use std::process::ExitCode;
+use crate::command_handling::CommandHandler;
+use crate::config::paths;
 use clap::arg;
 use clap::ArgMatches;
 use clap::Command as ClapCommand;
 use colored::*;
 use linemux::MuxedLines;
-use crate::config::paths;
-use crate::command_handling::CommandHandler;
+use std::process::ExitCode;
 
 pub(crate) fn get_command() -> CommandHandler {
     CommandHandler::new(
@@ -16,8 +16,7 @@ pub(crate) fn get_command() -> CommandHandler {
             .about("Display server logs")
             .arg(arg!(<channel> "The optional logging channel you want to display"))
             .arg(arg!(--"no-follow" "Do not tail the logs").alias("no-tail"))
-            .arg(arg!(-n --lines <LINES> "Number of lines to display at start").default_value("0"))
-        ,
+            .arg(arg!(-n --lines <LINES> "Number of lines to display at start").default_value("0")),
         Box::new(execute),
     )
 }

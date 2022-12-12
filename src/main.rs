@@ -44,14 +44,15 @@ mod http {
     pub(crate) mod proxy_server;
 }
 
-use clap::{Arg, ColorChoice};
+use crate::command_handling::CommandList;
+use clap::Arg;
 use clap::ArgAction;
+use clap::ColorChoice;
 use clap::Command as ClapCommand;
 use dirs::home_dir;
 use std::fs;
 use std::process::Command;
 use std::process::ExitCode;
-use crate::command_handling::CommandList;
 
 fn application_commands() -> CommandList {
     CommandList {
@@ -68,39 +69,6 @@ fn application_commands() -> CommandList {
 const APPLICATION_NAME: &str = "rymfony";
 const APP_VERSION_METADATA: &str = include_str!("../.version");
 
-
-/*
-match subcommand_name {
-    Some("serve") => {
-        crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
-    }
-    Some("server:start") => {
-        crate::commands::serve::serve(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
-    }
-    Some("stop") => crate::commands::stop::stop(),
-    Some("new") => {
-        crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap())
-    }
-    Some("new:symfony") => crate::commands::new_symfony::new_symfony(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-    Some("php:list") => crate::commands::php_list::php_list(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-    Some("logs") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-    Some("log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-    Some("local:server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-    Some("server:log") => crate::commands::logs::logs(matches.subcommand_matches(&subcommand_name.unwrap()).unwrap()),
-    _ => {
-        // If no subcommand is specified,
-        // re-run the program with "--help"
-        let mut subprocess = Command::new(current_process_name::get().as_str())
-            .arg("--help")
-            .spawn()
-            .expect("Failed to create the \"help\" command.");
-
-        subprocess
-            .wait()
-            .expect("Failed to run the \"help\" command.");
-    }
-};
-*/
 fn main() -> ExitCode {
     startup_actions();
 
@@ -132,17 +100,14 @@ fn main() -> ExitCode {
         }
     }
 
-
     default_command().unwrap_or(ExitCode::FAILURE)
 }
 
 fn startup_actions() {
-
     let home_dir = home_dir().unwrap();
     if home_dir.to_str().unwrap() != "" {
         fs::create_dir_all(home_dir.join(".rymfony")).unwrap();
     }
-
 }
 
 fn get_application() -> ClapCommand {
@@ -150,12 +115,14 @@ fn get_application() -> ClapCommand {
         .version(APP_VERSION_METADATA.trim())
         .author("Alex \"Pierstoval\" Rock <alex@orbitale.io>")
         .color(ColorChoice::Always)
-        .about("
+        .about(
+            "
 A command-line tool to spawn a PHP server behind an HTTP FastCGI proxy,
 inspired by Symfony CLI, but Open Source.
 
 https://github.com/Orbitale/Rymfony
-")
+",
+        )
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -180,10 +147,7 @@ fn default_command() -> Option<ExitCode> {
 
     // If no subcommand is specified,
     // re-run the program with "--help"
-    let mut subprocess = Command::new(&current_process_name)
-        .arg("--help")
-        .spawn()
-        .ok()?;
+    let mut subprocess = Command::new(&current_process_name).arg("--help").spawn().ok()?;
 
     let child = subprocess.wait().ok()?;
 
@@ -204,4 +168,3 @@ mod main_tests {
         get_application().debug_assert();
     }
 }
-

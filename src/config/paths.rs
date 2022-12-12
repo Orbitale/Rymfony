@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-use std::fs::File;
 use crate::utils::project_directory::get_rymfony_project_directory;
+use std::fs::File;
+use std::path::PathBuf;
 
 pub(crate) fn rymfony_pid_file() -> PathBuf {
     get_rymfony_project_directory().unwrap().join(".rymfony.pid")
@@ -52,31 +52,29 @@ pub(crate) fn get_http_vhost_log_file() -> PathBuf {
 }
 
 pub(crate) fn get_http_process_stderr_file() -> PathBuf {
-    let path = get_rymfony_project_directory().unwrap()
-        .join("log")
-        .join("process.http.stderr");
+    let path = get_rymfony_project_directory().unwrap().join("log").join("process.http.stderr");
 
-    if !path.exists() { File::create(&path).expect("Could not create HTTP process stderr file."); }
+    if !path.exists() {
+        File::create(&path).expect("Could not create HTTP process stderr file.");
+    }
 
     path
 }
 
 pub(crate) fn get_http_process_stdout_file() -> PathBuf {
-    let path = get_rymfony_project_directory().unwrap()
-        .join("log")
-        .join("process.http.stdout");
+    let path = get_rymfony_project_directory().unwrap().join("log").join("process.http.stdout");
 
-    if !path.exists() { File::create(&path).expect("Could not create HTTP process stdout file."); }
+    if !path.exists() {
+        File::create(&path).expect("Could not create HTTP process stdout file.");
+    }
 
     path
 }
 
 pub(crate) fn get_caddy_config_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap()
-        .join("Caddyfile")
+    get_rymfony_project_directory().unwrap().join("Caddyfile")
 }
 
 pub(crate) fn get_caddy_runtime_config_file() -> PathBuf {
-    get_rymfony_project_directory().unwrap()
-        .join("Caddyfile.runtime")
+    get_rymfony_project_directory().unwrap().join("Caddyfile.runtime")
 }

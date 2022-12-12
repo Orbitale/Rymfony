@@ -1,6 +1,6 @@
-use std::process::ExitCode;
 use clap::ArgMatches;
 use clap::Command as ClapCommand;
+use std::process::ExitCode;
 
 pub(crate) struct CommandList {
     pub(crate) commands: Vec<Box<CommandHandler>>,
@@ -21,10 +21,7 @@ pub(crate) struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub(crate) fn new(
-        command_definition: ClapCommand,
-        executor: Box<dyn Fn(&ArgMatches) -> ExitCode>
-    ) -> Self {
+    pub(crate) fn new(command_definition: ClapCommand, executor: Box<dyn Fn(&ArgMatches) -> ExitCode>) -> Self {
         Self { command_definition, executor }
     }
 }

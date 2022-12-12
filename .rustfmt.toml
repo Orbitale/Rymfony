@@ -1,0 +1,10 @@
+newline_style = "Unix"
+max_width = 120
+fn_call_width = 120
+attr_fn_like_width = 120
+struct_lit_width = 100
+struct_variant_width = 100
+array_width = 80
+chain_width = 120
+single_line_if_else_max_width = 100
+match_block_trailing_comma = true

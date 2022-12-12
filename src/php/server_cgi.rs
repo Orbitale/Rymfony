@@ -1,6 +1,7 @@
 use crate::php::structs::PhpServerSapi;
 use crate::utils::project_directory::get_rymfony_project_directory;
-use std::fs::{File, create_dir_all};
+use std::fs::create_dir_all;
+use std::fs::File;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -18,10 +19,7 @@ pub(crate) fn get_start_command(php_bin: String, port: &u16) -> (PhpServerSapi, 
     if !error_log_file.exists() {
         let file_result = File::create(&error_log_file);
         if file_result.is_err() {
-            warn!(
-                "Could not create php-cgi log file in {}",
-                &error_log_file.to_str().unwrap()
-            );
+            warn!("Could not create php-cgi log file in {}", &error_log_file.to_str().unwrap());
         }
     }
 

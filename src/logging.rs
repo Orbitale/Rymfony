@@ -20,7 +20,7 @@ pub fn set_verbosity_value(value: u8, is_quiet: bool) {
         match value {
             1 => level = "DEBUG",           // -v
             v if v >= 2 => level = "TRACE", // -vv
-            _ => {}
+            _ => {},
         }
     }
 
@@ -37,15 +37,9 @@ pub fn set_verbosity_value(value: u8, is_quiet: bool) {
             let target = if value > 2 {
                 let target = format!(" {}", record.target());
                 let max_width = max_target_width(&target);
-                style.set_bold(true).value(Padded {
-                    value: target,
-                    width: max_width,
-                })
+                style.set_bold(true).value(Padded { value: target, width: max_width })
             } else {
-                style.value(Padded {
-                    value: String::from(""),
-                    width: 0,
-                })
+                style.value(Padded { value: String::from(""), width: 0 })
             };
 
             let time = f.timestamp_millis();

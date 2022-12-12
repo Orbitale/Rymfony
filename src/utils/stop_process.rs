@@ -13,9 +13,7 @@ pub(crate) fn stop(pid: &str) {
         .spawn()
         .expect("Could not stop server.");
 
-    child
-        .wait()
-        .expect("An error occured when trying to stop the server");
+    child.wait().expect("An error occured when trying to stop the server");
 }
 
 #[cfg(not(target_family = "windows"))]
@@ -29,7 +27,5 @@ pub(crate) fn stop(pid: &str) {
         .spawn()
         .expect("Could not stop server.");
 
-    child
-        .wait()
-        .expect("An error occured when trying to stop the server");
+    child.wait().expect("An error occured when trying to stop the server");
 }

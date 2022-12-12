@@ -1,22 +1,22 @@
 use crate::utils::project_directory::get_rymfony_project_directory;
 
 use regex::Regex;
-use std::path::PathBuf;
 use std::fs;
+#[cfg(not(target_os = "windows"))]
+use std::os::unix::fs::PermissionsExt;
+use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
-#[cfg(not(target_os="windows"))]
-use std::os::unix::fs::PermissionsExt;
 
-#[cfg(not(target_os="windows"))]
+#[cfg(not(target_os = "windows"))]
 use runas::Command as SudoCommand;
 
 const CADDY_VERSION_REGEX: &'static str = r"^v(2\.\d+\.\d+) ";
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 const CADDY_BIN_FILE: &'static str = "caddy.exe";
 
-#[cfg(not(target_os="windows"))]
+#[cfg(not(target_os = "windows"))]
 const CADDY_BIN_FILE: &'static str = "caddy";
 
 pub(crate) const CADDYFILE: &'static str = "
@@ -73,27 +73,28 @@ pub(crate) fn get_caddy_path() -> PathBuf {
         Err(_) => {
             let path = get_rymfony_project_directory()
                 .expect("Could not get Caddy path from Rymfony directory")
-                .join(CADDY_BIN_FILE)
-            ;
+                .join(CADDY_BIN_FILE);
 
             if !path.exists() {
                 info!("Installing Caddy HTTP server for your project...");
 
-                #[cfg(target_os="windows")]
-                fs::write(&path, include_bytes!("../../bin/caddy.exe")).expect("Could not extract built-in Caddy binary.");
-                #[cfg(not(target_os="windows"))]
+                #[cfg(target_os = "windows")]
+                fs::write(&path, include_bytes!("../../bin/caddy.exe"))
+                    .expect("Could not extract built-in Caddy binary.");
+                #[cfg(not(target_os = "windows"))]
                 fs::write(&path, include_bytes!("../../bin/caddy")).expect("Could not extract built-in Caddy binary.");
 
-                #[cfg(not(target_os="windows"))]
-                fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("Could not make Caddy binary executable.");
+                #[cfg(not(target_os = "windows"))]
+                fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
+                    .expect("Could not make Caddy binary executable.");
 
                 // On linux, we try to use "setcap" to give Caddy the ability to listen to port 80
-                #[cfg(target_os="linux")]
+                #[cfg(target_os = "linux")]
                 set_http_capabilities(&path);
             }
 
             path
-        }
+        },
     };
 
     check_caddy_version(&caddy_path);
@@ -114,8 +115,7 @@ fn check_caddy_version(caddy_path: &PathBuf) {
         .stderr(Stdio::null())
         .arg("version")
         .output()
-        .expect(&format!("Could not execute Caddy at path \"{}\"", caddy_path.to_str().unwrap()))
-    ;
+        .expect(&format!("Could not execute Caddy at path \"{}\"", caddy_path.to_str().unwrap()));
 
     let stdout = String::from_utf8(output.stdout).expect("Could not convert Caddy's output to a string.");
 
@@ -126,7 +126,7 @@ fn check_caddy_version(caddy_path: &PathBuf) {
     }
 }
 
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 fn set_http_capabilities(caddy_path: &PathBuf) {
     // TODO:
     // Checking capabilities might be done with this kind of command:
@@ -147,7 +147,9 @@ fn set_http_capabilities(caddy_path: &PathBuf) {
             .arg("cap_net_bind_service=+ep")
             .arg(&caddy_path.to_str().unwrap())
             .status()
-            .expect("The \"setcap\" command did not execute when trying to give Caddy the ability to listen to port 80.");
+            .expect(
+                "The \"setcap\" command did not execute when trying to give Caddy the ability to listen to port 80.",
+            );
 
         if status.code().unwrap_or(1) != 0 {
             error!("The \"setcap\" command failed when trying to give Caddy the ability to listen to port 80.")

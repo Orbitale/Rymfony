@@ -65,9 +65,7 @@ pub(crate) struct PhpVersion {
 
 impl PhpVersion {
     pub(crate) fn clone(&self) -> PhpVersion {
-        PhpVersion {
-            _version: self._version.clone(),
-        }
+        PhpVersion { _version: self._version.clone() }
     }
 
     pub(crate) fn from_string(version: String) -> PhpVersion {
@@ -77,15 +75,11 @@ impl PhpVersion {
             panic!("Version \"{}\" is not a valid PHP version.", &version);
         }
 
-        PhpVersion {
-            _version: version.clone(),
-        }
+        PhpVersion { _version: version.clone() }
     }
 
     pub(crate) fn new() -> PhpVersion {
-        PhpVersion {
-            _version: "".to_string(),
-        }
+        PhpVersion { _version: "".to_string() }
     }
 
     pub(crate) fn from_str(version: &str) -> PhpVersion {
@@ -210,10 +204,7 @@ impl PhpBinary {
         } else if self.cli != "" {
             return self.cli.clone();
         } else {
-            panic!(
-                "Cannot detect preferred SAPI for PHP \"{}\"",
-                self._version.version()
-            );
+            panic!("Cannot detect preferred SAPI for PHP \"{}\"", self._version.version());
         }
     }
 
@@ -221,16 +212,16 @@ impl PhpBinary {
         match sapi {
             PhpServerSapi::FPM => {
                 self.fpm = path.clone();
-            }
+            },
             PhpServerSapi::CLI => {
                 self.cli = path.clone();
-            }
+            },
             PhpServerSapi::CGI => {
                 self.cgi = path.clone();
-            }
+            },
             PhpServerSapi::Unknown => {
                 panic!("Unknown SAPI \"{}\" at path \"{}\"", &sapi, &path);
-            }
+            },
         }
     }
 

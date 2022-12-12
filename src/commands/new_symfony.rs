@@ -1,11 +1,12 @@
+use crate::command_handling::CommandHandler;
 use clap::arg;
 use clap::ArgMatches;
 use clap::Command as ClapCommand;
 use std::env;
 use std::path::PathBuf;
-use std::process::{Command, ExitCode};
+use std::process::Command;
+use std::process::ExitCode;
 use std::process::Stdio;
-use crate::command_handling::CommandHandler;
 
 pub(crate) fn get_command() -> CommandHandler {
     CommandHandler::new(
@@ -14,8 +15,7 @@ pub(crate) fn get_command() -> CommandHandler {
             .about("Create a new Symfony project")
             .arg(arg!(<directory> "The directory in which the project will be created"))
             .arg(arg!(--full "Use the symfony/website-skeleton instead of the default one"))
-            .arg(arg!(--"no-git" "Do not initialize the project with git"))
-        ,
+            .arg(arg!(--"no-git" "Do not initialize the project with git")),
         Box::new(execute),
     )
 }
@@ -59,11 +59,7 @@ pub(crate) fn execute(args: &ArgMatches) -> ExitCode {
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .arg("create-project")
-        .arg(if full {
-            "symfony/website-skeleton"
-        } else {
-            "symfony/skeleton"
-        })
+        .arg(if full { "symfony/website-skeleton" } else { "symfony/skeleton" })
         .arg(path.to_str().unwrap());
 
     match command.output() {
@@ -73,7 +69,7 @@ pub(crate) fn execute(args: &ArgMatches) -> ExitCode {
             error!("{}", e);
 
             return ExitCode::from(1);
-        }
+        },
     };
 
     if initialize_git {
@@ -95,7 +91,7 @@ pub(crate) fn execute(args: &ArgMatches) -> ExitCode {
                 error!("{}", e);
 
                 return ExitCode::from(1);
-            }
+            },
         };
     }
 

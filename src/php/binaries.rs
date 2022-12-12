@@ -32,10 +32,7 @@ pub(crate) fn get_project_version() -> String {
     php_version = php_version.trim().to_string();
 
     if php_version != "" {
-        debug!(
-            "PHP version set to {} from \".php-version\" file.",
-            php_version
-        );
+        debug!("PHP version set to {} from \".php-version\" file.", php_version);
     }
 
     let mut system = String::from("");
@@ -88,26 +85,11 @@ fn get_all() -> HashMap<PhpVersion, PhpBinary> {
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/sbin")));
     }
 
-    merge_binaries(
-        &mut binaries,
-        binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")),
-    );
-    merge_binaries(
-        &mut binaries,
-        binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/sbin")),
-    );
-    merge_binaries(
-        &mut binaries,
-        binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")),
-    );
-    merge_binaries(
-        &mut binaries,
-        binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/sbin")),
-    );
-    merge_binaries(
-        &mut binaries,
-        binaries_from_dir(PathBuf::from("/usr/local/php*/bin")),
-    );
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/bin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/Cellar/php/*/sbin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/bin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/Cellar/php@*/*/sbin")));
+    merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("/usr/local/php*/bin")));
     if cfg!(target_family = "windows") {
         merge_binaries(&mut binaries, binaries_from_dir(PathBuf::from("c:\\php")));
     }
@@ -120,11 +102,7 @@ fn binaries_from_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
     let path_dirs = path_string
         .to_str()
         .unwrap()
-        .split(if cfg!(target_family = "windows") {
-            ";"
-        } else {
-            ":"
-        })
+        .split(if cfg!(target_family = "windows") { ";" } else { ":" })
         .collect::<Vec<&str>>();
 
     for dir in path_dirs {
@@ -138,11 +116,7 @@ fn binaries_from_rymfony_env(binaries: &mut HashMap<PhpVersion, PhpBinary>) {
     let path_dirs = path_string
         .to_str()
         .unwrap()
-        .split(if cfg!(target_family = "windows") {
-            ";"
-        } else {
-            ":"
-        })
+        .split(if cfg!(target_family = "windows") { ";" } else { ":" })
         .collect::<Vec<&str>>();
 
     for dir in path_dirs {
@@ -189,10 +163,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
         if binary.is_dir() {
             // This means that we have a "php"-like dir.
             // For recursive search, insert a "*" glob character in the "path" variable beforehand.
-            trace!(
-                "Found path \"{}\", but it is a directory.",
-                &binary.to_str().unwrap()
-            );
+            trace!("Found path \"{}\", but it is a directory.", &binary.to_str().unwrap());
             continue;
         }
 
@@ -202,10 +173,7 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
         }
 
         if cfg!(not(target_family = "windows")) && !is_executable(&binary) {
-            warn!(
-                "Path \"{}\" matches, but it is not executable.",
-                &binary.to_str().unwrap()
-            );
+            warn!("Path \"{}\" matches, but it is not executable.", &binary.to_str().unwrap());
             continue;
         }
 
@@ -247,16 +215,10 @@ fn binaries_from_dir(path: PathBuf) -> HashMap<PhpVersion, PhpBinary> {
 }
 
 fn get_binary_metadata(binary: &str) -> Result<(PhpVersion, PhpServerSapi), ()> {
-    let process_result = Command::new(binary)
-        .arg("--version")
-        .stdout(Stdio::piped())
-        .spawn();
+    let process_result = Command::new(binary).arg("--version").stdout(Stdio::piped()).spawn();
 
     if process_result.is_err() {
-        debug!(
-            "Path \"{}\" was detected, but is not a valid PHP binary.",
-            &binary
-        );
+        debug!("Path \"{}\" was detected, but is not a valid PHP binary.", &binary);
 
         return Err(());
     }
@@ -270,20 +232,14 @@ fn get_binary_metadata(binary: &str) -> Result<(PhpVersion, PhpServerSapi), ()> 
     let php_version_output_regex = Regex::new(r"^PHP (\d\.\d+\.\d+)[^ ]* \(([^)]+)\)").unwrap();
 
     if !php_version_output_regex.is_match(&output) {
-        panic!(
-            "Version \"{}\" for PHP binary \"{}\" is invalid.",
-            &output, &binary
-        );
+        panic!("Version \"{}\" for PHP binary \"{}\" is invalid.", &output, &binary);
     }
 
     let capts = php_version_output_regex.captures(&output).unwrap();
     let version = &capts[1];
     let sapi = &capts[2];
 
-    Ok((
-        PhpVersion::from_str(version),
-        PhpServerSapi::from_str(&sapi),
-    ))
+    Ok((PhpVersion::from_str(version), PhpServerSapi::from_str(&sapi)))
 }
 
 fn merge_binaries(into: &mut HashMap<PhpVersion, PhpBinary>, from: HashMap<PhpVersion, PhpBinary>) {

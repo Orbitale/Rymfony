@@ -6,9 +6,9 @@ use std::fs::remove_file;
 use std::path::PathBuf;
 use std::result::Result;
 
+use crate::config::paths;
 use dirs::home_dir;
 use sha2::Digest;
-use crate::config::paths;
 
 #[derive(Debug)]
 struct ProjectDirectoryError(String);
@@ -39,17 +39,11 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
         hasher.update(&cwd.to_str().unwrap().as_bytes());
         let hash = hasher.finalize();
 
-        let rymfony_project_path = PathBuf::from(homestr)
-            .join(".rymfony")
-            .join(format!("{:x}", hash));
+        let rymfony_project_path = PathBuf::from(homestr).join(".rymfony").join(format!("{:x}", hash));
 
         if !rymfony_project_path.is_dir() {
             create_dir_all(&rymfony_project_path).expect(
-                format!(
-                    "Unable to create directory for project {}",
-                    rymfony_project_path.to_str().unwrap()
-                )
-                .as_str(),
+                format!("Unable to create directory for project {}", rymfony_project_path.to_str().unwrap()).as_str(),
             );
         }
 
@@ -58,22 +52,14 @@ pub(crate) fn get_rymfony_project_directory() -> Result<PathBuf, Box<dyn std::er
         return Ok(rymfony_project_path);
     }
 
-    Err(Box::new(ProjectDirectoryError(
-        "Cannot find the \"HOME\" directory".into(),
-    )))
+    Err(Box::new(ProjectDirectoryError("Cannot find the \"HOME\" directory".into())))
 }
 
 fn create_log_directory(rymfony_project_path: &PathBuf) {
     let log_dir = rymfony_project_path.join("log");
 
     if !log_dir.is_dir() {
-        create_dir_all(&log_dir).expect(
-            format!(
-                "Unable to create logs directory for project {}",
-                log_dir.to_str().unwrap()
-            )
-            .as_str(),
-        );
+        create_dir_all(&log_dir)
+            .expect(format!("Unable to create logs directory for project {}", log_dir.to_str().unwrap()).as_str());
     }
-
 }

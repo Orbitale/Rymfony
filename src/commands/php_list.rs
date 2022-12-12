@@ -1,10 +1,10 @@
+use crate::command_handling::CommandHandler;
 use clap::arg;
 use clap::ArgMatches;
 use clap::Command as ClapCommand;
 use prettytable::format;
 use prettytable::Table;
 use std::process::ExitCode;
-use crate::command_handling::CommandHandler;
 
 use crate::config::config::clear_binaries_list;
 use crate::config::config::save_binaries_to_config;
@@ -53,18 +53,9 @@ pub(crate) fn execute(args: &ArgMatches) -> ExitCode {
     let format = format::FormatBuilder::new()
         .column_separator('│')
         .borders('│')
-        .separators(
-            &[format::LinePosition::Top],
-            format::LineSeparator::new('─', '┬', '┌', '┐'),
-        )
-        .separators(
-            &[format::LinePosition::Bottom],
-            format::LineSeparator::new('─', '┴', '└', '┘'),
-        )
-        .separators(
-            &[format::LinePosition::Title],
-            format::LineSeparator::new('─', '┼', '├', '┤'),
-        )
+        .separators(&[format::LinePosition::Top], format::LineSeparator::new('─', '┬', '┌', '┐'))
+        .separators(&[format::LinePosition::Bottom], format::LineSeparator::new('─', '┴', '└', '┘'))
+        .separators(&[format::LinePosition::Title], format::LineSeparator::new('─', '┼', '├', '┤'))
         .padding(1, 1)
         .build();
 

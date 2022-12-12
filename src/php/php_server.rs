@@ -5,14 +5,14 @@ use crate::php::server_cgi::get_start_command as get_cgi_start_command;
 use crate::php::server_fpm::get_start_command as get_fpm_start_command;
 use crate::php::structs::PhpServerSapi;
 
+use crate::config::paths::php_server_pid_file;
+use crate::utils::network::find_available_port;
 use is_executable::IsExecutable;
 use std::path::PathBuf;
 use std::process::Child;
 use std::process::Command;
 use std::thread;
 use std::time;
-use crate::config::paths::php_server_pid_file;
-use crate::utils::network::find_available_port;
 
 const PHP_DEFAULT_PORT: u16 = 60000;
 
@@ -29,10 +29,7 @@ pub(crate) fn get_php_server_start_input() -> (Command, PhpServerStartInput) {
     let phpbin_path = PathBuf::from(php_bin.as_str());
 
     if !phpbin_path.is_executable() {
-        error!(
-            "PHP binary not found or not executable: {}",
-            php_bin.as_str()
-        );
+        error!("PHP binary not found or not executable: {}", php_bin.as_str());
         error!("You can execute \"rymfony php:list --refresh\" to update binaries paths cache.");
         panic!("Unable to start the required PHP binary");
     }
@@ -41,23 +38,17 @@ pub(crate) fn get_php_server_start_input() -> (Command, PhpServerStartInput) {
 
     let (php_server_sapi, command) = get_php_server_start_command(&php_bin, &php_server_port);
 
-    (command, PhpServerStartInput {
-        sapi: php_server_sapi,
-        port: php_server_port,
-        php_bin: String::from(php_bin),
-    })
+    (command, PhpServerStartInput { sapi: php_server_sapi, port: php_server_port, php_bin: String::from(php_bin) })
 }
 
 fn get_php_server_start_command(php_bin: &String, port: &u16) -> (PhpServerSapi, Command) {
-    let (sapi, command) =
-        if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
-            get_fpm_start_command(php_bin.clone(), port)
-        } else if php_bin.contains("-cgi") {
-            get_cgi_start_command(php_bin.clone(), port)
-        } else {
-            panic!("Rymfony only supports PHP-FPM (linux) and PHP-CGI (Windows), and none of these SAPIs was found.");
-        }
-    ;
+    let (sapi, command) = if php_bin.contains("-fpm") && cfg!(not(target_family = "windows")) {
+        get_fpm_start_command(php_bin.clone(), port)
+    } else if php_bin.contains("-cgi") {
+        get_cgi_start_command(php_bin.clone(), port)
+    } else {
+        panic!("Rymfony only supports PHP-FPM (linux) and PHP-CGI (Windows), and none of these SAPIs was found.");
+    };
 
     (sapi, command)
 }
@@ -73,7 +64,7 @@ pub(crate) fn start_php_server(command: &mut Command, input: PhpServerStartInput
         Ok(Some(status)) => panic!("PHP server exited with {}", status),
         Ok(None) => {
             info!("PHP server is ready and listening to port {}", &input.port);
-        }
+        },
         Err(e) => panic!("An error occured when checking PHP server health: {:?}", e),
     }
 

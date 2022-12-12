@@ -1,19 +1,14 @@
+use crate::command_handling::CommandHandler;
+use crate::config::paths;
+use crate::utils::project_directory::clean_rymfony_runtime_files;
+use crate::utils::stop_process;
 use clap::ArgMatches;
 use clap::Command as ClapCommand;
 use std::fs;
 use std::process::ExitCode;
-use crate::config::paths;
-use crate::command_handling::CommandHandler;
-use crate::utils::project_directory::clean_rymfony_runtime_files;
-use crate::utils::stop_process;
 
 pub(crate) fn get_command() -> CommandHandler {
-    CommandHandler::new(
-    ClapCommand::new("stop")
-        .about("Stops a potentially running HTTP server")
-    ,
-    Box::new(execute),
-    )
+    CommandHandler::new(ClapCommand::new("stop").about("Stops a potentially running HTTP server"), Box::new(execute))
 }
 
 pub(crate) fn execute(_args: &ArgMatches) -> ExitCode {
