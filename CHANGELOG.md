@@ -1,3 +1,7 @@
+# v0.4.6
+
+* Pass missing host to serve background command
+
 # v0.4.5
 
 * Update release process on github actions

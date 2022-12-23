@@ -264,6 +264,11 @@ fn serve_background(args: &ArgMatches) -> ExitCode {
         cmd.arg("--passthru").arg(passthru);
     }
 
+    let host = args.get_one::<String>("host").map(|s| s.as_str()).unwrap_or("").to_string();
+    if host != "" {
+        cmd.arg("--host").arg(host);
+    }
+
     let subprocess = cmd.spawn().expect("Failed to start server as a background process");
 
     let pid = subprocess.id();
