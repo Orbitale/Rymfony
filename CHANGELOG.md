@@ -1,3 +1,7 @@
+# v0.4.5
+
+* Update release process on github actions
+
 # v0.4.4
 
 * Fix a bug in the arguments of `rymfony serve --daemon`
