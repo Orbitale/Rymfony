@@ -253,13 +253,15 @@ fn serve_background(args: &ArgMatches) -> ExitCode {
     if args.get_flag("expose-server-header") {
         cmd.arg("--expose-server-header");
     }
-    if args.get_flag("document-root") {
-        cmd.arg("--document-root")
-            .arg(args.get_one::<String>("document-root").map(|s| s.as_str()).unwrap_or("").to_string());
+
+    let document_root = args.get_one::<String>("document-root").map(|s| s.as_str()).unwrap_or("").to_string();
+    if document_root != "" {
+        cmd.arg("--document-root").arg(document_root);
     }
-    if args.get_flag("passthru") {
-        cmd.arg("--passthru")
-            .arg(args.get_one::<String>("passthru").map(|s| s.as_str()).unwrap_or("index.php").to_string());
+
+    let passthru = args.get_one::<String>("passthru").map(|s| s.as_str()).unwrap_or("").to_string();
+    if passthru != "" {
+        cmd.arg("--passthru").arg(passthru);
     }
 
     let subprocess = cmd.spawn().expect("Failed to start server as a background process");

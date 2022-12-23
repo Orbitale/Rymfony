@@ -1,3 +1,7 @@
+# v0.4.4
+
+* Fix a bug in the arguments of `rymfony serve --daemon`
+
 # v0.4.3
 
 * Update all Rust dependencies
