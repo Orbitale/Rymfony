@@ -37,7 +37,7 @@ jobs:
                   name: release-url
                   path: release-url.txt
 
-    build:
+    build-ubuntu:
         runs-on: ${{ matrix.os }}
         needs: [check-release]
         strategy:
@@ -48,14 +48,28 @@ jobs:
         steps:
             - uses: actions/checkout@master
 
-            - name: Setup cache
-              uses: actions/cache@v2
+            - name: Get Composer Cache Directory
+              id: composer-cache
+              run: |
+                echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+            - name: Setup PHP cache
+              uses: actions/cache@v3
+              with:
+                path: ${{ steps.composer-cache.outputs.dir }}
+                key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                restore-keys: |
+                  ${{ runner.os }}-composer-
+
+            - name: Setup Rust cache
+              uses: actions/cache@v3
               with:
                   path: |
-                      ~/.cargo/registry
-                      ~/.cargo/git
-                      target/release/build
-                      target/release/deps
+                      ~/.cargo/bin/
+                      ~/.cargo/registry/index/
+                      ~/.cargo/registry/cache/
+                      ~/.cargo/git/db/
+                      target/
                   key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
             - uses: hecrj/setup-rust-action@v1
@@ -79,17 +93,17 @@ jobs:
                   if touch "$artifacts_path/release-url.txt" ; then
                       RELEASE_URL="$(cat "$artifacts_path/release-url.txt")"
                       echo "Release url: $RELEASE_URL"
-                      echo "name=RELEASE_URL=$RELEASE_URL" >> $GITHUB_OUTPUT
+                      echo "RELEASE_URL=$RELEASE_URL" >> $GITHUB_OUTPUT
                   fi
 
-                  echo "name=GITHUB_SHA_SHORT=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+                  echo "GITHUB_SHA_SHORT=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
-                  echo "name=RELEASE_VERSION="${GITHUB_REF#refs/tags/*}"" >> $GITHUB_OUTPUT
+                  echo "RELEASE_VERSION="${GITHUB_REF#refs/tags/*}"" >> $GITHUB_OUTPUT
 
                   export RELEASE_OS="${{ matrix.os }}"
-                  echo "name=RELEASE_OS=${RELEASE_OS/-latest/}" >> $GITHUB_OUTPUT
+                  echo "RELEASE_OS=${RELEASE_OS/-latest/}" >> $GITHUB_OUTPUT
 
-                  echo "name=RELEASE_DATE=`date "+%Y-%m-%d %H:%M:%S"`" >> $GITHUB_OUTPUT
+                  echo "RELEASE_DATE=`date "+%Y-%m-%d %H:%M:%S"`" >> $GITHUB_OUTPUT
             - name: (release only) Save build metadata
               if: startsWith(github.ref, 'refs/tags/')
               run: |
@@ -157,14 +171,15 @@ jobs:
         steps:
             - uses: actions/checkout@master
 
-            - name: Setup cache
+            - name: Setup Rust cache
               uses: actions/cache@v2
               with:
                   path: |
-                      %HOME%/.cargo/registry
-                      %HOME%/.cargo/git
-                      target/release/build
-                      target/release/deps
+                      %HOME%/.cargo/bin/
+                      %HOME%/.cargo/registry/index/
+                      %HOME%/.cargo/registry/cache/
+                      %HOME%/.cargo/git/db/
+                      target/
                   key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
             - uses: hecrj/setup-rust-action@v1
@@ -189,17 +204,17 @@ jobs:
                   if touch "$artifacts_path/release-url.txt" ; then
                       RELEASE_URL="$(cat "$artifacts_path/release-url.txt")"
                       echo "Release url: $RELEASE_URL"
-                      echo "name=RELEASE_URL=$RELEASE_URL" >> $GITHUB_OUTPUT
+                      echo "RELEASE_URL=$RELEASE_URL" >> $GITHUB_OUTPUT
                   fi
 
-                  echo "name=GITHUB_SHA_SHORT=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+                  echo "GITHUB_SHA_SHORT=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
-                  echo "name=RELEASE_VERSION="${GITHUB_REF#refs/tags/*}"" >> $GITHUB_OUTPUT
+                  echo "RELEASE_VERSION="${GITHUB_REF#refs/tags/*}"" >> $GITHUB_OUTPUT
 
                   export RELEASE_OS="${{ matrix.os }}"
-                  echo "name=RELEASE_OS=${RELEASE_OS/-latest/}" >> $GITHUB_OUTPUT
+                  echo "RELEASE_OS=${RELEASE_OS/-latest/}" >> $GITHUB_OUTPUT
 
-                  echo "name=RELEASE_DATE=`date "+%Y-%m-%d %H:%M:%S"`" >> $GITHUB_OUTPUT
+                  echo "RELEASE_DATE=`date "+%Y-%m-%d %H:%M:%S"`" >> $GITHUB_OUTPUT
 
             - name: (release only) Save build metadata
               if: startsWith(github.ref, 'refs/tags/')
@@ -243,7 +258,7 @@ jobs:
         name: Remove artifacts
         runs-on: ubuntu-latest
         needs:
-            - build
+            - build-ubuntu
             - build-windows
         steps:
             - name: Remove URL artifacts
